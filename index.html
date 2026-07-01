@@ -454,6 +454,17 @@ button{cursor:pointer}
   .cards-container{display:block}
   .sort-sel{display:none}
   .stats-row{grid-template-columns:repeat(2,1fr)}
+
+  /* Header: evitar que el título largo desborde y se superponga */
+  .header{height:auto;min-height:54px;flex-wrap:wrap;padding:8px 12px;row-gap:4px}
+  .header-title{font-size:13.5px;letter-spacing:0.3px;white-space:nowrap}
+  .sync-lbl{display:none}
+  .header-today{margin-left:auto!important;font-size:10.5px}
+
+  /* Pie de tarjeta: apilar aviso y botones para que nada se corte */
+  .card-foot{flex-direction:column;align-items:stretch;gap:8px}
+  .card-btns{flex-wrap:wrap}
+  .card-btn{flex:1 1 calc(50% - 6px);text-align:center;padding:9px 8px}
 }
 @media(min-width:701px){.cards-container{display:none!important}}
 </style>
