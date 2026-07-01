@@ -466,6 +466,11 @@ button{cursor:pointer}
   .card-btns{flex-wrap:wrap}
   .card-btn{flex:1 1 calc(50% - 6px);text-align:center;padding:9px 8px}
 }
+@media(max-width:480px){
+  /* Formulario del modal: una sola columna para que no se desborde
+     (el input de fecha necesita más ancho mínimo que 2 columnas permiten) */
+  .form-grid{grid-template-columns:1fr}
+}
 @media(min-width:701px){.cards-container{display:none!important}}
 </style>
 </head>
