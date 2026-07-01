@@ -550,6 +550,9 @@ button{cursor:pointer}
   <div class="sync-dot off" id="sync-dot" title="Sin sincronización" onclick="openSyncInfo()"></div>
   <span class="sync-lbl" id="sync-lbl" onclick="openSyncInfo()">sin sync</span>
   <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Cambiar tema"></button>
+  <button class="theme-btn" id="trash-btn" onclick="openTrash()" title="Papelera">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+  </button>
   <div class="header-today" style="margin-left:8px">HOY: <strong id="hoy"></strong></div>
 </header>
 
@@ -769,6 +772,17 @@ button{cursor:pointer}
 </div>
 
 <!-- GALLERY MODAL -->
+<div class="gallery-overlay" id="trash-ov" style="display:none" onclick="if(event.target===this)closeTrash()">
+  <div class="gallery-box">
+    <div class="gallery-head">
+      <span class="gallery-ttl">PAPELERA</span>
+      <button class="gallery-x" onclick="closeTrash()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="gallery-body"><div id="trash-list"></div></div>
+  </div>
+</div>
 <div class="gallery-overlay" id="gallery-ov" style="display:none" onclick="if(event.target===this)closeGallery()">
   <div class="gallery-box">
     <div class="gallery-head">
@@ -829,6 +843,8 @@ let data = [];
 let nextId = 1;
 let editId = null, pendingDelId = null;
 let fbRef = null;   // Firebase database reference
+let fbTrashRef = null;
+let trashData = [];
 let useFirebase = false;
 
 // ═══════════════════════════════════════
@@ -865,7 +881,15 @@ function initFirebaseDb(app) {
   try {
     const db = firebase.database(app);
     fbRef = db.ref('leon_clientes');
+    fbTrashRef = db.ref('leon_clientes_trash');
     useFirebase = true;
+
+    // sincronizar papelera
+    fbTrashRef.on('value', snapshot => {
+      const val = snapshot.val();
+      trashData = val ? Object.values(val).sort((a,b) => (b.deletedAt||0) - (a.deletedAt||0)) : [];
+      purgeOldTrash();
+    }, err => console.error('Trash sync error:', err));
 
     // real-time listener
     fbRef.on('value', snapshot => {
@@ -918,15 +942,76 @@ function saveRecord(row) {
   }
 }
 
-function deleteRecord(id) {
+function deleteRecord(id, row) {
   if (useFirebase && fbRef) {
     setSyncStatus('syncing', 'eliminando…');
-    fbRef.child('c' + id).remove()
+    const trashRow = { ...row, deletedAt: Date.now() };
+    fbTrashRef.child('c' + id).set(trashRow)
+      .then(() => fbRef.child('c' + id).remove())
       .then(() => setSyncStatus('ok', 'sincronizado'))
       .catch(e => { setSyncStatus('err', 'error sync'); console.error(e); });
   } else {
     localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
   }
+}
+
+const TRASH_DIAS = 30;
+function purgeOldTrash() {
+  if (!useFirebase || !fbTrashRef) return;
+  const limite = Date.now() - TRASH_DIAS*24*60*60*1000;
+  trashData.forEach(r => {
+    if ((r.deletedAt||0) < limite) {
+      fbTrashRef.child('c' + r.id).remove().catch(()=>{});
+    }
+  });
+}
+function openTrash() {
+  renderTrashList();
+  document.getElementById('trash-ov').style.display = 'flex';
+}
+function closeTrash() {
+  document.getElementById('trash-ov').style.display = 'none';
+}
+function renderTrashList() {
+  const cc = document.getElementById('trash-list');
+  if (!cc) return;
+  if (!trashData.length) {
+    cc.innerHTML = '<div class="historial-empty">La papelera está vacía.</div>';
+    return;
+  }
+  cc.innerHTML = trashData.map(r => {
+    const diasEnPapelera = Math.floor((Date.now() - (r.deletedAt||0)) / (24*60*60*1000));
+    const diasRestantes = Math.max(0, TRASH_DIAS - diasEnPapelera);
+    return `
+    <div class="historial-row" style="align-items:center">
+      <span>
+        <span class="h-fecha">${esc(r.cliente||'Sin nombre')}</span>
+        <span class="h-prev">${[r.lugar,r.comuna].filter(Boolean).join(' · ')} — se borra en ${diasRestantes}d</span>
+      </span>
+      <span style="display:flex;gap:6px">
+        <button type="button" class="btn-add-equipo" style="width:auto;padding:6px 12px;margin:0" onclick="restoreFromTrash(${r.id})">↺ Restaurar</button>
+        <button type="button" class="equipo-del" onclick="purgeFromTrash(${r.id})" title="Eliminar definitivamente">✕</button>
+      </span>
+    </div>`;
+  }).join('');
+}
+function restoreFromTrash(id) {
+  const row = trashData.find(r => r.id === id);
+  if (!row || !useFirebase || !fbRef) return;
+  const restored = { ...row };
+  delete restored.deletedAt;
+  setSyncStatus('syncing', 'restaurando…');
+  fbRef.child('c' + id).set(restored)
+    .then(() => fbTrashRef.child('c' + id).remove())
+    .then(() => { setSyncStatus('ok', 'sincronizado'); renderTrashList(); toast('Cliente restaurado'); })
+    .catch(e => { setSyncStatus('err', 'error sync'); console.error(e); });
+}
+function purgeFromTrash(id) {
+  if (!confirm('¿Eliminar definitivamente? Esta acción no se puede deshacer.')) return;
+  if (!useFirebase || !fbTrashRef) return;
+  fbTrashRef.child('c' + id).remove()
+    .then(() => { renderTrashList(); toast('Eliminado definitivamente'); })
+    .catch(e => console.error(e));
 }
 
 // ═══════════════════════════════════════
@@ -1358,11 +1443,12 @@ function askDelete(id) {
 function closeConfirm() { document.getElementById('conf-ov').style.display='none'; pendingDelId=null; }
 function confirmDelete() {
   if (!pendingDelId) return;
+  const row = data.find(r=>r.id===pendingDelId);
   data = data.filter(r=>r.id!==pendingDelId);
-  deleteRecord(pendingDelId);
+  deleteRecord(pendingDelId, row);
   closeConfirm();
   if (!useFirebase) render();
-  toast('Cliente eliminado');
+  toast('Cliente movido a la papelera (se elimina en 30 días)');
 }
 
 // ═══════════════════════════════════════
