@@ -209,6 +209,11 @@ button{cursor:pointer}
 .act-btn.wa:hover{background:rgba(37,211,102,0.14);border-color:#25d366}
 .card-btn.wa{border-color:rgba(37,211,102,0.35);color:#25d366;background:rgba(37,211,102,0.06)}
 .card-btn.wa:hover{background:rgba(37,211,102,0.16)}
+.act-btn.mant{color:var(--green,#3fb950);border-color:rgba(63,185,80,0.35)}
+.act-btn.mant:hover{background:rgba(63,185,80,0.14);border-color:var(--green,#3fb950)}
+.card-btn.mant{border-color:rgba(63,185,80,0.35);color:var(--green,#3fb950);background:rgba(63,185,80,0.06)}
+.card-btn.mant:hover{background:rgba(63,185,80,0.16)}
+.card-historial{font-size:11px;color:var(--text3);margin-top:4px}
 
 /* ── FAB ── */
 .fab{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));right:18px;width:52px;height:52px;border-radius:50%;background:var(--gold);color:#0a0e19;border:none;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(240,170,32,0.4),0 2px 8px rgba(0,0,0,0.5);z-index:90;transition:transform .15s,box-shadow .15s}
@@ -1126,6 +1131,9 @@ function render() {
         <td class="td-obs"><textarea class="obs-ta" data-id="${r.id}" data-f="obs" onchange="ie(this)" oninput="autoResize(this)" placeholder="—" rows="1">${esc(r.obs)}</textarea></td>
         <td class="td-center">
           <div class="row-acts">
+            <button class="act-btn mant" onclick="marcarMantencionHoy(${r.id})" title="Registrar mantención de hoy">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </button>
             ${r.telefono?`<button class="act-btn wa" onclick="waCliente(${r.id})" title="WhatsApp"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.3A7.9 7.9 0 0 0 12 4a8 8 0 0 0-6.9 12l-1 3.6 3.7-1a8 8 0 0 0 3.8 1h.3a8 8 0 0 0 5.7-13.3zM12 18.5a6.6 6.6 0 0 1-3.4-.9l-.2-.1-2.2.6.6-2.1-.2-.3A6.6 6.6 0 1 1 12 18.5zm3.6-4.9c-.2-.1-1.2-.6-1.3-.6s-.3-.1-.4.1l-.6.7c-.1.1-.2.2-.4 0a5.4 5.4 0 0 1-1.6-1 6 6 0 0 1-1.1-1.4c-.1-.2 0-.3.1-.4l.3-.4.2-.3v-.4l-.6-1.4c-.1-.3-.3-.3-.4-.3h-.4a.7.7 0 0 0-.5.3 2.1 2.1 0 0 0-.7 1.6 3.7 3.7 0 0 0 .8 2 8.3 8.3 0 0 0 3.2 2.8c1.1.5 1.6.5 2.1.5a1.8 1.8 0 0 0 1.2-.9 1.5 1.5 0 0 0 .1-.8c-.1-.1-.2-.1-.4-.2z"/></svg></button>`:''}
             <button class="act-btn${(r.photos&&r.photos.length)?' has-photos':''}" onclick="openGallery(${r.id})" title="Fotos (${(r.photos||[]).length})">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -1168,6 +1176,7 @@ function render() {
           ${r.telefono?`<div class="card-field full"><label>TELÉFONO</label><a class="card-phone-link" href="tel:+569${r.telefono}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.81a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+569 ${r.telefono.replace(/(\d{4})(\d{4})/,'$1 $2')}</a></div>`:''}
           <div class="card-field full"><label>SERVICIO</label><div class="card-field-val">${esc(r.servicio)||'—'}</div></div>
           ${(r.equipos&&r.equipos.length)?`<div class="card-field full"><label>EQUIPOS (${r.equipos.length})</label><div class="card-equipos">${r.equipos.map(eq=>`<div>• <b>${esc([eq.marca,eq.modelo].filter(Boolean).join(' '))||'Equipo'}</b>${eq.btu?' '+esc(eq.btu)+' BTU':''}${eq.ubicacion?' — '+esc(eq.ubicacion):''}</div>`).join('')}</div></div>`:''}
+          ${(r.historial&&r.historial.length)?`<div class="card-historial">🔧 ${r.historial.length} mantención${r.historial.length>1?'es':''} registrada${r.historial.length>1?'s':''} — última: ${r.historial[r.historial.length-1].fecha.split('-').reverse().join('-')}</div>`:''}
           <div class="card-field"><label>INICIO</label><div class="card-field-val">${r.inicia?r.inicia.split('-').reverse().join('-'):'—'}</div></div>
           <div class="card-field"><label>DURACIÓN</label><div class="card-field-val">${r.duracion} meses</div></div>
           <div class="card-field full"><label>FECHA FINAL</label><div class="card-fin-wrap"><div class="card-field-val" style="color:${stDateColor};font-weight:600">${fmtFinal(r)}</div></div>
@@ -1187,6 +1196,7 @@ function render() {
             ${r.aviso?'✓ Aviso enviado':'Marcar aviso enviado'}
           </label>
           <div class="card-btns">
+            <button class="card-btn mant" onclick="marcarMantencionHoy(${r.id})">✓ Mantención hoy</button>
             ${r.telefono?`<button class="card-btn wa" onclick="waCliente(${r.id})">WhatsApp</button>`:''}
             <button class="card-btn" onclick="openModal(${r.id})">Editar</button>
             <button class="card-btn del" onclick="askDelete(${r.id})">Eliminar</button>
@@ -1214,6 +1224,19 @@ function ta(el) {
   row.aviso = el.checked;
   saveRecord(row);
   render();
+}
+function marcarMantencionHoy(id) {
+  const row = data.find(r=>r.id===id);
+  if (!row) return;
+  const hoyStr = new Date().toISOString().slice(0,10);
+  if (!confirm('¿Registrar mantención realizada hoy para "'+(row.cliente||'este cliente')+'"?\n\nEsto guardará la fecha en el historial y recalculará el próximo vencimiento ('+(row.duracion||6)+' meses desde hoy).')) return;
+  if (!row.historial) row.historial = [];
+  row.historial.push({ fecha: hoyStr, inicioPrevio: row.inicia||null });
+  row.inicia = hoyStr;
+  row.aviso = false;
+  saveRecord(row);
+  render();
+  toast('Mantención registrada — próximo vencimiento actualizado');
 }
 
 // ═══════════════════════════════════════
