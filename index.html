@@ -310,6 +310,16 @@ button{cursor:pointer}
 /* ── PHOTOS ── */
 .photo-sec-lbl{font-size:9px;font-weight:700;letter-spacing:0.8px;color:var(--text3);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:5px}
 .photo-grid{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start;min-height:72px}
+.equipo-row{display:grid;grid-template-columns:1fr 1fr 70px 1fr auto;gap:6px;margin-bottom:6px;align-items:center}
+@media(max-width:520px){.equipo-row{grid-template-columns:1fr 1fr;grid-template-areas:"marca modelo" "btu ubic" "del del"}}
+.equipo-row input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:12.5px;color:var(--text);width:100%;box-sizing:border-box}
+.equipo-row input:focus{outline:none;border-color:var(--gold)}
+.equipo-del{background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.25);color:var(--red);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;line-height:1;flex-shrink:0}
+.btn-add-equipo{background:var(--surface2);border:1px dashed var(--border2);color:var(--text2);border-radius:6px;padding:8px 12px;font-size:12.5px;font-weight:600;cursor:pointer;width:100%;margin-top:2px}
+.btn-add-equipo:hover{background:var(--surface3);color:var(--gold);border-color:var(--gold)}
+.card-equipos{font-size:11.5px;color:var(--text2);line-height:1.6;margin-top:2px}
+.card-equipos b{color:var(--text)}
+
 .photo-wrap{position:relative;flex-shrink:0}
 .photo-thumb{width:72px;height:72px;border-radius:7px;object-fit:cover;cursor:pointer;border:1px solid var(--border);display:block;transition:opacity .15s}
 .photo-thumb:hover{opacity:.80}
@@ -692,6 +702,14 @@ button{cursor:pointer}
             <option value="6" selected>6 meses</option>
             <option value="12">12 meses</option>
           </select>
+        </div>
+        <div class="ff full">
+          <label>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:4px"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M6 14h.01M10 10h4M10 14h4"/></svg>
+            EQUIPOS INSTALADOS
+          </label>
+          <div id="equipos-list"></div>
+          <button type="button" class="btn-add-equipo" onclick="addEquipoRow()">+ Agregar equipo</button>
         </div>
         <div class="ff full"><label>OBSERVACIÓN</label><textarea id="fo" rows="3" placeholder="Notas, recordatorios, detalles..."></textarea></div>
         <div class="ff full">
@@ -1147,6 +1165,7 @@ function render() {
           ${(r.direccion||r.detalle)?`<div class="card-field full"><label>DIRECCIÓN</label><div class="card-addr">${esc([r.direccion,r.detalle].filter(Boolean).join(' — '))}</div></div>`:''}
           ${r.telefono?`<div class="card-field full"><label>TELÉFONO</label><a class="card-phone-link" href="tel:+569${r.telefono}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.81a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+569 ${r.telefono.replace(/(\d{4})(\d{4})/,'$1 $2')}</a></div>`:''}
           <div class="card-field full"><label>SERVICIO</label><div class="card-field-val">${esc(r.servicio)||'—'}</div></div>
+          ${(r.equipos&&r.equipos.length)?`<div class="card-field full"><label>EQUIPOS (${r.equipos.length})</label><div class="card-equipos">${r.equipos.map(eq=>`<div>• <b>${esc([eq.marca,eq.modelo].filter(Boolean).join(' '))||'Equipo'}</b>${eq.btu?' '+esc(eq.btu)+' BTU':''}${eq.ubicacion?' — '+esc(eq.ubicacion):''}</div>`).join('')}</div></div>`:''}
           <div class="card-field"><label>INICIO</label><div class="card-field-val">${r.inicia?r.inicia.split('-').reverse().join('-'):'—'}</div></div>
           <div class="card-field"><label>DURACIÓN</label><div class="card-field-val">${r.duracion} meses</div></div>
           <div class="card-field full"><label>FECHA FINAL</label><div class="card-fin-wrap"><div class="card-field-val" style="color:${stDateColor};font-weight:600">${fmtFinal(r)}</div></div>
@@ -1227,6 +1246,8 @@ function openModal(id) {
   toggleAvisoStyle();
   modalPhotos = (r?.photos||[]).map(p=>({...p}));
   renderModalPhotos();
+  modalEquipos = (r?.equipos||[]).map(eq=>({...eq}));
+  renderEquiposModal();
   document.getElementById('modal-ov').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   const ta = document.getElementById('fo');
@@ -1255,6 +1276,7 @@ function saveModal() {
     aviso: document.getElementById('fav').checked,
     obs: document.getElementById('fo').value.trim(),
     photos: modalPhotos,
+    equipos: modalEquipos.filter(eq => (eq.marca||eq.modelo||eq.btu||eq.ubicacion||'').toString().trim()),
   };
   if (editId) {
     const i = data.findIndex(r=>r.id===editId);
@@ -1313,11 +1335,37 @@ function toast(msg) {
 // FOTOS
 // ═══════════════════════════════════════
 let modalPhotos = [];
+let modalEquipos = [];
 let cardPhotoTargetId = null;
 let galleryRecId = null;
 let lightboxPhotos = [];
 let lightboxIdx = 0;
 let lightboxRecId = null;
+
+function renderEquiposModal() {
+  const cc = document.getElementById('equipos-list');
+  if (!cc) return;
+  cc.innerHTML = modalEquipos.map((eq, i) => `
+    <div class="equipo-row">
+      <input placeholder="Marca (ej: Vesta)" value="${esc(eq.marca||'')}" oninput="updateEquipoField(${i},'marca',this.value)"/>
+      <input placeholder="Modelo (ej: Inverter R32)" value="${esc(eq.modelo||'')}" oninput="updateEquipoField(${i},'modelo',this.value)"/>
+      <input placeholder="BTU" value="${esc(eq.btu||'')}" oninput="updateEquipoField(${i},'btu',this.value)"/>
+      <input placeholder="Ubicación (ej: Dormitorio)" value="${esc(eq.ubicacion||'')}" oninput="updateEquipoField(${i},'ubicacion',this.value)"/>
+      <button type="button" class="equipo-del" onclick="removeEquipoRow(${i})" title="Eliminar equipo">✕</button>
+    </div>
+  `).join('');
+}
+function addEquipoRow() {
+  modalEquipos.push({marca:'',modelo:'',btu:'',ubicacion:''});
+  renderEquiposModal();
+}
+function removeEquipoRow(i) {
+  modalEquipos.splice(i,1);
+  renderEquiposModal();
+}
+function updateEquipoField(i, campo, val) {
+  if (modalEquipos[i]) modalEquipos[i][campo] = val;
+}
 
 function compressImage(file) {
   return new Promise(resolve => {
