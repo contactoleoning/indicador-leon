@@ -214,6 +214,10 @@ button{cursor:pointer}
 .card-btn.mant{border-color:rgba(63,185,80,0.35);color:var(--green,#3fb950);background:rgba(63,185,80,0.06)}
 .card-btn.mant:hover{background:rgba(63,185,80,0.16)}
 .card-historial{font-size:11px;color:var(--text3);margin-top:4px}
+.historial-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12.5px}
+.historial-row .h-fecha{color:var(--text);font-weight:600}
+.historial-row .h-prev{color:var(--text3);font-size:11px;margin-left:6px}
+.historial-empty{font-size:12px;color:var(--text3);padding:8px 2px;font-style:italic}
 
 /* ── FAB ── */
 .fab{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));right:18px;width:52px;height:52px;border-radius:50%;background:var(--gold);color:#0a0e19;border:none;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(240,170,32,0.4),0 2px 8px rgba(0,0,0,0.5);z-index:90;transition:transform .15s,box-shadow .15s}
@@ -733,6 +737,13 @@ button{cursor:pointer}
           </label>
           <div id="equipos-list"></div>
           <button type="button" class="btn-add-equipo" onclick="addEquipoRow()">+ Agregar equipo</button>
+        </div>
+        <div class="ff full">
+          <label>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:4px"><path d="M20 6L9 17l-5-5"/></svg>
+            HISTORIAL DE MANTENCIONES
+          </label>
+          <div id="historial-list"></div>
         </div>
         <div class="ff full"><label>OBSERVACIÓN</label><textarea id="fo" rows="3" placeholder="Notas, recordatorios, detalles..."></textarea></div>
         <div class="ff full">
@@ -1289,6 +1300,8 @@ function openModal(id) {
   renderModalPhotos();
   modalEquipos = (r?.equipos||[]).map(eq=>({...eq}));
   renderEquiposModal();
+  modalHistorial = (r?.historial||[]).map(h=>({...h}));
+  renderHistorialModal();
   document.getElementById('modal-ov').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   const ta = document.getElementById('fo');
@@ -1318,6 +1331,7 @@ function saveModal() {
     obs: document.getElementById('fo').value.trim(),
     photos: modalPhotos,
     equipos: modalEquipos.filter(eq => (eq.marca||eq.modelo||eq.btu||eq.ubicacion||'').toString().trim()),
+    historial: modalHistorial,
   };
   if (editId) {
     const i = data.findIndex(r=>r.id===editId);
@@ -1377,6 +1391,7 @@ function toast(msg) {
 // ═══════════════════════════════════════
 let modalPhotos = [];
 let modalEquipos = [];
+let modalHistorial = [];
 let cardPhotoTargetId = null;
 let galleryRecId = null;
 let lightboxPhotos = [];
@@ -1406,6 +1421,27 @@ function removeEquipoRow(i) {
 }
 function updateEquipoField(i, campo, val) {
   if (modalEquipos[i]) modalEquipos[i][campo] = val;
+}
+
+function renderHistorialModal() {
+  const cc = document.getElementById('historial-list');
+  if (!cc) return;
+  if (!modalHistorial.length) {
+    cc.innerHTML = '<div class="historial-empty">Sin mantenciones registradas todavía.</div>';
+    return;
+  }
+  const ordenado = modalHistorial.map((h,i)=>({...h, _i:i})).sort((a,b)=> b.fecha.localeCompare(a.fecha));
+  cc.innerHTML = ordenado.map(h => `
+    <div class="historial-row">
+      <span><span class="h-fecha">${h.fecha.split('-').reverse().join('-')}</span>${h.inicioPrevio?`<span class="h-prev">(inicio previo: ${h.inicioPrevio.split('-').reverse().join('-')})</span>`:''}</span>
+      <button type="button" class="equipo-del" onclick="eliminarHistorialEntry(${h._i})" title="Eliminar registro">✕</button>
+    </div>
+  `).join('');
+}
+function eliminarHistorialEntry(i) {
+  if (!confirm('¿Eliminar este registro del historial? No afecta la fecha de vencimiento actual.')) return;
+  modalHistorial.splice(i,1);
+  renderHistorialModal();
 }
 
 function compressImage(file) {
