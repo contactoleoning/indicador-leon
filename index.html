@@ -305,6 +305,8 @@ button{cursor:pointer}
 /* card phone & address */
 .card-phone-link{display:inline-flex;align-items:center;gap:5px;color:var(--aviso);font-size:13px;font-weight:500;text-decoration:none;padding:2px 0}
 .card-phone-link:hover{text-decoration:underline}
+.card-addr-link{display:inline-flex;align-items:flex-start;text-decoration:none;color:var(--text2);cursor:pointer}
+.card-addr-link:hover{color:var(--gold);text-decoration:underline}
 .card-addr{font-size:12px;color:var(--text2);font-weight:400}
 
 /* ── PHOTOS ── */
@@ -1162,7 +1164,7 @@ function render() {
           ${diasLabel(r)}
         </div>
         <div class="card-body">
-          ${(r.direccion||r.detalle)?`<div class="card-field full"><label>DIRECCIÓN</label><div class="card-addr">${esc([r.direccion,r.detalle].filter(Boolean).join(' — '))}</div></div>`:''}
+          ${(r.direccion||r.detalle)?`<div class="card-field full"><label>DIRECCIÓN</label><a class="card-addr card-addr-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([r.direccion,r.comuna].filter(Boolean).join(', '))}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" style="vertical-align:-1px;margin-right:3px;flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc([r.direccion,r.detalle].filter(Boolean).join(' — '))}</a></div>`:''}
           ${r.telefono?`<div class="card-field full"><label>TELÉFONO</label><a class="card-phone-link" href="tel:+569${r.telefono}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.81a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+569 ${r.telefono.replace(/(\d{4})(\d{4})/,'$1 $2')}</a></div>`:''}
           <div class="card-field full"><label>SERVICIO</label><div class="card-field-val">${esc(r.servicio)||'—'}</div></div>
           ${(r.equipos&&r.equipos.length)?`<div class="card-field full"><label>EQUIPOS (${r.equipos.length})</label><div class="card-equipos">${r.equipos.map(eq=>`<div>• <b>${esc([eq.marca,eq.modelo].filter(Boolean).join(' '))||'Equipo'}</b>${eq.btu?' '+esc(eq.btu)+' BTU':''}${eq.ubicacion?' — '+esc(eq.ubicacion):''}</div>`).join('')}</div></div>`:''}
