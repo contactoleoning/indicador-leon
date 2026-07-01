@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet"/>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -795,10 +796,24 @@ function initFirebase(config) {
     let app;
     try { app = firebase.app(); } catch(e) { app = firebase.initializeApp(config); }
 
+    setSyncStatus('syncing', 'conectando…');
+    firebase.auth().signInAnonymously().then(function(){
+      initFirebaseDb(app);
+    }).catch(function(err){
+      console.error('Auth anónima falló:', err);
+      setSyncStatus('error', 'sin autorización');
+    });
+  } catch (e) {
+    console.error('Firebase init error:', e);
+    setSyncStatus('error', 'error de configuración');
+  }
+}
+
+function initFirebaseDb(app) {
+  try {
     const db = firebase.database(app);
     fbRef = db.ref('leon_clientes');
     useFirebase = true;
-    setSyncStatus('syncing', 'conectando…');
 
     // real-time listener
     fbRef.on('value', snapshot => {
