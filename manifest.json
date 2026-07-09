@@ -1,0 +1,16 @@
+{
+  "name": "Indicador de Vencimiento — León Ingeniería",
+  "short_name": "Indicador",
+  "description": "Agenda de mantenciones y vencimientos de clientes — León Ingeniería y Proyectos SpA",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1220",
+  "theme_color": "#0d1220",
+  "lang": "es-CL",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
