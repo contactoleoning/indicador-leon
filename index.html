@@ -614,7 +614,6 @@ button{cursor:pointer}
   <span class="header-title">INDICADOR DE VENCIMIENTO</span>
   <div class="sync-dot off" id="sync-dot" title="Sin sincronización" onclick="openSyncInfo()"></div>
   <span class="sync-lbl" id="sync-lbl" onclick="openSyncInfo()">sin sync</span>
-  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Cambiar tema"></button>
   <button class="theme-btn" id="backup-btn" onclick="openBackup()" title="Respaldo de datos">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
   </button>
@@ -2017,7 +2016,8 @@ function toggleTheme() {
   localStorage.setItem('leon-theme', next);
 }
 // Aplicar tema guardado al cargar
-applyTheme(localStorage.getItem('leon-theme') || 'dark');
+localStorage.removeItem('leon-theme');
+applyTheme('dark');
 
 // ═══════════════════════════════════════
 // CLAVE DE ACCESO (misma clave del cotizador)
