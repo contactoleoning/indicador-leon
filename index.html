@@ -2033,7 +2033,6 @@ function checkPass(){
   var v=document.getElementById('lock-input').value;
   sha256Hex(v).then(function(hash){
     if(hash===LOCK_HASH){
-      sessionStorage.setItem('leon_auth','ok');
       document.getElementById('lock-overlay').style.display='none';
     } else {
       var e=document.getElementById('lock-err');
@@ -2045,10 +2044,8 @@ function checkPass(){
   });
 }
 (function(){
-  if(sessionStorage.getItem('leon_auth')!=='ok'){
-    document.getElementById('lock-overlay').style.display='flex';
-    setTimeout(function(){document.getElementById('lock-input').focus();},100);
-  }
+  document.getElementById('lock-overlay').style.display='flex';
+  setTimeout(function(){document.getElementById('lock-input').focus();},100);
 })();
 
 // ═══════════════════════════════════════
