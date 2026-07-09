@@ -75,7 +75,8 @@ button{cursor:pointer}
 
 /* ── STATS ── */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 12px;background:var(--bg);border-bottom:1px solid var(--border)}
-.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 8px;text-align:center}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 8px;text-align:center;transition:border-color .2s,transform .15s}
+.stat-box:hover{border-color:var(--border2);transform:translateY(-1px)}
 .stat-num{font-size:22px;font-weight:700;line-height:1;letter-spacing:-0.5px}
 .stat-lbl{font-size:9px;font-weight:700;letter-spacing:0.8px;color:var(--text3);margin-top:4px;text-transform:uppercase}
 .c-navy{color:#79c0ff}.c-green{color:var(--green)}.c-amber{color:var(--amber)}.c-red{color:var(--red)}
@@ -87,11 +88,13 @@ button{cursor:pointer}
 .search-input{width:100%;padding:9px 10px 9px 32px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text);font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s}
 .search-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(240,170,32,0.1)}
 .search-input::placeholder{color:var(--text3)}
-.filter-sel{padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text);font-size:13px;outline:none;cursor:pointer;min-width:110px}
+.filter-sel{padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text);font-size:13px;outline:none;cursor:pointer;min-width:110px;transition:border-color .15s}
 .filter-sel:focus{border-color:var(--gold)}
-.sort-sel{padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text);font-size:13px;outline:none;cursor:pointer;min-width:130px}
-.btn-add{display:flex;align-items:center;gap:5px;padding:9px 15px;background:var(--gold);color:#0a0e19;border:none;border-radius:var(--radius-xs);font-size:12px;font-weight:700;letter-spacing:0.5px;white-space:nowrap;transition:opacity .15s}
-.btn-add:hover{opacity:.88}
+.sort-sel{padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text);font-size:13px;outline:none;cursor:pointer;min-width:130px;transition:border-color .15s}
+.sort-sel:focus{border-color:var(--gold)}
+.btn-add{display:flex;align-items:center;gap:5px;padding:9px 15px;background:var(--gold);color:#0a0e19;border:none;border-radius:var(--radius-xs);font-size:12px;font-weight:700;letter-spacing:0.5px;white-space:nowrap;transition:filter .15s,transform .12s}
+.btn-add:hover{filter:brightness(1.08)}
+.btn-add:active{transform:scale(.97)}
 
 /* ── TABLE WRAPPER ── */
 .table-container{
@@ -208,6 +211,7 @@ button{cursor:pointer}
 .card-btns{display:flex;gap:6px}
 .card-btn{padding:6px 13px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .12s}
 .card-btn:hover{background:var(--surface3);border-color:var(--border2);color:var(--text)}
+.card-btn:active{transform:scale(.96)}
 .card-btn.del{border-color:rgba(248,81,73,0.25);color:var(--red);background:rgba(248,81,73,0.06)}
 .card-btn.del:hover{background:rgba(248,81,73,0.14)}
 .act-btn.wa{color:#25d366;border-color:rgba(37,211,102,0.35)}
