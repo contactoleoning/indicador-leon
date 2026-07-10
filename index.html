@@ -263,9 +263,13 @@ button{cursor:pointer}
 .cal-detail-item:hover{border-color:var(--gold)}
 .cal-detail-name{font-size:13px;font-weight:600;color:var(--text)}
 .cal-detail-sub{font-size:11px;color:var(--text3)}
-.historial-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12.5px}
+.historial-row{display:flex;flex-direction:column;gap:6px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12.5px}
+.historial-row-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .historial-row .h-fecha{color:var(--text);font-weight:600}
+.historial-row .h-hora{color:var(--text3);font-size:11px;margin-left:5px}
 .historial-row .h-prev{color:var(--text3);font-size:11px;margin-left:6px}
+.historial-row .h-detalle{color:var(--text2);font-size:12px;line-height:1.5;white-space:pre-wrap}
+.historial-row .h-fotos{display:flex;gap:5px;flex-wrap:wrap}
 .historial-empty{font-size:12px;color:var(--text3);padding:8px 2px;font-style:italic}
 
 /* ── FAB ── */
@@ -955,9 +959,40 @@ button{cursor:pointer}
   </div>
 </div>
 
+<!-- REGISTRAR MANTENCIÓN (detalle + fotos de respaldo) -->
+<div class="gallery-overlay" id="mant-ov" style="display:none" onclick="if(event.target===this)closeMantModal()">
+  <div class="gallery-box" style="max-width:520px">
+    <div class="gallery-head">
+      <span class="gallery-ttl" id="mant-ttl">REGISTRAR MANTENCIÓN</span>
+      <button class="gallery-x" onclick="closeMantModal()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="gallery-body">
+      <div class="form-grid">
+        <div class="ff"><label>FECHA</label><input id="mant-fecha" type="date"/></div>
+        <div class="ff"><label>HORA (opcional)</label><input id="mant-hora" type="time"/></div>
+        <div class="ff full"><label>DETALLE — ¿QUÉ SE HIZO?</label><textarea id="mant-detalle" rows="3" placeholder="Ej: Limpieza de filtros, recarga de gas R32, revisión de drenaje..."></textarea></div>
+        <div class="ff full">
+          <label>FOTOS DE RESPALDO</label>
+          <div class="photo-grid" id="mant-photo-grid"></div>
+        </div>
+      </div>
+    </div>
+    <div class="gallery-foot">
+      <button class="gallery-close-btn" onclick="closeMantModal()">Cancelar</button>
+      <button class="gallery-upload-btn" onclick="confirmMantModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Guardar mantención
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- HIDDEN FILE INPUTS -->
 <input type="file" id="modal-file" accept="image/*" multiple style="display:none" onchange="handleModalPhotoUpload(this)"/>
 <input type="file" id="card-file" accept="image/*" multiple style="display:none" onchange="handleCardPhotoUpload(this)"/>
+<input type="file" id="mant-file" accept="image/*" multiple style="display:none" onchange="handleMantPhotoUpload(this)"/>
 <input type="file" id="gallery-file" accept="image/*" multiple style="display:none" onchange="handleGalleryUpload(this)"/>
 
 <!-- DELETE CONFIRM -->
@@ -1621,17 +1656,63 @@ function ta(el) {
   saveRecord(row);
   render();
 }
+let mantModalId = null;
+let mantModalPhotos = [];
 function marcarMantencionHoy(id) {
   const row = data.find(r=>r.id===id);
   if (!row) return;
-  const hoyStr = new Date().toISOString().slice(0,10);
-  if (!confirm('¿Registrar mantención realizada hoy para "'+(row.cliente||'este cliente')+'"?\n\nEsto guardará la fecha en el historial y recalculará el próximo vencimiento ('+(row.duracion||6)+' meses desde hoy).')) return;
+  mantModalId = id;
+  mantModalPhotos = [];
+  document.getElementById('mant-ttl').textContent = 'REGISTRAR MANTENCIÓN — ' + (row.cliente||'CLIENTE').toUpperCase();
+  document.getElementById('mant-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('mant-hora').value = new Date().toTimeString().slice(0,5);
+  document.getElementById('mant-detalle').value = '';
+  renderMantPhotos();
+  document.getElementById('mant-ov').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeMantModal() {
+  document.getElementById('mant-ov').style.display = 'none';
+  document.body.style.overflow = '';
+  mantModalId = null;
+  mantModalPhotos = [];
+}
+function renderMantPhotos() {
+  const grid = document.getElementById('mant-photo-grid');
+  if (!grid) return;
+  const camIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
+  grid.innerHTML = mantModalPhotos.map(p => `
+    <div class="photo-wrap">
+      <img class="photo-thumb" src="${p.data}" title="${p.date}"/>
+      <button class="photo-del" onclick="removeMantPhoto('${p.id}')">×</button>
+    </div>`).join('') +
+    `<div class="photo-add" onclick="document.getElementById('mant-file').click()">${camIcon}<span>AGREGAR</span></div>`;
+}
+async function handleMantPhotoUpload(input) {
+  for (const file of Array.from(input.files)) {
+    mantModalPhotos.push(await compressImage(file));
+  }
+  input.value = '';
+  renderMantPhotos();
+}
+function removeMantPhoto(id) {
+  mantModalPhotos = mantModalPhotos.filter(p => p.id !== id);
+  renderMantPhotos();
+}
+function confirmMantModal() {
+  const row = data.find(r=>r.id===mantModalId);
+  if (!row) return;
+  const fecha = document.getElementById('mant-fecha').value || new Date().toISOString().slice(0,10);
+  const hora = document.getElementById('mant-hora').value || '';
+  const detalle = document.getElementById('mant-detalle').value.trim();
   if (!row.historial) row.historial = [];
-  row.historial.push({ fecha: hoyStr, inicioPrevio: row.inicia||null });
-  row.inicia = hoyStr;
+  row.historial.push({ fecha, hora, detalle, fotos: mantModalPhotos, inicioPrevio: row.inicia||null });
+  row.inicia = fecha;
   row.aviso = false;
   saveRecord(row);
   render();
+  if (document.getElementById('perfil-ov').style.display === 'flex') perfilRefresh(row.id);
+  closeMantModal();
   toast('Mantención registrada — próximo vencimiento actualizado');
 }
 
@@ -1839,8 +1920,12 @@ function renderHistorialModal() {
   const ordenado = modalHistorial.map((h,i)=>({...h, _i:i})).sort((a,b)=> b.fecha.localeCompare(a.fecha));
   cc.innerHTML = ordenado.map(h => `
     <div class="historial-row">
-      <span><span class="h-fecha">${h.fecha.split('-').reverse().join('-')}</span>${h.inicioPrevio?`<span class="h-prev">(inicio previo: ${h.inicioPrevio.split('-').reverse().join('-')})</span>`:''}</span>
-      <button type="button" class="equipo-del" onclick="eliminarHistorialEntry(${h._i})" title="Eliminar registro">✕</button>
+      <div class="historial-row-top">
+        <span><span class="h-fecha">${h.fecha.split('-').reverse().join('-')}</span>${h.hora?`<span class="h-hora">${esc(h.hora)}</span>`:''}${h.inicioPrevio?`<span class="h-prev">(inicio previo: ${h.inicioPrevio.split('-').reverse().join('-')})</span>`:''}</span>
+        <button type="button" class="equipo-del" onclick="eliminarHistorialEntry(${h._i})" title="Eliminar registro">✕</button>
+      </div>
+      ${h.detalle?`<div class="h-detalle">${esc(h.detalle)}</div>`:''}
+      ${(h.fotos&&h.fotos.length)?`<div class="h-fotos">${h.fotos.map(p=>`<img class="card-photo-thumb" style="width:44px;height:44px" src="${p.data}" title="${p.date||''}"/>`).join('')}</div>`:''}
     </div>
   `).join('');
 }
@@ -1927,6 +2012,15 @@ function openLightbox(photoId, recId) {
   if (lightboxIdx < 0) lightboxIdx = 0;
   showLightbox();
 }
+function openLightboxHist(photoId, recId, histIdx) {
+  const r = data.find(x => x.id === recId);
+  const h = r && r.historial ? r.historial[histIdx] : null;
+  lightboxRecId = 'hist';
+  lightboxPhotos = h ? (h.fotos||[]) : [];
+  lightboxIdx = lightboxPhotos.findIndex(p => p.id === photoId);
+  if (lightboxIdx < 0) lightboxIdx = 0;
+  showLightbox();
+}
 
 function showLightbox() {
   const p = lightboxPhotos[lightboxIdx];
@@ -1934,18 +2028,19 @@ function showLightbox() {
   let lb = document.getElementById('lightbox');
   if (!lb) { lb = document.createElement('div'); lb.id = 'lightbox'; document.body.appendChild(lb); }
   const multi = lightboxPhotos.length > 1;
+  const readOnly = lightboxRecId === 'hist';
   lb.className = 'lightbox';
   lb.innerHTML = `
     <button class="lightbox-close" onclick="closeLightbox()">×</button>
     ${multi ? `<button class="lightbox-arrow lightbox-prev" onclick="lbNav(-1)">‹</button>` : ''}
     <img class="lightbox-img" src="${p.data}"/>
     ${multi ? `<button class="lightbox-arrow lightbox-next" onclick="lbNav(1)">›</button>` : ''}
-    <div class="lightbox-actions">
+    ${readOnly ? '' : `<div class="lightbox-actions">
       <button class="lightbox-del" onclick="deleteLightboxPhoto()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:4px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
         Eliminar foto
       </button>
-    </div>
+    </div>`}
     <div class="lightbox-info">${p.date||''}${multi?' · '+(lightboxIdx+1)+' / '+lightboxPhotos.length:''}</div>`;
   lb.style.display = 'flex';
   lb.onclick = e => { if (e.target === lb) closeLightbox(); };
@@ -2014,13 +2109,46 @@ function perfilRefresh(id) {
 }
 function historialListHTML(r) {
   if (!r.historial || !r.historial.length) return '<div style="font-size:12px;color:var(--text3)">Sin mantenciones registradas todavía.</div>';
-  const items = [...r.historial].sort((a,b) => b.fecha.localeCompare(a.fecha));
-  return '<div style="display:flex;flex-direction:column;gap:6px">' + items.map(h =>
-    `<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2)">
-      <span style="width:6px;height:6px;border-radius:50%;background:var(--green,#3fb950);flex-shrink:0"></span>
-      ${esc(h.fecha.split('-').reverse().join('-'))}${h.inicioPrevio?` <span style="color:var(--text3)">(inicio previo: ${esc(h.inicioPrevio.split('-').reverse().join('-'))})</span>`:''}
-    </div>`
-  ).join('') + '</div>';
+  const items = r.historial.map((h,i) => ({...h, _i:i})).sort((a,b) => b.fecha.localeCompare(a.fecha));
+  return '<div style="display:flex;flex-direction:column;gap:8px">' + items.map(h => {
+    const fotos = h.fotos||[];
+    return `<div style="padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--text2)">
+        <span><span style="width:6px;height:6px;border-radius:50%;background:var(--green,#3fb950);display:inline-block;margin-right:6px"></span>
+        ${esc(h.fecha.split('-').reverse().join('-'))}${h.hora?` <span style="color:var(--text3)">${esc(h.hora)}</span>`:''}${h.inicioPrevio?` <span style="color:var(--text3)">(inicio previo: ${esc(h.inicioPrevio.split('-').reverse().join('-'))})</span>`:''}</span>
+        ${r.telefono?`<button onclick="enviarRespaldoMantencion(${r.id},${h._i})" style="background:none;border:1px solid rgba(232,193,90,0.4);color:#e8c15a;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">📤 Enviar</button>`:''}
+      </div>
+      ${h.detalle?`<div style="font-size:12px;color:var(--text2);margin-top:5px;white-space:pre-wrap;line-height:1.5">${esc(h.detalle)}</div>`:''}
+      ${fotos.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">${fotos.map(p=>`<img class="card-photo-thumb" style="width:48px;height:48px" src="${p.data}" onclick="openLightboxHist('${p.id}',${r.id},${h._i})" title="${p.date||''}"/>`).join('')}</div>`:''}
+    </div>`;
+  }).join('') + '</div>';
+}
+function enviarRespaldoMantencion(clienteId, histIdx) {
+  const r = data.find(x => x.id === clienteId);
+  if (!r || !r.telefono) { toast('Este cliente no tiene teléfono'); return; }
+  const h = r.historial && r.historial[histIdx];
+  if (!h) return;
+  const fechaFmt = h.fecha.split('-').reverse().join('-');
+  const nombre = (r.cliente||'').trim().split(' ')[0].replace(/\(.*\)/,'').trim();
+  const cuando = h.hora ? `el ${fechaFmt} a las ${h.hora}` : `el ${fechaFmt}`;
+  const texto = `Hola${nombre?' '+nombre:''}, le envío el respaldo de la mantención realizada ${cuando}:\n\n${h.detalle||'Mantención de equipo de climatización realizada correctamente.'}\n\n— León Ingeniería y Proyectos SpA ❄️`;
+  const raw = String(r.telefono).replace(/\D/g,'');
+  const num = raw.indexOf('56')===0 ? raw : ('569'+raw.replace(/^9/,''));
+  const fotos = h.fotos||[];
+  const abrirWhatsapp = () => window.open('https://wa.me/'+num+'?text='+encodeURIComponent(texto),'_blank');
+  if (navigator.canShare && fotos.length) {
+    Promise.all(fotos.map((p,i) => fetch(p.data).then(res => res.blob()).then(blob => new File([blob], 'mantencion_'+fechaFmt.replace(/-/g,'')+'_'+(i+1)+'.jpg', {type:'image/jpeg'}))))
+      .then(files => {
+        if (navigator.canShare({files})) {
+          return navigator.share({files, text: texto, title: 'Respaldo de mantención'});
+        }
+        abrirWhatsapp();
+      })
+      .catch(() => { /* usuario canceló el share o no está soportado */ });
+  } else {
+    abrirWhatsapp();
+    if (fotos.length) toast('Se abrió WhatsApp con el mensaje. Adjunta las fotos manualmente.');
+  }
 }
 function renderPerfil(r) {
   const st = statusOf(r);
@@ -2062,7 +2190,7 @@ function renderPerfil(r) {
         ${r.aviso?'✓ Aviso enviado':'Marcar aviso enviado'}
       </label>
       <div class="card-btns" style="flex-wrap:wrap">
-        <button class="card-btn mant" onclick="marcarMantencionHoy(${r.id});perfilRefresh(${r.id})">✓ Mantención hoy</button>
+        <button class="card-btn mant" onclick="marcarMantencionHoy(${r.id})">✓ Mantención hoy</button>
         ${r.telefono?`<button class="card-btn wa" onclick="waCliente(${r.id})">WhatsApp</button>`:''}
         ${r.telefono?`<button class="card-btn resena" onclick="pedirResena(${r.id})">⭐ Reseña</button>`:''}
         <button class="card-btn" onclick="closePerfil();openModal(${r.id})">Editar</button>
