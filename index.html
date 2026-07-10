@@ -228,6 +228,8 @@ button{cursor:pointer}
 .act-btn.resena:hover{background:rgba(232,193,90,0.14);border-color:#e8c15a}
 .card-btn.resena{border-color:rgba(232,193,90,0.35);color:#e8c15a;background:rgba(232,193,90,0.06)}
 .card-btn.resena:hover{background:rgba(232,193,90,0.16)}
+.act-btn.perfil{color:#7aa2f7;border-color:rgba(122,162,247,0.35)}
+.act-btn.perfil:hover{background:rgba(122,162,247,0.14);border-color:#7aa2f7}
 .plan-badge{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;margin-left:4px;flex-shrink:0}
 .plan-badge.plan-green{background:rgba(63,185,80,0.16);color:var(--green,#3fb950)}
 .plan-badge.plan-amber{background:rgba(245,166,35,0.16);color:var(--amber,#f5a623)}
@@ -940,6 +942,19 @@ button{cursor:pointer}
   </div>
 </div>
 
+<!-- PERFIL CLIENTE (vista detallada por cliente, pensada para escritorio) -->
+<div class="gallery-overlay" id="perfil-ov" style="display:none" onclick="if(event.target===this)closePerfil()">
+  <div class="gallery-box" style="max-width:640px">
+    <div class="gallery-head">
+      <span class="gallery-ttl" id="perfil-ttl">PERFIL CLIENTE</span>
+      <button class="gallery-x" onclick="closePerfil()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="gallery-body"><div id="perfil-body"></div></div>
+  </div>
+</div>
+
 <!-- HIDDEN FILE INPUTS -->
 <input type="file" id="modal-file" accept="image/*" multiple style="display:none" onchange="handleModalPhotoUpload(this)"/>
 <input type="file" id="card-file" accept="image/*" multiple style="display:none" onchange="handleCardPhotoUpload(this)"/>
@@ -1396,6 +1411,9 @@ function render() {
         <td class="td-obs"><textarea class="obs-ta" data-id="${r.id}" data-f="obs" onchange="ie(this)" oninput="autoResize(this)" placeholder="—" rows="1">${esc(r.obs)}</textarea></td>
         <td class="td-center">
           <div class="row-acts">
+            <button class="act-btn perfil" onclick="openPerfil(${r.id})" title="Ver perfil del cliente">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
             <button class="act-btn mant" onclick="marcarMantencionHoy(${r.id})" title="Registrar mantención de hoy">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
             </button>
@@ -1976,6 +1994,81 @@ function closeGallery() {
   document.getElementById('gallery-ov').style.display = 'none';
   document.body.style.overflow = '';
   galleryRecId = null;
+}
+
+// ── Perfil Cliente (vista detallada, pensada para escritorio) ──
+function openPerfil(id) {
+  const r = data.find(x => x.id === id);
+  if (!r) return;
+  renderPerfil(r);
+  document.getElementById('perfil-ov').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closePerfil() {
+  document.getElementById('perfil-ov').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function perfilRefresh(id) {
+  const r = data.find(x => x.id === id);
+  if (r) renderPerfil(r);
+}
+function historialListHTML(r) {
+  if (!r.historial || !r.historial.length) return '<div style="font-size:12px;color:var(--text3)">Sin mantenciones registradas todavía.</div>';
+  const items = [...r.historial].sort((a,b) => b.fecha.localeCompare(a.fecha));
+  return '<div style="display:flex;flex-direction:column;gap:6px">' + items.map(h =>
+    `<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text2)">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--green,#3fb950);flex-shrink:0"></span>
+      ${esc(h.fecha.split('-').reverse().join('-'))}${h.inicioPrevio?` <span style="color:var(--text3)">(inicio previo: ${esc(h.inicioPrevio.split('-').reverse().join('-'))})</span>`:''}
+    </div>`
+  ).join('') + '</div>';
+}
+function renderPerfil(r) {
+  const st = statusOf(r);
+  const stColor = st==='red'?'var(--red)':st==='amber'?'var(--amber)':st==='green'?'var(--green)':'var(--text3)';
+  const pst = planStatus(r);
+  const planTxt = {green:'Vigente',amber:'Por renovar',red:'Vencido'}[pst]||'';
+  const planColor = pst==='red'?'var(--red)':pst==='amber'?'var(--amber)':pst==='green'?'var(--green)':'var(--text3)';
+  document.getElementById('perfil-ttl').textContent = (r.cliente||'CLIENTE').toUpperCase();
+  const lugarComuna = [r.lugar,r.comuna].filter(Boolean).join(' · ');
+  document.getElementById('perfil-body').innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:2px 2px 12px">
+      <span class="${circleClass(st)}" style="margin-top:6px"></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:19px;color:var(--text)">${esc(r.cliente)||'Sin nombre'}${planBadge(r)}</div>
+        ${lugarComuna?`<div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(lugarComuna)}</div>`:''}
+      </div>
+      ${diasLabel(r)}
+    </div>
+    <div class="card-body" style="padding:0 2px 12px">
+      ${(r.direccion||r.detalle)?`<div class="card-field full"><label>DIRECCIÓN</label><a class="card-addr card-addr-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([r.direccion,r.comuna].filter(Boolean).join(', '))}">${esc([r.direccion,r.detalle].filter(Boolean).join(' — '))}</a></div>`:''}
+      ${r.telefono?`<div class="card-field"><label>TELÉFONO</label><a class="card-phone-link" href="tel:+569${r.telefono}">+569 ${r.telefono.replace(/(\d{4})(\d{4})/,'$1 $2')}</a></div>`:''}
+      <div class="card-field"><label>SERVICIO</label><div class="card-field-val">${esc(r.servicio)||'—'}</div></div>
+      <div class="card-field"><label>INICIO</label><div class="card-field-val">${r.inicia?r.inicia.split('-').reverse().join('-'):'—'}</div></div>
+      <div class="card-field"><label>DURACIÓN</label><div class="card-field-val">${r.duracion} meses</div></div>
+      <div class="card-field full"><label>FECHA FINAL</label><div class="card-field-val" style="color:${stColor};font-weight:700">${fmtFinal(r)}</div></div>
+      ${pst?`<div class="card-field full"><label>PLAN CONFORT LEÓN</label><div class="card-field-val" style="color:${planColor};font-weight:700">${planTxt}${r.planhasta?' — hasta '+r.planhasta.split('-').reverse().join('-'):''}</div></div>`:''}
+      <div class="card-field full"><label>EQUIPOS INSTALADOS${r.equipos&&r.equipos.length?' ('+r.equipos.length+')':''}</label>
+        ${(r.equipos&&r.equipos.length)?`<div class="card-equipos">${r.equipos.map(eq=>`<div>• <b>${esc([eq.marca,eq.modelo].filter(Boolean).join(' '))||'Equipo'}</b>${eq.btu?' '+esc(eq.btu)+' BTU':''}${eq.ubicacion?' — '+esc(eq.ubicacion):''}</div>`).join('')}</div>`:'<div style="font-size:12px;color:var(--text3)">Sin equipos registrados.</div>'}
+      </div>
+      <div class="card-field full"><label>HISTORIAL DE MANTENCIONES${r.historial&&r.historial.length?' ('+r.historial.length+')':''}</label>${historialListHTML(r)}</div>
+      ${r.obs?`<div class="card-field full"><label>OBSERVACIÓN</label><div class="card-obs">${esc(r.obs)}</div></div>`:''}
+    </div>
+    <div class="card-photo-strip" style="padding:10px 2px;border-top:1px solid var(--border)">
+      ${(r.photos&&r.photos.length)?r.photos.map(p=>`<img class="card-photo-thumb" src="${p.data}" onclick="openLightbox('${p.id}',${r.id})" title="${p.date}"/>`).join(''):'<div style="font-size:12px;color:var(--text3)">Sin fotos registradas.</div>'}
+    </div>
+    <div class="card-foot" style="padding:12px 2px 2px;flex-wrap:wrap;border-top:1px solid var(--border)">
+      <label class="card-aviso-label${r.aviso?' avisado':''}">
+        <input type="checkbox" class="card-aviso-cb" ${r.aviso?'checked':''} data-id="${r.id}" onchange="ta(this);perfilRefresh(${r.id})"/>
+        ${r.aviso?'✓ Aviso enviado':'Marcar aviso enviado'}
+      </label>
+      <div class="card-btns" style="flex-wrap:wrap">
+        <button class="card-btn mant" onclick="marcarMantencionHoy(${r.id});perfilRefresh(${r.id})">✓ Mantención hoy</button>
+        ${r.telefono?`<button class="card-btn wa" onclick="waCliente(${r.id})">WhatsApp</button>`:''}
+        ${r.telefono?`<button class="card-btn resena" onclick="pedirResena(${r.id})">⭐ Reseña</button>`:''}
+        <button class="card-btn" onclick="closePerfil();openModal(${r.id})">Editar</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderGallery() {
