@@ -972,9 +972,9 @@ button{cursor:pointer}
     </div>
     <div class="gallery-body">
       <div class="form-grid">
-        <div class="ff"><label>FECHA</label><input id="mant-fecha" type="date"/></div>
-        <div class="ff"><label>HORA (opcional)</label><input id="mant-hora" type="time"/></div>
-        <div class="ff full"><label>DETALLE — ¿QUÉ SE HIZO?</label><textarea id="mant-detalle" rows="3" placeholder="Ej: Limpieza de filtros, recarga de gas R32, revisión de drenaje..."></textarea></div>
+        <div class="ff"><label>FECHA</label><input id="mant-fecha" type="date" onchange="saveMantDraft()"/></div>
+        <div class="ff"><label>HORA (opcional)</label><input id="mant-hora" type="time" onchange="saveMantDraft()"/></div>
+        <div class="ff full"><label>DETALLE — ¿QUÉ SE HIZO?</label><textarea id="mant-detalle" rows="3" placeholder="Ej: Limpieza de filtros, recarga de gas R32, revisión de drenaje..." oninput="saveMantDraft()"></textarea></div>
         <div class="ff full">
           <label>FOTOS DE RESPALDO</label>
           <div class="photo-grid" id="mant-photo-grid"></div>
@@ -1661,20 +1661,36 @@ function ta(el) {
 }
 let mantModalId = null;
 let mantModalPhotos = [];
+function mantDraftKey(id) { return 'mant_draft_' + id; }
+function saveMantDraft() {
+  if (!mantModalId) return;
+  try {
+    sessionStorage.setItem(mantDraftKey(mantModalId), JSON.stringify({
+      fecha: document.getElementById('mant-fecha').value,
+      hora: document.getElementById('mant-hora').value,
+      detalle: document.getElementById('mant-detalle').value,
+      fotos: mantModalPhotos
+    }));
+  } catch (e) { /* almacenamiento lleno o no disponible, no es critico */ }
+}
 function marcarMantencionHoy(id) {
   const row = data.find(r=>r.id===id);
   if (!row) return;
   mantModalId = id;
-  mantModalPhotos = [];
   document.getElementById('mant-ttl').textContent = 'REGISTRAR MANTENCIÓN — ' + (row.cliente||'CLIENTE').toUpperCase();
-  document.getElementById('mant-fecha').value = new Date().toISOString().slice(0,10);
-  document.getElementById('mant-hora').value = new Date().toTimeString().slice(0,5);
-  document.getElementById('mant-detalle').value = '';
+  let draft = null;
+  try { draft = JSON.parse(sessionStorage.getItem(mantDraftKey(id))||'null'); } catch (e) {}
+  mantModalPhotos = (draft && draft.fotos) || [];
+  document.getElementById('mant-fecha').value = (draft && draft.fecha) || new Date().toISOString().slice(0,10);
+  document.getElementById('mant-hora').value = (draft && draft.hora) || new Date().toTimeString().slice(0,5);
+  document.getElementById('mant-detalle').value = (draft && draft.detalle) || '';
+  if (draft) toast('Se recuperó un borrador sin guardar de esta mantención');
   renderMantPhotos();
   document.getElementById('mant-ov').style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
 function closeMantModal() {
+  if (mantModalId) { try { sessionStorage.removeItem(mantDraftKey(mantModalId)); } catch (e) {} }
   document.getElementById('mant-ov').style.display = 'none';
   document.body.style.overflow = '';
   mantModalId = null;
@@ -1697,10 +1713,12 @@ async function handleMantPhotoUpload(input) {
   }
   input.value = '';
   renderMantPhotos();
+  saveMantDraft();
 }
 function removeMantPhoto(id) {
   mantModalPhotos = mantModalPhotos.filter(p => p.id !== id);
   renderMantPhotos();
+  saveMantDraft();
 }
 function confirmMantModal() {
   const row = data.find(r=>r.id===mantModalId);
@@ -1712,6 +1730,7 @@ function confirmMantModal() {
   row.historial.push({ fecha, hora, detalle, fotos: mantModalPhotos, inicioPrevio: row.inicia||null });
   row.inicia = fecha;
   row.aviso = false;
+  try { sessionStorage.removeItem(mantDraftKey(mantModalId)); } catch (e) {}
   saveRecord(row);
   render();
   if (document.getElementById('perfil-ov').style.display === 'flex') perfilRefresh(row.id);
@@ -2358,11 +2377,22 @@ function showLockOverlay(){
 }
 showLockOverlay();
 // iOS reabre las PWA instaladas desde un snapshot congelado sin re-ejecutar el
-// script; forzamos el bloqueo tambien en cada evento de volver a primer plano.
+// script; forzamos el bloqueo al volver a primer plano, pero SOLO si estuvo
+// oculta un buen rato (reapertura real), no en una salida breve a la camara
+// o galeria (ej: al adjuntar una foto en "Mantencion hoy"), que tambien
+// dispara estos eventos y no debe interrumpir un formulario a medio llenar.
+var lastHiddenAt = 0;
+var RELOCK_MS = 45000;
 document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible') showLockOverlay();
+  if (document.visibilityState==='hidden') {
+    lastHiddenAt = Date.now();
+  } else if (document.visibilityState==='visible') {
+    if (!lastHiddenAt || (Date.now()-lastHiddenAt) > RELOCK_MS) showLockOverlay();
+  }
 });
-window.addEventListener('pageshow',function(){ showLockOverlay(); });
+window.addEventListener('pageshow',function(){
+  if (!lastHiddenAt || (Date.now()-lastHiddenAt) > RELOCK_MS) showLockOverlay();
+});
 
 // ═══════════════════════════════════════
 // RESPALDO DE DATOS
