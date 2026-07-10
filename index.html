@@ -2001,6 +2001,7 @@ const MOON_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" s
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   const btn = document.getElementById('theme-btn');
+  if (!btn) return; // el boton de tema fue eliminado; solo fijamos el atributo
   if (theme === 'light') {
     btn.innerHTML = MOON_ICON;
     btn.title = 'Cambiar a modo oscuro';
@@ -2043,10 +2044,19 @@ function checkPass(){
     }
   });
 }
-(function(){
+function showLockOverlay(){
   document.getElementById('lock-overlay').style.display='flex';
+  document.getElementById('lock-input').value='';
   setTimeout(function(){document.getElementById('lock-input').focus();},100);
-})();
+}
+showLockOverlay();
+// iOS reabre las PWA instaladas desde un snapshot congelado sin re-ejecutar el
+// script; forzamos el bloqueo tambien en cada evento de volver a primer plano.
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible') showLockOverlay();
+});
+window.addEventListener('pageshow',function(){ showLockOverlay(); });
+console.log('[DEBUG] end of lock-overlay setup block, final style:', document.getElementById('lock-overlay').getAttribute('style'));
 
 // ═══════════════════════════════════════
 // RESPALDO DE DATOS
@@ -2124,9 +2134,38 @@ function openRecordatorios(){
 function closeRecordatorios(){ document.getElementById('recordatorios-ov').style.display='none'; }
 
 // Registrar service worker (PWA instalable)
+// Fuerza la actualización a TODOS los clientes (incluida la PWA ya instalada
+// en pantalla de inicio) cuando se publica una nueva versión, evitando tener
+// que desinstalar/reinstalar. Guard anti-loop con sessionStorage: el flag se
+// fija justo antes del único reload permitido y se limpia recién cuando esa
+// misma carga confirma que ya está controlada por el SW nuevo (sin bucles).
 if('serviceWorker' in navigator){
   window.addEventListener('load',function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      if(navigator.serviceWorker.controller){
+        sessionStorage.removeItem('sw-reloaded');
+      }
+      reg.addEventListener('updatefound',function(){
+        var newWorker=reg.installing;
+        if(!newWorker) return;
+        newWorker.addEventListener('statechange',function(){
+          if(newWorker.state==='activated' && navigator.serviceWorker.controller && !sessionStorage.getItem('sw-reloaded')){
+            sessionStorage.setItem('sw-reloaded','1');
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(function(){});
+
+    var swReloaded=false;
+    navigator.serviceWorker.addEventListener('controllerchange',function(){
+      if(swReloaded) return;
+      swReloaded=true;
+      if(!sessionStorage.getItem('sw-reloaded')){
+        sessionStorage.setItem('sw-reloaded','1');
+        window.location.reload();
+      }
+    });
   });
 }
 
