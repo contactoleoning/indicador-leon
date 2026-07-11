@@ -1016,6 +1016,10 @@ button{cursor:pointer}
 // DATOS INICIALES
 // ═══════════════════════════════════════
 // Los datos reales de clientes viven en Firebase (leon_clientes), no en el
+// código fuente publico. Este array solo se usa como semilla de arranque si
+// alguna vez la base Firebase está vacía, o como set de partida en modo
+// "usar sin sincronizar" — por eso se deja vacío.
+// Los datos reales de clientes viven en Firebase (leon_clientes), no en el
 // codigo fuente publico. Este array solo se usa como semilla de arranque si
 // alguna vez la base Firebase esta vacia, o como set de partida en modo
 // "usar sin sincronizar" -- por eso se deja vacio. (Purgado del historial
@@ -1365,6 +1369,21 @@ function planBadge(r) {
 function esc(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+// Como esc(), pero además segura para insertar dentro de un literal JS de
+// comillas simples embebido en un atributo onclick="...('...')" inline.
+// Necesaria porque los datos de fotos vienen de Firebase, y con reglas de
+// acceso abiertas un registro no puede asumirse con el formato de id que
+// genera compressImage() — un id/fecha maliciosos podrían romper fuera del
+// atributo o del string JS si solo se escapa como HTML.
+function escAttr(s) {
+  return String(s==null?'':s)
+    .replace(/\\/g,'\\\\')
+    .replace(/&/g,'&amp;')
+    .replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/'/g,"\\'");
+}
 
 // ═══════════════════════════════════════
 // FILTRAR / ORDENAR
@@ -1505,7 +1524,7 @@ function render() {
           ${r.obs?`<div class="card-field full"><label>OBSERVACIÓN</label><div class="card-obs">${esc(r.obs)}</div></div>`:''}
         </div>
         <div class="card-photo-strip">
-          ${(r.photos||[]).map(p=>`<img class="card-photo-thumb" src="${p.data}" onclick="openLightbox('${p.id}',${r.id})" title="${p.date}"/>`).join('')}
+          ${(r.photos||[]).map(p=>`<img class="card-photo-thumb" src="${esc(p.data)}" onclick="openLightbox('${escAttr(p.id)}',${r.id})" title="${esc(p.date)}"/>`).join('')}
           <div class="card-photo-add" onclick="addCardPhoto(${r.id})">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <span>FOTO</span>
@@ -1702,8 +1721,8 @@ function renderMantPhotos() {
   const camIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
   grid.innerHTML = mantModalPhotos.map(p => `
     <div class="photo-wrap">
-      <img class="photo-thumb" src="${p.data}" title="${p.date}"/>
-      <button class="photo-del" onclick="removeMantPhoto('${p.id}')">×</button>
+      <img class="photo-thumb" src="${esc(p.data)}" title="${esc(p.date)}"/>
+      <button class="photo-del" onclick="removeMantPhoto('${escAttr(p.id)}')">×</button>
     </div>`).join('') +
     `<div class="photo-add" onclick="document.getElementById('mant-file').click()">${camIcon}<span>AGREGAR</span></div>`;
 }
@@ -1947,7 +1966,7 @@ function renderHistorialModal() {
         <button type="button" class="equipo-del" onclick="eliminarHistorialEntry(${h._i})" title="Eliminar registro">✕</button>
       </div>
       ${h.detalle?`<div class="h-detalle">${esc(h.detalle)}</div>`:''}
-      ${(h.fotos&&h.fotos.length)?`<div class="h-fotos">${h.fotos.map(p=>`<img class="card-photo-thumb" style="width:44px;height:44px" src="${p.data}" title="${p.date||''}"/>`).join('')}</div>`:''}
+      ${(h.fotos&&h.fotos.length)?`<div class="h-fotos">${h.fotos.map(p=>`<img class="card-photo-thumb" style="width:44px;height:44px" src="${esc(p.data)}" title="${esc(p.date||'')}"/>`).join('')}</div>`:''}
     </div>
   `).join('');
 }
@@ -1989,8 +2008,8 @@ function renderModalPhotos() {
   const camIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
   grid.innerHTML = modalPhotos.map(p => `
     <div class="photo-wrap">
-      <img class="photo-thumb" src="${p.data}" onclick="openLightbox('${p.id}',null)" title="${p.date}"/>
-      <button class="photo-del" onclick="removeModalPhoto('${p.id}')">×</button>
+      <img class="photo-thumb" src="${esc(p.data)}" onclick="openLightbox('${escAttr(p.id)}',null)" title="${esc(p.date)}"/>
+      <button class="photo-del" onclick="removeModalPhoto('${escAttr(p.id)}')">×</button>
     </div>`).join('') +
     `<div class="photo-add" onclick="document.getElementById('modal-file').click()">${camIcon}<span>AGREGAR</span></div>`;
 }
@@ -2055,7 +2074,7 @@ function showLightbox() {
   lb.innerHTML = `
     <button class="lightbox-close" onclick="closeLightbox()">×</button>
     ${multi ? `<button class="lightbox-arrow lightbox-prev" onclick="lbNav(-1)">‹</button>` : ''}
-    <img class="lightbox-img" src="${p.data}"/>
+    <img class="lightbox-img" src="${esc(p.data)}"/>
     ${multi ? `<button class="lightbox-arrow lightbox-next" onclick="lbNav(1)">›</button>` : ''}
     ${readOnly ? '' : `<div class="lightbox-actions">
       <button class="lightbox-del" onclick="deleteLightboxPhoto()">
@@ -2063,7 +2082,7 @@ function showLightbox() {
         Eliminar foto
       </button>
     </div>`}
-    <div class="lightbox-info">${p.date||''}${multi?' · '+(lightboxIdx+1)+' / '+lightboxPhotos.length:''}</div>`;
+    <div class="lightbox-info">${esc(p.date||'')}${multi?' · '+(lightboxIdx+1)+' / '+lightboxPhotos.length:''}</div>`;
   lb.style.display = 'flex';
   lb.onclick = e => { if (e.target === lb) closeLightbox(); };
 }
@@ -2141,7 +2160,7 @@ function historialListHTML(r) {
         ${r.telefono?`<button onclick="enviarRespaldoMantencion(${r.id},${h._i})" style="background:none;border:1px solid rgba(232,193,90,0.4);color:#e8c15a;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">📤 Enviar</button>`:''}
       </div>
       ${h.detalle?`<div style="font-size:12px;color:var(--text2);margin-top:5px;white-space:pre-wrap;line-height:1.5">${esc(h.detalle)}</div>`:''}
-      ${fotos.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">${fotos.map(p=>`<img class="card-photo-thumb" style="width:48px;height:48px" src="${p.data}" onclick="openLightboxHist('${p.id}',${r.id},${h._i})" title="${p.date||''}"/>`).join('')}</div>`:''}
+      ${fotos.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">${fotos.map(p=>`<img class="card-photo-thumb" style="width:48px;height:48px" src="${esc(p.data)}" onclick="openLightboxHist('${escAttr(p.id)}',${r.id},${h._i})" title="${esc(p.date||'')}"/>`).join('')}</div>`:''}
     </div>`;
   }).join('') + '</div>';
 }
@@ -2204,7 +2223,7 @@ function renderPerfil(r) {
       ${r.obs?`<div class="card-field full"><label>OBSERVACIÓN</label><div class="card-obs">${esc(r.obs)}</div></div>`:''}
     </div>
     <div class="card-photo-strip" style="padding:10px 2px;border-top:1px solid var(--border)">
-      ${(r.photos&&r.photos.length)?r.photos.map(p=>`<img class="card-photo-thumb" src="${p.data}" onclick="openLightbox('${p.id}',${r.id})" title="${p.date}"/>`).join(''):'<div style="font-size:12px;color:var(--text3)">Sin fotos registradas.</div>'}
+      ${(r.photos&&r.photos.length)?r.photos.map(p=>`<img class="card-photo-thumb" src="${esc(p.data)}" onclick="openLightbox('${escAttr(p.id)}',${r.id})" title="${esc(p.date)}"/>`).join(''):'<div style="font-size:12px;color:var(--text3)">Sin fotos registradas.</div>'}
     </div>
     <div class="card-foot" style="padding:12px 2px 2px;flex-wrap:wrap;border-top:1px solid var(--border)">
       <label class="card-aviso-label${r.aviso?' avisado':''}">
@@ -2229,8 +2248,8 @@ function renderGallery() {
   grid.innerHTML = photos.length
     ? photos.map(p => `
       <div class="gallery-img-wrap">
-        <img src="${p.data}" onclick="openLightbox('${p.id}',${galleryRecId})" title="${p.date}"/>
-        <button class="gallery-img-del" onclick="deleteGalleryPhoto('${p.id}')">×</button>
+        <img src="${esc(p.data)}" onclick="openLightbox('${escAttr(p.id)}',${galleryRecId})" title="${esc(p.date)}"/>
+        <button class="gallery-img-del" onclick="deleteGalleryPhoto('${escAttr(p.id)}')">×</button>
       </div>`).join('')
     : '<div class="gallery-empty">📷<br>Sin fotos aún.<br>Toca <strong>Subir foto</strong> para agregar.</div>';
 }
