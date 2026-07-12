@@ -76,6 +76,15 @@ button{cursor:pointer}
 .leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .leg-aviso{background:var(--aviso-bg);border-color:var(--aviso-border);color:var(--aviso)}
 
+/* ── REMINDER BANNER ── */
+.reminder-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 16px;font-size:13px;border-bottom:1px solid var(--border)}
+.reminder-banner.nivel-ambar{background:var(--amber-bg);color:var(--amber)}
+.reminder-banner.nivel-rojo{background:var(--red-bg);color:var(--red)}
+.reminder-banner-btns{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.reminder-banner button{font-size:12px;font-weight:600;padding:6px 12px;border-radius:var(--radius-xs);border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;white-space:nowrap}
+.reminder-banner button:hover{filter:brightness(1.2)}
+.reminder-banner-close{padding:4px 9px!important;font-size:15px!important;line-height:1}
+
 /* ── STATS ── */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 12px;background:var(--bg);border-bottom:1px solid var(--border)}
 .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 8px;text-align:center;transition:border-color .2s,transform .15s}
@@ -648,6 +657,15 @@ button{cursor:pointer}
   <span class="leg-item leg-aviso"><span class="leg-dot" style="background:#1a56db"></span>Aviso enviado</span>
 </div>
 
+<div id="reminder-banner" class="reminder-banner" style="display:none">
+  <span id="reminder-banner-text"></span>
+  <div class="reminder-banner-btns">
+    <button id="reminder-banner-notif-btn" onclick="solicitarPermisoNotificaciones()" style="display:none">🔔 Activar notificaciones</button>
+    <button onclick="openRecordatorios()">Ver recordatorios</button>
+    <button class="reminder-banner-close" onclick="cerrarBannerRecordatorio()" aria-label="Cerrar aviso">×</button>
+  </div>
+</div>
+
 <div class="stats-row" id="stats-row"></div>
 
 <div class="toolbar">
@@ -1110,6 +1128,7 @@ function initFirebaseDb(app) {
       }
       render();
       setSyncStatus('ok', 'sincronizado');
+      checkRecordatoriosDiarios();
     }, err => {
       console.error('Firebase error:', err);
       setSyncStatus('err', 'error sync');
@@ -1285,6 +1304,7 @@ function skipSetup() {
   data = local ? JSON.parse(local) : INIT.map(r=>({...r}));
   setSyncStatus('off', 'sin sync (local)');
   render();
+  checkRecordatoriosDiarios();
 }
 
 function resetConfig() {
@@ -2526,6 +2546,66 @@ function restaurarRespaldoInd(input){
     toast('Respaldo restaurado ✓');
   };
   reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════
+// AVISO DIARIO DE VENCIMIENTOS
+// ═══════════════════════════════════════
+// Revisa una vez al dia (no en cada render, para no ser invasivo) cuantos
+// clientes estan vencidos o por vencer, y lo muestra como banner + una
+// notificacion del sistema si el usuario la activo. No requiere servidor:
+// solo corre mientras la app esta abierta (o vuelve a primer plano), asi
+// que si el usuario abre la app a diario para gestionar clientes, en la
+// practica avisa igual que un push en segundo plano.
+const REMINDER_CHECK_KEY = 'leon_last_reminder_check';
+function checkRecordatoriosDiarios() {
+  const hoyStr = TODAY.toISOString().slice(0,10);
+  if (localStorage.getItem(REMINDER_CHECK_KEY) === hoyStr) return;
+  localStorage.setItem(REMINDER_CHECK_KEY, hoyStr);
+
+  const vencidos = data.filter(r => statusOf(r) === 'red').length;
+  const porVencer = data.filter(r => statusOf(r) === 'amber').length;
+  if (!vencidos && !porVencer) return;
+
+  mostrarBannerRecordatorio(vencidos, porVencer);
+  mostrarNotificacionRecordatorio(vencidos, porVencer);
+}
+function mostrarBannerRecordatorio(vencidos, porVencer) {
+  const partes = [];
+  if (vencidos) partes.push(`<strong>${vencidos}</strong> vencido${vencidos>1?'s':''}`);
+  if (porVencer) partes.push(`<strong>${porVencer}</strong> por vencer`);
+  const banner = document.getElementById('reminder-banner');
+  banner.className = 'reminder-banner ' + (vencidos ? 'nivel-rojo' : 'nivel-ambar');
+  document.getElementById('reminder-banner-text').innerHTML = '📢 ' + partes.join(' · ');
+  const notifBtn = document.getElementById('reminder-banner-notif-btn');
+  notifBtn.style.display = (typeof Notification!=='undefined' && Notification.permission==='default') ? '' : 'none';
+  banner.style.display = 'flex';
+}
+function cerrarBannerRecordatorio() {
+  document.getElementById('reminder-banner').style.display = 'none';
+}
+function solicitarPermisoNotificaciones() {
+  if (typeof Notification === 'undefined') { toast('Este navegador no soporta notificaciones'); return; }
+  Notification.requestPermission().then(perm => {
+    const btn = document.getElementById('reminder-banner-notif-btn');
+    if (btn) btn.style.display = (perm==='default') ? '' : 'none';
+    if (perm === 'granted') toast('Notificaciones activadas ✓');
+    else if (perm === 'denied') toast('Notificaciones bloqueadas por el navegador');
+  });
+}
+function mostrarNotificacionRecordatorio(vencidos, porVencer) {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const partes = [];
+  if (vencidos) partes.push(vencidos + ' vencido' + (vencidos>1?'s':''));
+  if (porVencer) partes.push(porVencer + ' por vencer');
+  const body = partes.join(' · ') + ' — revisa Recordatorios';
+  const opts = { body, icon: 'icon-192.png', badge: 'icon-192.png' };
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(reg => reg.showNotification('Indicador León', opts))
+      .catch(() => { try { new Notification('Indicador León', opts); } catch(e) {} });
+  } else {
+    try { new Notification('Indicador León', opts); } catch(e) {}
+  }
 }
 
 // ═══════════════════════════════════════

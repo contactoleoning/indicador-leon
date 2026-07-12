@@ -1,7 +1,7 @@
 // Service worker — Indicador León
 // Estrategia: red primero (para recibir siempre la última versión publicada),
 // con caché de respaldo para abrir la app sin conexión.
-var CACHE = "indicador-leon-v4";
+var CACHE = "indicador-leon-v5";
 var ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function (e) {
@@ -31,5 +31,19 @@ self.addEventListener("fetch", function (e) {
         return res;
       })
       .catch(function () { return caches.match(e.request); })
+  );
+});
+
+// Al tocar la notificación de recordatorios, enfocar la app si ya está
+// abierta en una pestaña, o abrir una nueva si no.
+self.addEventListener("notificationclick", function (e) {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        if ("focus" in clientList[i]) return clientList[i].focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow("./");
+    })
   );
 });
