@@ -19,6 +19,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{font-size:16px}
@@ -1056,6 +1057,7 @@ let data = [];
 let editId = null, pendingDelId = null;
 let fbRef = null;   // Firebase database reference
 let fbTrashRef = null;
+let fbStorage = null; // Firebase Storage reference (fotos)
 let trashData = [];
 let useFirebase = false;
 
@@ -1107,6 +1109,7 @@ function initFirebaseDb(app) {
     const db = firebase.database(app);
     fbRef = db.ref('leon_clientes');
     fbTrashRef = db.ref('leon_clientes_trash');
+    fbStorage = firebase.storage(app);
     useFirebase = true;
 
     // sincronizar papelera
@@ -1179,12 +1182,22 @@ function deleteRecord(id, row) {
   }
 }
 
+// Al purgar definitivamente un cliente (papelera manual o automatica a los
+// 30 dias), borrar tambien sus fotos reales en Storage -- si no, quedan
+// huerfanas ahi para siempre (nadie las borraria nunca).
+function deleteAllPhotosFromStorage(rec) {
+  if (!rec) return;
+  (rec.photos||[]).forEach(deletePhotoFromStorage);
+  (rec.historial||[]).forEach(h => (h.fotos||[]).forEach(deletePhotoFromStorage));
+}
+
 const TRASH_DIAS = 30;
 function purgeOldTrash() {
   if (!useFirebase || !fbTrashRef) return;
   const limite = Date.now() - TRASH_DIAS*24*60*60*1000;
   trashData.forEach(r => {
     if ((r.deletedAt||0) < limite) {
+      deleteAllPhotosFromStorage(r);
       fbTrashRef.child('c' + r.id).remove().catch(()=>{});
     }
   });
@@ -1233,6 +1246,7 @@ function restoreFromTrash(id) {
 function purgeFromTrash(id) {
   if (!confirm('¿Eliminar definitivamente? Esta acción no se puede deshacer.')) return;
   if (!useFirebase || !fbTrashRef) return;
+  deleteAllPhotosFromStorage(trashData.find(r => r.id === id));
   fbTrashRef.child('c' + id).remove()
     .then(() => { renderTrashList(); toast('Eliminado definitivamente'); })
     .catch(e => console.error(e));
@@ -1584,7 +1598,7 @@ function render() {
           ${r.obs?`<div class="card-field full"><label>OBSERVACIÓN</label><div class="card-obs">${esc(r.obs)}</div></div>`:''}
         </div>
         <div class="card-photo-strip">
-          ${(r.photos||[]).map(p=>`<img class="card-photo-thumb" src="${esc(p.data)}" onclick="openLightbox('${escAttr(p.id)}',${r.id})" title="${esc(p.date)}"/>`).join('')}
+          ${(r.photos||[]).map(p=>`<img class="card-photo-thumb" src="${esc(photoSrc(p))}" onclick="openLightbox('${escAttr(p.id)}',${r.id})" title="${esc(p.date)}"/>`).join('')}
           <div class="card-photo-add" onclick="addCardPhoto(${r.id})">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <span>FOTO</span>
@@ -1792,7 +1806,7 @@ function renderMantPhotos() {
   const camIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
   grid.innerHTML = mantModalPhotos.map(p => `
     <div class="photo-wrap">
-      <img class="photo-thumb" src="${esc(p.data)}" title="${esc(p.date)}"/>
+      <img class="photo-thumb" src="${esc(photoSrc(p))}" title="${esc(p.date)}"/>
       <button class="photo-del" onclick="removeMantPhoto('${escAttr(p.id)}')">×</button>
     </div>`).join('') +
     `<div class="photo-add" onclick="document.getElementById('mant-file').click()">${camIcon}<span>AGREGAR</span></div>`;
@@ -1806,6 +1820,7 @@ async function handleMantPhotoUpload(input) {
   saveMantDraft();
 }
 function removeMantPhoto(id) {
+  deletePhotoFromStorage(mantModalPhotos.find(p => p.id === id));
   mantModalPhotos = mantModalPhotos.filter(p => p.id !== id);
   renderMantPhotos();
   saveMantDraft();
@@ -2040,7 +2055,7 @@ function renderHistorialModal() {
         <button type="button" class="equipo-del" onclick="eliminarHistorialEntry(${h._i})" title="Eliminar registro">✕</button>
       </div>
       ${h.detalle?`<div class="h-detalle">${esc(h.detalle)}</div>`:''}
-      ${(h.fotos&&h.fotos.length)?`<div class="h-fotos">${h.fotos.map(p=>`<img class="card-photo-thumb" style="width:44px;height:44px" src="${esc(p.data)}" title="${esc(p.date||'')}"/>`).join('')}</div>`:''}
+      ${(h.fotos&&h.fotos.length)?`<div class="h-fotos">${h.fotos.map(p=>`<img class="card-photo-thumb" style="width:44px;height:44px" src="${esc(photoSrc(p))}" title="${esc(p.date||'')}"/>`).join('')}</div>`:''}
     </div>
   `).join('');
 }
@@ -2089,9 +2104,35 @@ async function compressImage(file) {
   c.getContext('2d').drawImage(source, 0, 0, w, h);
   if (source.close) source.close();
 
-  return { id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
-           data: c.toDataURL('image/jpeg', 0.72),
-           date: new Date().toISOString().slice(0,10) };
+  const id = Date.now() + '_' + Math.random().toString(36).slice(2,7);
+  const date = new Date().toISOString().slice(0,10);
+
+  // Con Firebase conectado, subir a Storage y guardar solo la URL -- antes
+  // cada foto quedaba embebida en base64 dentro de Realtime Database, y
+  // cada carga de la app descargaba TODAS las fotos de TODOS los clientes.
+  if (useFirebase && fbStorage) {
+    const blob = await new Promise(resolve => c.toBlob(resolve, 'image/jpeg', 0.72));
+    const ref = fbStorage.ref('clientes/' + id + '.jpg');
+    await ref.put(blob, { contentType: 'image/jpeg' });
+    const url = await ref.getDownloadURL();
+    return { id, url, date };
+  }
+
+  // Modo local sin Firebase: no hay donde subir, se mantiene embebida.
+  return { id, data: c.toDataURL('image/jpeg', 0.72), date };
+}
+
+// Fuente de una foto para <img src>: nuevas fotos guardan 'url' (Storage),
+// fotos viejas de antes de la migracion aun pueden tener 'data' (base64).
+function photoSrc(p) { return (p && (p.url || p.data)) || ''; }
+
+// Borra el archivo real en Storage al eliminar una foto (best-effort: si
+// ya no existe, o estamos en modo local sin Storage, no hace nada).
+function deletePhotoFromStorage(p) {
+  if (!p || !p.url || !fbStorage) return;
+  try {
+    fbStorage.refFromURL(p.url).delete().catch(() => {});
+  } catch (e) {}
 }
 
 // ── Modal photos ──
@@ -2101,7 +2142,7 @@ function renderModalPhotos() {
   const camIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
   grid.innerHTML = modalPhotos.map(p => `
     <div class="photo-wrap">
-      <img class="photo-thumb" src="${esc(p.data)}" onclick="openLightbox('${escAttr(p.id)}',null)" title="${esc(p.date)}"/>
+      <img class="photo-thumb" src="${esc(photoSrc(p))}" onclick="openLightbox('${escAttr(p.id)}',null)" title="${esc(p.date)}"/>
       <button class="photo-del" onclick="removeModalPhoto('${escAttr(p.id)}')">×</button>
     </div>`).join('') +
     `<div class="photo-add" onclick="document.getElementById('modal-file').click()">${camIcon}<span>AGREGAR</span></div>`;
@@ -2116,6 +2157,7 @@ async function handleModalPhotoUpload(input) {
 }
 
 function removeModalPhoto(photoId) {
+  deletePhotoFromStorage(modalPhotos.find(p => p.id === photoId));
   modalPhotos = modalPhotos.filter(p => p.id !== photoId);
   renderModalPhotos();
 }
@@ -2167,7 +2209,7 @@ function showLightbox() {
   lb.innerHTML = `
     <button class="lightbox-close" onclick="closeLightbox()">×</button>
     ${multi ? `<button class="lightbox-arrow lightbox-prev" onclick="lbNav(-1)">‹</button>` : ''}
-    <img class="lightbox-img" src="${esc(p.data)}"/>
+    <img class="lightbox-img" src="${esc(photoSrc(p))}"/>
     ${multi ? `<button class="lightbox-arrow lightbox-next" onclick="lbNav(1)">›</button>` : ''}
     ${readOnly ? '' : `<div class="lightbox-actions">
       <button class="lightbox-del" onclick="deleteLightboxPhoto()">
@@ -2199,6 +2241,7 @@ function deleteLightboxPhoto() {
   } else {
     const rec = data.find(r => r.id === lightboxRecId);
     if (!rec) return;
+    deletePhotoFromStorage(p);
     rec.photos = (rec.photos||[]).filter(ph => ph.id !== p.id);
     lightboxPhotos = rec.photos;
     saveRecord(rec); render();
@@ -2253,7 +2296,7 @@ function historialListHTML(r) {
         ${r.telefono?`<button onclick="enviarRespaldoMantencion(${r.id},${h._i})" style="background:none;border:1px solid rgba(232,193,90,0.4);color:#e8c15a;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">📤 Enviar</button>`:''}
       </div>
       ${h.detalle?`<div style="font-size:12px;color:var(--text2);margin-top:5px;white-space:pre-wrap;line-height:1.5">${esc(h.detalle)}</div>`:''}
-      ${fotos.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">${fotos.map(p=>`<img class="card-photo-thumb" style="width:48px;height:48px" src="${esc(p.data)}" onclick="openLightboxHist('${escAttr(p.id)}',${r.id},${h._i})" title="${esc(p.date||'')}"/>`).join('')}</div>`:''}
+      ${fotos.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">${fotos.map(p=>`<img class="card-photo-thumb" style="width:48px;height:48px" src="${esc(photoSrc(p))}" onclick="openLightboxHist('${escAttr(p.id)}',${r.id},${h._i})" title="${esc(p.date||'')}"/>`).join('')}</div>`:''}
     </div>`;
   }).join('') + '</div>';
 }
@@ -2271,14 +2314,21 @@ function enviarRespaldoMantencion(clienteId, histIdx) {
   const fotos = h.fotos||[];
   const abrirWhatsapp = () => window.open('https://wa.me/'+num+'?text='+encodeURIComponent(texto),'_blank');
   if (navigator.canShare && fotos.length) {
-    Promise.all(fotos.map((p,i) => fetch(p.data).then(res => res.blob()).then(blob => new File([blob], 'mantencion_'+fechaFmt.replace(/-/g,'')+'_'+(i+1)+'.jpg', {type:'image/jpeg'}))))
+    Promise.all(fotos.map((p,i) => fetch(photoSrc(p)).then(res => res.blob()).then(blob => new File([blob], 'mantencion_'+fechaFmt.replace(/-/g,'')+'_'+(i+1)+'.jpg', {type:'image/jpeg'}))))
       .then(files => {
         if (navigator.canShare({files})) {
-          return navigator.share({files, text: texto, title: 'Respaldo de mantención'});
+          return navigator.share({files, text: texto, title: 'Respaldo de mantención'})
+            .catch(() => { /* usuario canceló el cuadro de compartir */ });
         }
         abrirWhatsapp();
       })
-      .catch(() => { /* usuario canceló el share o no está soportado */ });
+      .catch(() => {
+        // No se pudieron preparar las fotos para adjuntar (ej: red, o CORS
+        // pendiente de configurar en el bucket) -- no dejar al usuario sin
+        // nada, igual abrir WhatsApp con el texto.
+        abrirWhatsapp();
+        toast('Se abrió WhatsApp con el mensaje. Adjunta las fotos manualmente.');
+      });
   } else {
     abrirWhatsapp();
     if (fotos.length) toast('Se abrió WhatsApp con el mensaje. Adjunta las fotos manualmente.');
@@ -2316,7 +2366,7 @@ function renderPerfil(r) {
       ${r.obs?`<div class="card-field full"><label>OBSERVACIÓN</label><div class="card-obs">${esc(r.obs)}</div></div>`:''}
     </div>
     <div class="card-photo-strip" style="padding:10px 2px;border-top:1px solid var(--border)">
-      ${(r.photos&&r.photos.length)?r.photos.map(p=>`<img class="card-photo-thumb" src="${esc(p.data)}" onclick="openLightbox('${escAttr(p.id)}',${r.id})" title="${esc(p.date)}"/>`).join(''):'<div style="font-size:12px;color:var(--text3)">Sin fotos registradas.</div>'}
+      ${(r.photos&&r.photos.length)?r.photos.map(p=>`<img class="card-photo-thumb" src="${esc(photoSrc(p))}" onclick="openLightbox('${escAttr(p.id)}',${r.id})" title="${esc(p.date)}"/>`).join(''):'<div style="font-size:12px;color:var(--text3)">Sin fotos registradas.</div>'}
     </div>
     <div class="card-foot" style="padding:12px 2px 2px;flex-wrap:wrap;border-top:1px solid var(--border)">
       <label class="card-aviso-label${r.aviso?' avisado':''}">
@@ -2341,7 +2391,7 @@ function renderGallery() {
   grid.innerHTML = photos.length
     ? photos.map(p => `
       <div class="gallery-img-wrap">
-        <img src="${esc(p.data)}" onclick="openLightbox('${escAttr(p.id)}',${galleryRecId})" title="${esc(p.date)}"/>
+        <img src="${esc(photoSrc(p))}" onclick="openLightbox('${escAttr(p.id)}',${galleryRecId})" title="${esc(p.date)}"/>
         <button class="gallery-img-del" onclick="deleteGalleryPhoto('${escAttr(p.id)}')">×</button>
       </div>`).join('')
     : '<div class="gallery-empty">📷<br>Sin fotos aún.<br>Toca <strong>Subir foto</strong> para agregar.</div>';
@@ -2362,6 +2412,7 @@ async function handleGalleryUpload(input) {
 function deleteGalleryPhoto(photoId) {
   const rec = data.find(r => r.id === galleryRecId);
   if (!rec) return;
+  deletePhotoFromStorage((rec.photos||[]).find(p => p.id === photoId));
   rec.photos = (rec.photos||[]).filter(p => p.id !== photoId);
   saveRecord(rec); render(); renderGallery();
   toast('Foto eliminada');
