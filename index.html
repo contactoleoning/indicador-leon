@@ -1453,6 +1453,24 @@ function autoResize(el) {
 // RENDER
 // ═══════════════════════════════════════
 function render() {
+  // Si el usuario esta a medio escribir en un input/textarea de la tabla,
+  // un cambio remoto de Firebase (u otro cliente) dispara este mismo
+  // render() y antes reconstruia la tabla entera con innerHTML, borrando
+  // el foco y cualquier texto no confirmado (onchange solo guarda al
+  // perder el foco). Guardamos ese estado para restaurarlo despues.
+  const active = document.activeElement;
+  let focusInfo = null;
+  if (active && active.dataset && active.dataset.id && active.closest('#tbody') &&
+      (active.classList.contains('td-input') || active.classList.contains('obs-ta'))) {
+    focusInfo = {
+      id: active.dataset.id,
+      f: active.dataset.f,
+      value: active.value,
+      selStart: active.selectionStart,
+      selEnd: active.selectionEnd,
+    };
+  }
+
   renderStats();
   const rows = getFiltered();
 
@@ -1568,6 +1586,17 @@ function render() {
         </div>
       </div>`;
     }).join('');
+  }
+
+  if (focusInfo) {
+    const el = tb.querySelector(`.td-input[data-id="${focusInfo.id}"][data-f="${focusInfo.f}"], .obs-ta[data-id="${focusInfo.id}"][data-f="${focusInfo.f}"]`);
+    if (el) {
+      el.value = focusInfo.value;
+      el.focus();
+      if (typeof focusInfo.selStart === 'number' && el.setSelectionRange) {
+        try { el.setSelectionRange(focusInfo.selStart, focusInfo.selEnd); } catch(e) {}
+      }
+    }
   }
 }
 
@@ -2001,29 +2030,48 @@ function eliminarHistorialEntry(i) {
   renderHistorialModal();
 }
 
-function compressImage(file) {
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        const MAX = 900;
-        let w = img.width, h = img.height;
-        if (w > MAX || h > MAX) {
-          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-          else { w = Math.round(w * MAX / h); h = MAX; }
-        }
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve({ id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
-                  data: c.toDataURL('image/jpeg', 0.72),
-                  date: new Date().toISOString().slice(0,10) });
+async function compressImage(file) {
+  const MAX = 900;
+  let source, w, h;
+
+  // createImageBitmap con imageOrientation:'from-image' aplica la rotacion
+  // EXIF automaticamente -- fotos tomadas en vertical con el celular ya no
+  // quedan giradas. Si el navegador no lo soporta, caemos al metodo viejo
+  // (dibuja tal cual viene, sin corregir orientacion).
+  if (typeof createImageBitmap === 'function') {
+    try {
+      source = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      w = source.width; h = source.height;
+    } catch (e) { source = null; }
+  }
+
+  if (!source) {
+    source = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = e.target.result;
       };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    w = source.width; h = source.height;
+  }
+
+  if (w > MAX || h > MAX) {
+    if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+    else { w = Math.round(w * MAX / h); h = MAX; }
+  }
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').drawImage(source, 0, 0, w, h);
+  if (source.close) source.close();
+
+  return { id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+           data: c.toDataURL('image/jpeg', 0.72),
+           date: new Date().toISOString().slice(0,10) };
 }
 
 // ── Modal photos ──
