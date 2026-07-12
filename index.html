@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="color-scheme" content="dark"/>
@@ -631,10 +631,10 @@ button{cursor:pointer}
   <span class="header-title">INDICADOR DE VENCIMIENTO</span>
   <div class="sync-dot off" id="sync-dot" title="Sin sincronización" onclick="openSyncInfo()"></div>
   <span class="sync-lbl" id="sync-lbl" onclick="openSyncInfo()">sin sync</span>
-  <button class="theme-btn" id="backup-btn" onclick="openBackup()" title="Respaldo de datos">
+  <button class="theme-btn" id="backup-btn" onclick="openBackup()" title="Respaldo de datos" aria-label="Respaldo de datos">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
   </button>
-  <button class="theme-btn" id="trash-btn" onclick="openTrash()" title="Papelera">
+  <button class="theme-btn" id="trash-btn" onclick="openTrash()" title="Papelera" aria-label="Papelera">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
   </button>
   <div class="header-today" style="margin-left:8px">HOY: <strong id="hoy"></strong></div>
@@ -1035,7 +1035,6 @@ const CFG_KEY = 'leon_fb_config';
 const LOCAL_KEY = 'leon_local_data';
 
 let data = [];
-let nextId = 1;
 let editId = null, pendingDelId = null;
 let fbRef = null;   // Firebase database reference
 let fbTrashRef = null;
@@ -1104,11 +1103,9 @@ function initFirebaseDb(app) {
       const val = snapshot.val();
       if (val && Object.keys(val).length > 0) {
         data = Object.values(val).sort((a,b) => (a.id||0) - (b.id||0));
-        nextId = Math.max(...data.map(r=>r.id)) + 1;
       } else {
         // primera vez: subir datos iniciales
         data = INIT.map(r=>({...r}));
-        nextId = Math.max(...data.map(r=>r.id)) + 1;
         pushAllToFirebase();
       }
       render();
@@ -1286,7 +1283,6 @@ function skipSetup() {
   // use local data
   const local = localStorage.getItem(LOCAL_KEY);
   data = local ? JSON.parse(local) : INIT.map(r=>({...r}));
-  nextId = data.length ? Math.max(...data.map(r=>r.id)) + 1 : 37;
   setSyncStatus('off', 'sin sync (local)');
   render();
 }
@@ -1337,7 +1333,15 @@ const APP_CHECK_SITE_KEY = "6LcU5U4tAAAAAJG4eNx-5jw37hdqwwAWrRvpv6YY";
 function addMonths(ds, m) {
   if (!ds) return null;
   const [y,mo,d] = ds.split('-').map(Number);
-  return new Date(y, mo-1+m, d);
+  const totalMonths = (mo-1) + m;
+  const targetYear = y + Math.floor(totalMonths/12);
+  const targetMonth = ((totalMonths%12)+12)%12;
+  const result = new Date(targetYear, targetMonth, d);
+  // Si el dia no existe en el mes destino (ej: 31 de enero + 1 mes -> Date
+  // desborda a marzo en vez de caer en febrero), retroceder al ultimo dia
+  // de ese mes en lugar de dejar que se desborde al mes siguiente.
+  if (result.getMonth() !== targetMonth) result.setDate(0);
+  return result;
 }
 function statusOf(r) {
   if (!r.inicia) return 'gray';
@@ -1485,22 +1489,22 @@ function render() {
         <td class="td-obs"><textarea class="obs-ta" data-id="${r.id}" data-f="obs" onchange="ie(this)" oninput="autoResize(this)" placeholder="—" rows="1">${esc(r.obs)}</textarea></td>
         <td class="td-center">
           <div class="row-acts">
-            <button class="act-btn perfil" onclick="openPerfil(${r.id})" title="Ver perfil del cliente">
+            <button class="act-btn perfil" onclick="openPerfil(${r.id})" title="Ver perfil del cliente" aria-label="Ver perfil del cliente">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
-            <button class="act-btn mant" onclick="marcarMantencionHoy(${r.id})" title="Registrar mantención de hoy">
+            <button class="act-btn mant" onclick="marcarMantencionHoy(${r.id})" title="Registrar mantención de hoy" aria-label="Registrar mantención de hoy">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
             </button>
-            ${r.telefono?`<button class="act-btn wa" onclick="waCliente(${r.id})" title="WhatsApp"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.3A7.9 7.9 0 0 0 12 4a8 8 0 0 0-6.9 12l-1 3.6 3.7-1a8 8 0 0 0 3.8 1h.3a8 8 0 0 0 5.7-13.3zM12 18.5a6.6 6.6 0 0 1-3.4-.9l-.2-.1-2.2.6.6-2.1-.2-.3A6.6 6.6 0 1 1 12 18.5zm3.6-4.9c-.2-.1-1.2-.6-1.3-.6s-.3-.1-.4.1l-.6.7c-.1.1-.2.2-.4 0a5.4 5.4 0 0 1-1.6-1 6 6 0 0 1-1.1-1.4c-.1-.2 0-.3.1-.4l.3-.4.2-.3v-.4l-.6-1.4c-.1-.3-.3-.3-.4-.3h-.4a.7.7 0 0 0-.5.3 2.1 2.1 0 0 0-.7 1.6 3.7 3.7 0 0 0 .8 2 8.3 8.3 0 0 0 3.2 2.8c1.1.5 1.6.5 2.1.5a1.8 1.8 0 0 0 1.2-.9 1.5 1.5 0 0 0 .1-.8c-.1-.1-.2-.1-.4-.2z"/></svg></button>`:''}
-            ${r.telefono?`<button class="act-btn resena" onclick="pedirResena(${r.id})" title="Pedir reseña de Google"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9l-6.2 3.4 1.6-6.8L2.2 8.9l6.9-.6z"/></svg></button>`:''}
-            <button class="act-btn${(r.photos&&r.photos.length)?' has-photos':''}" onclick="openGallery(${r.id})" title="Fotos (${(r.photos||[]).length})">
+            ${r.telefono?`<button class="act-btn wa" onclick="waCliente(${r.id})" title="WhatsApp" aria-label="Enviar WhatsApp"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.3A7.9 7.9 0 0 0 12 4a8 8 0 0 0-6.9 12l-1 3.6 3.7-1a8 8 0 0 0 3.8 1h.3a8 8 0 0 0 5.7-13.3zM12 18.5a6.6 6.6 0 0 1-3.4-.9l-.2-.1-2.2.6.6-2.1-.2-.3A6.6 6.6 0 1 1 12 18.5zm3.6-4.9c-.2-.1-1.2-.6-1.3-.6s-.3-.1-.4.1l-.6.7c-.1.1-.2.2-.4 0a5.4 5.4 0 0 1-1.6-1 6 6 0 0 1-1.1-1.4c-.1-.2 0-.3.1-.4l.3-.4.2-.3v-.4l-.6-1.4c-.1-.3-.3-.3-.4-.3h-.4a.7.7 0 0 0-.5.3 2.1 2.1 0 0 0-.7 1.6 3.7 3.7 0 0 0 .8 2 8.3 8.3 0 0 0 3.2 2.8c1.1.5 1.6.5 2.1.5a1.8 1.8 0 0 0 1.2-.9 1.5 1.5 0 0 0 .1-.8c-.1-.1-.2-.1-.4-.2z"/></svg></button>`:''}
+            ${r.telefono?`<button class="act-btn resena" onclick="pedirResena(${r.id})" title="Pedir reseña de Google" aria-label="Pedir reseña de Google"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9l-6.2 3.4 1.6-6.8L2.2 8.9l6.9-.6z"/></svg></button>`:''}
+            <button class="act-btn${(r.photos&&r.photos.length)?' has-photos':''}" onclick="openGallery(${r.id})" title="Fotos (${(r.photos||[]).length})" aria-label="Ver fotos (${(r.photos||[]).length})">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               ${(r.photos&&r.photos.length)?`<span style="font-size:9px;font-weight:700">${r.photos.length}</span>`:''}
             </button>
-            <button class="act-btn" onclick="openModal(${r.id})" title="Editar">
+            <button class="act-btn" onclick="openModal(${r.id})" title="Editar" aria-label="Editar cliente">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
             </button>
-            <button class="act-btn del" onclick="askDelete(${r.id})" title="Eliminar">
+            <button class="act-btn del" onclick="askDelete(${r.id})" title="Eliminar" aria-label="Eliminar cliente">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
             </button>
           </div>
@@ -1834,7 +1838,10 @@ function saveModal() {
   const cliente = document.getElementById('fc').value.trim();
   if (!cliente) { document.getElementById('fc').focus(); return; }
   const row = {
-    id: editId ?? nextId++,
+    // Timestamp en vez de contador secuencial: dos dispositivos creando un
+    // cliente casi al mismo tiempo generaban antes el mismo id (max+1) y se
+    // pisaban entre si al guardar en Firebase.
+    id: editId ?? Date.now(),
     cliente,
     lugar: document.getElementById('fl').value,
     comuna: document.getElementById('fco').value.trim(),
@@ -2455,9 +2462,14 @@ function restaurarRespaldoInd(input){
     var payload;
     try{payload=JSON.parse(e.target.result);}catch(err){toast('Archivo no válido');input.value='';return;}
     if(payload._respaldo!=='indicador-leon'||!Array.isArray(payload.data)){toast('No es un respaldo del Indicador');input.value='';return;}
-    if(!confirm('¿Restaurar respaldo del '+(payload._fecha||'').substring(0,10)+' con '+payload.data.length+' clientes? Se reemplazarán los datos actuales.')){input.value='';return;}
+    var actuales=data.length, delRespaldo=payload.data.length;
+    var advertencia='¿Restaurar respaldo del '+(payload._fecha||'').substring(0,10)+' con '+delRespaldo+' clientes?\n\n'
+      +'ADVERTENCIA: esto REEMPLAZA por completo tu lista actual ('+actuales+' clientes). '
+      +'Cualquier cliente o cambio agregado DESPUÉS de la fecha de este respaldo se perderá '
+      +'permanentemente, incluso si ya se sincronizó en otro dispositivo.\n\n'
+      +'Esta acción no se puede deshacer.';
+    if(!confirm(advertencia)){input.value='';return;}
     data=payload.data;
-    nextId=data.reduce(function(m,r){return Math.max(m,r.id||0);},0)+1;
     if(useFirebase&&fbRef){ pushAllToFirebase(); }
     else{ localStorage.setItem(LOCAL_KEY,JSON.stringify(data)); }
     render();
