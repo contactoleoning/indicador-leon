@@ -20,6 +20,9 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<!-- Convierte fotos HEIC/HEIF (formato por defecto de iPhone) a JPEG antes
+     de procesarlas -- Chrome/Firefox/Edge no las pueden leer nativamente. -->
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{font-size:16px}
@@ -1911,7 +1914,11 @@ function renderMantPhotos() {
 }
 async function handleMantPhotoUpload(input) {
   for (const file of Array.from(input.files)) {
-    mantModalPhotos.push(await compressImage(file));
+    try {
+      mantModalPhotos.push(await compressImage(file));
+    } catch (e) {
+      toast(e.message || 'No se pudo subir '+file.name);
+    }
   }
   input.value = '';
   renderMantPhotos();
@@ -2216,13 +2223,31 @@ async function compressImage(file) {
   const MAX = 900;
   let source, w, h;
 
+  // Fotos HEIC/HEIF (formato por defecto de camara en iPhone) no se pueden
+  // decodificar en Chrome/Firefox/Edge -- solo Safari las lee nativamente.
+  // Antes esto fallaba en silencio (promesa rechazada sin captura en
+  // ningun lado); ahora se convierten a JPEG primero.
+  const esHeic = /image\/hei[cf]/i.test(file.type || '') || /\.hei[cf]$/i.test(file.name || '');
+  let archivoTrabajo = file;
+  if (esHeic) {
+    if (typeof heic2any !== 'function') {
+      throw new Error('No se pudo cargar el conversor de fotos HEIC. Revisa tu conexión e intenta de nuevo.');
+    }
+    try {
+      const convertido = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+      archivoTrabajo = Array.isArray(convertido) ? convertido[0] : convertido;
+    } catch (e) {
+      throw new Error('No se pudo convertir "'+(file.name||'esta foto')+'" (formato HEIC). Prueba cambiar el formato de cámara de tu iPhone a "Más compatible" en Ajustes → Cámara → Formatos, o envíala como JPG.');
+    }
+  }
+
   // createImageBitmap con imageOrientation:'from-image' aplica la rotacion
   // EXIF automaticamente -- fotos tomadas en vertical con el celular ya no
   // quedan giradas. Si el navegador no lo soporta, caemos al metodo viejo
   // (dibuja tal cual viene, sin corregir orientacion).
   if (typeof createImageBitmap === 'function') {
     try {
-      source = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      source = await createImageBitmap(archivoTrabajo, { imageOrientation: 'from-image' });
       w = source.width; h = source.height;
     } catch (e) { source = null; }
   }
@@ -2233,11 +2258,11 @@ async function compressImage(file) {
       reader.onload = e => {
         const img = new Image();
         img.onload = () => resolve(img);
-        img.onerror = reject;
+        img.onerror = () => reject(new Error('No se pudo leer "'+(file.name||'esta foto')+'". El formato podría no ser compatible con este navegador.'));
         img.src = e.target.result;
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo "'+(file.name||'')+'".'));
+      reader.readAsDataURL(archivoTrabajo);
     });
     w = source.width; h = source.height;
   }
@@ -2297,7 +2322,11 @@ function renderModalPhotos() {
 
 async function handleModalPhotoUpload(input) {
   for (const file of Array.from(input.files)) {
-    modalPhotos.push(await compressImage(file));
+    try {
+      modalPhotos.push(await compressImage(file));
+    } catch (e) {
+      toast(e.message || 'No se pudo subir '+file.name);
+    }
   }
   input.value = '';
   renderModalPhotos();
@@ -2318,13 +2347,18 @@ function addCardPhoto(recId) {
 async function handleCardPhotoUpload(input) {
   const rec = data.find(r => r.id === cardPhotoTargetId);
   if (!rec) return;
+  let alMenosUna = false;
   for (const file of Array.from(input.files)) {
-    if (!rec.photos) rec.photos = [];
-    rec.photos.push(await compressImage(file));
+    try {
+      if (!rec.photos) rec.photos = [];
+      rec.photos.push(await compressImage(file));
+      alMenosUna = true;
+    } catch (e) {
+      toast(e.message || 'No se pudo subir '+file.name);
+    }
   }
   input.value = ''; cardPhotoTargetId = null;
-  saveRecord(rec); render();
-  toast('Foto agregada');
+  if (alMenosUna) { saveRecord(rec); render(); toast('Foto agregada'); }
 }
 
 // ── Lightbox ──
@@ -2551,13 +2585,18 @@ function renderGallery() {
 async function handleGalleryUpload(input) {
   const rec = data.find(r => r.id === galleryRecId);
   if (!rec) return;
+  let alMenosUna = false;
   for (const file of Array.from(input.files)) {
-    if (!rec.photos) rec.photos = [];
-    rec.photos.push(await compressImage(file));
+    try {
+      if (!rec.photos) rec.photos = [];
+      rec.photos.push(await compressImage(file));
+      alMenosUna = true;
+    } catch (e) {
+      toast(e.message || 'No se pudo subir '+file.name);
+    }
   }
   input.value = '';
-  saveRecord(rec); render(); renderGallery();
-  toast('Foto agregada');
+  if (alMenosUna) { saveRecord(rec); render(); renderGallery(); toast('Foto agregada'); }
 }
 
 function deleteGalleryPhoto(photoId) {
