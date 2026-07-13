@@ -148,9 +148,9 @@ button{cursor:pointer}
 .main-table tbody tr.row-avisado .td-cliente{color:var(--aviso)!important}
 .main-table tbody tr.row-avisado td:first-child{padding-left:8px}
 
-.main-table td{padding:10px 13px;color:var(--text);vertical-align:middle;border-right:1px solid var(--border);white-space:nowrap}
+.main-table td{padding:10px 13px;color:var(--text);vertical-align:middle;border-right:1px solid var(--border);white-space:nowrap;font-weight:500}
 .main-table td:last-child{border-right:none}
-.td-cliente{font-weight:600;color:#cdd9e5;min-width:160px}
+.td-cliente{font-weight:700;color:#cdd9e5;min-width:160px}
 .td-center{text-align:center}
 
 /* badge aviso */
@@ -159,14 +159,14 @@ button{cursor:pointer}
 
 /* obs textarea */
 .td-obs{min-width:190px;max-width:300px;white-space:normal;vertical-align:top!important;padding-top:12px!important}
-.obs-ta{width:100%;min-height:28px;resize:none;overflow:hidden;background:transparent;border:none;color:var(--text2);font-size:13px;font-family:inherit;outline:none;line-height:1.5;padding:1px 2px;word-break:break-word;white-space:pre-wrap;transition:background-color .15s}
+.obs-ta{width:100%;min-height:28px;resize:none;overflow:hidden;background:transparent;border:none;color:var(--text2);font-size:13px;font-weight:500;font-family:inherit;outline:none;line-height:1.5;padding:1px 2px;word-break:break-word;white-space:pre-wrap;transition:background-color .15s}
 .obs-ta:hover{background:rgba(255,255,255,0.03);border-radius:4px}
 .obs-ta:focus{background:var(--surface2);border:1px solid var(--gold);border-radius:4px;padding:3px 6px;box-shadow:0 0 0 2px rgba(214,217,222,0.12)}
 .obs-ta::placeholder{color:var(--text3);font-style:italic}
 
 /* inline edit -- borde punteado sutil al pasar el mouse, para que se note
    que la celda es editable (antes era invisible hasta hacer clic) */
-.td-input{background:transparent;border:none;border-bottom:1px dashed transparent;color:inherit;font-size:14.5px;font-family:inherit;outline:none;width:100%;padding:2px 3px;min-width:60px;transition:border-color .15s,background-color .15s}
+.td-input{background:transparent;border:none;border-bottom:1px dashed transparent;color:inherit;font-size:14.5px;font-weight:500;font-family:inherit;outline:none;width:100%;padding:2px 3px;min-width:60px;transition:border-color .15s,background-color .15s}
 .td-input:hover{border-bottom-color:var(--border2);background:rgba(255,255,255,0.03)}
 .td-input:focus{border-bottom-color:var(--gold);background:rgba(255,255,255,0.05)}
 .td-input:focus{background:var(--surface2);border:1px solid var(--gold);border-radius:4px;padding:1px 5px;box-shadow:0 0 0 2px rgba(214,217,222,0.12)}
@@ -181,7 +181,7 @@ button{cursor:pointer}
 .st-red{background:var(--red)}
 .st-gray{background:#2d3748}
 .fecha-final-cell{display:flex;align-items:center;gap:7px}
-.dias-badge{font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.dias-badge{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap}
 .dias-ok{color:var(--green);background:var(--green-bg);border:1px solid var(--green-border)}
 .dias-warn{color:var(--amber);background:var(--amber-bg);border:1px solid var(--amber-border)}
 .dias-late{color:var(--red);background:var(--red-bg);border:1px solid var(--red-border)}
@@ -1619,9 +1619,9 @@ function render() {
     tb.innerHTML = rows.map((r,idx) => {
       const st = statusOf(r);
       const stColor = st==='red'?'var(--red)':st==='amber'?'var(--amber)':st==='green'?'var(--green)':'var(--text2)';
-      const stWeight = (st==='red'||st==='amber')?'600':'400';
+      const stWeight = (st==='red'||st==='amber')?'700':'500';
       return `<tr class="${r.aviso?'row-avisado':''}">
-        <td style="color:var(--text3);font-size:11px;text-align:center">${idx+1}</td>
+        <td style="color:var(--text3);font-size:13px;font-weight:600;text-align:center">${idx+1}</td>
         <td class="td-cliente"><div style="display:flex;align-items:center;gap:2px"><input class="td-input" value="${esc(r.cliente)}" data-id="${r.id}" data-f="cliente" onchange="ie(this)" placeholder="—"/>${planBadge(r)}</div></td>
         <td><input class="td-input" value="${esc(r.lugar)}" data-id="${r.id}" data-f="lugar" onchange="ie(this)" placeholder="—" style="min-width:48px"/></td>
         <td><input class="td-input" value="${esc(r.comuna)}" data-id="${r.id}" data-f="comuna" onchange="ie(this)" placeholder="—" style="min-width:80px"/></td>
@@ -1631,7 +1631,7 @@ function render() {
         <td>
           <div class="fecha-final-cell">
             <span class="${circleClass(st)}"></span>
-            <span style="font-size:12px;color:${stColor};font-weight:${stWeight}">${fmtFinal(r)}</span>
+            <span style="font-size:14px;color:${stColor};font-weight:${stWeight}">${fmtFinal(r)}</span>
             ${diasLabel(r)}
           </div>
         </td>
