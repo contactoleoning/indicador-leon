@@ -707,6 +707,7 @@ button{cursor:pointer}
   <button class="btn-cal-toggle" id="btn-cal-toggle" onclick="toggleCalendarView()">📅 Calendario</button>
   <button class="btn-cal-toggle" onclick="openRecordatorios()">📢 Recordatorios</button>
   <button class="btn-cal-toggle" onclick="openRuteo()">🗺 Ruteo</button>
+  <button class="btn-cal-toggle" onclick="openMetricas()">📊 Métricas</button>
   <div class="export-wrap">
     <button class="btn-cal-toggle" onclick="toggleExportMenu()">⬇️ Exportar</button>
     <div class="export-menu" id="export-menu" style="display:none">
@@ -1015,6 +1016,19 @@ button{cursor:pointer}
         </label>
       </div>
       <div id="ruteo-list"></div>
+    </div>
+  </div>
+</div>
+<div class="gallery-overlay" id="metricas-ov" style="display:none" onclick="if(event.target===this)closeMetricas()">
+  <div class="gallery-box" style="max-width:600px">
+    <div class="gallery-head">
+      <span class="gallery-ttl">📊 MÉTRICAS DE NEGOCIO</span>
+      <button class="gallery-x" onclick="closeMetricas()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="gallery-body" style="padding:16px">
+      <div id="metricas-body"></div>
     </div>
   </div>
 </div>
@@ -2923,6 +2937,116 @@ function renderRecordatorios(){
   }
 }
 function closeRecordatorios(){ document.getElementById('recordatorios-ov').style.display='none'; }
+
+// ═══════════════════════════════════════
+// MÉTRICAS DE NEGOCIO
+// ═══════════════════════════════════════
+function openMetricas(){
+  renderMetricas();
+  document.getElementById('metricas-ov').style.display='flex';
+}
+function closeMetricas(){
+  document.getElementById('metricas-ov').style.display='none';
+}
+function metricaBox(valor, etiqueta, color){
+  return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-xs);padding:12px 8px;text-align:center">'
+    +'<div style="font-size:19px;font-weight:800;line-height:1'+(color?';color:'+color:'')+'">'+valor+'</div>'
+    +'<div style="font-size:9px;color:var(--text3);text-transform:uppercase;font-weight:700;margin-top:5px;letter-spacing:0.4px;line-height:1.3">'+etiqueta+'</div>'
+    +'</div>';
+}
+function metricaSeccion(titulo){
+  return '<div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);text-transform:uppercase;margin:16px 0 8px">'+esc(titulo)+'</div>';
+}
+function renderMetricas(){
+  var total = data.length;
+  var pct = function(n){ return total ? Math.round(n/total*100) : 0; };
+  var alDia = data.filter(function(r){return statusOf(r)==='green';}).length;
+  var porVencer = data.filter(function(r){return statusOf(r)==='amber';}).length;
+  var vencidos = data.filter(function(r){return statusOf(r)==='red';}).length;
+  var vencidosAntiguos = data.filter(function(r){ var d=diasRestantes(r); return d!==null && d<-120; }).length;
+
+  var urgentes = data.filter(function(r){ var st=statusOf(r); return st==='red'||st==='amber'; });
+  var conAviso = urgentes.filter(function(r){return r.aviso;}).length;
+  var sinAviso = urgentes.length - conAviso;
+
+  var totalMantenciones = 0, mantenciones90d = 0;
+  var hace90 = new Date(TODAY.getTime() - 90*24*60*60*1000);
+  data.forEach(function(r){
+    (r.historial||[]).forEach(function(h){
+      totalMantenciones++;
+      if (h.fecha) {
+        var f = new Date(h.fecha+'T00:00:00');
+        if (f >= hace90 && f <= TODAY) mantenciones90d++;
+      }
+    });
+  });
+  var clientesConHistorial = data.filter(function(r){ return r.historial && r.historial.length; }).length;
+
+  var conPlan = data.filter(function(r){return r.plan;}).length;
+  var planVigente = data.filter(function(r){return r.plan && planStatus(r)==='green';}).length;
+  var planPorRenovar = data.filter(function(r){return r.plan && planStatus(r)==='amber';}).length;
+  var planVencido = data.filter(function(r){return r.plan && planStatus(r)==='red';}).length;
+
+  var porComuna = {};
+  data.forEach(function(r){ var c=(r.comuna||'').trim(); if(c) porComuna[c]=(porComuna[c]||0)+1; });
+  var topComunas = Object.keys(porComuna).sort(function(a,b){return porComuna[b]-porComuna[a];}).slice(0,5);
+
+  var porServicio = {};
+  data.forEach(function(r){ var s=(r.servicio||'').trim(); if(s) porServicio[s]=(porServicio[s]||0)+1; });
+  var topServicios = Object.keys(porServicio).sort(function(a,b){return porServicio[b]-porServicio[a];}).slice(0,5);
+
+  var listaHTML = function(items, porItem){
+    if (!items.length) return '<div style="font-size:12px;color:var(--text3)">Sin datos suficientes todavía.</div>';
+    var max = porItem[items[0]];
+    return '<div style="display:flex;flex-direction:column;gap:6px">' + items.map(function(k){
+      var n = porItem[k];
+      var w = max ? Math.round(n/max*100) : 0;
+      return '<div>'
+        +'<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:2px"><span>'+esc(k)+'</span><span style="font-weight:700;color:var(--text)">'+n+'</span></div>'
+        +'<div style="background:var(--surface3);border-radius:6px;height:6px;overflow:hidden"><div style="background:var(--gold2);height:100%;width:'+w+'%"></div></div>'
+        +'</div>';
+    }).join('') + '</div>';
+  };
+
+  var html = '';
+  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'
+    + metricaBox(total, 'Total clientes', 'var(--gold2)')
+    + metricaBox(alDia+' <span style="font-size:11px;font-weight:600;color:var(--text3)">('+pct(alDia)+'%)</span>', 'Al día', 'var(--green)')
+    + metricaBox(porVencer+' <span style="font-size:11px;font-weight:600;color:var(--text3)">('+pct(porVencer)+'%)</span>', 'Por vencer', 'var(--amber)')
+    + metricaBox(vencidos+' <span style="font-size:11px;font-weight:600;color:var(--text3)">('+pct(vencidos)+'%)</span>', 'Vencidos', 'var(--red)')
+    + '</div>';
+
+  html += metricaSeccion('Seguimiento de avisos');
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'
+    + metricaBox(vencidosAntiguos, 'Vencidos +120 días', '#e03131')
+    + metricaBox(conAviso, 'Con aviso enviado', 'var(--aviso)')
+    + metricaBox(sinAviso, 'Vencidos/por vencer sin avisar', 'var(--text2)')
+    + '</div>';
+
+  html += metricaSeccion('Actividad de mantenciones');
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'
+    + metricaBox(totalMantenciones, 'Registradas (histórico)', null)
+    + metricaBox(mantenciones90d, 'En los últimos 90 días', null)
+    + metricaBox(clientesConHistorial+' <span style="font-size:11px;font-weight:600;color:var(--text3)">('+pct(clientesConHistorial)+'%)</span>', 'Clientes con al menos 1', null)
+    + '</div>';
+
+  if (conPlan) {
+    html += metricaSeccion('Plan Confort León');
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'
+      + metricaBox(conPlan, 'Clientes con plan', 'var(--gold2)')
+      + metricaBox(planVigente, 'Vigente', 'var(--green)')
+      + metricaBox(planPorRenovar, 'Por renovar', 'var(--amber)')
+      + metricaBox(planVencido, 'Vencido', 'var(--red)')
+      + '</div>';
+  }
+
+  html += metricaSeccion('Top 5 comunas');
+  html += listaHTML(topComunas, porComuna);
+  html += metricaSeccion('Top 5 servicios');
+  html += listaHTML(topServicios, porServicio);
+
+  document.getElementById('metricas-body').innerHTML = html;
+}
 
 // ═══════════════════════════════════════
 // RUTEO POR COMUNA
