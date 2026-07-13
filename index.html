@@ -647,6 +647,9 @@ button{cursor:pointer}
   <button class="theme-btn" id="trash-btn" onclick="openTrash()" title="Papelera" aria-label="Papelera">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
   </button>
+  <button class="theme-btn" id="plantillas-btn" onclick="openPlantillas()" title="Plantillas de mensajes" aria-label="Plantillas de mensajes">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+  </button>
   <div class="header-today" style="margin-left:8px">HOY: <strong id="hoy"></strong></div>
 </header>
 
@@ -916,6 +919,42 @@ button{cursor:pointer}
         ⬆️ Restaurar desde Respaldo
         <input type="file" accept=".json,application/json" onchange="restaurarRespaldoInd(this)" style="display:none"/>
       </label>
+    </div>
+  </div>
+</div>
+<div class="gallery-overlay" id="plantillas-ov" style="display:none" onclick="if(event.target===this)closePlantillas()">
+  <div class="gallery-box" style="max-width:540px">
+    <div class="gallery-head">
+      <span class="gallery-ttl">✏️ PLANTILLAS DE MENSAJES</span>
+      <button class="gallery-x" onclick="closePlantillas()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="gallery-body" style="padding:16px;display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:12px;color:var(--text3);line-height:1.6">
+        Usa <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{nombre}</code>,
+        <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{venc}</code>,
+        <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{link}</code>,
+        <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{cuando}</code> o
+        <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{detalle}</code>
+        según corresponda — se reemplazan solos al enviar. Deja el campo vacío y guarda para volver al texto original.
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">RECORDATORIO DE VENCIMIENTO (botón WhatsApp verde)</div>
+        <textarea id="tpl-recordatorio" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">PEDIR RESEÑA (botón ⭐)</div>
+        <textarea id="tpl-resena" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">RESPALDO DE MANTENCIÓN (botón 📤 Enviar en el historial)</div>
+        <textarea id="tpl-respaldo" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="guardarPlantillas()" style="flex:1;background:#e8c15a;color:#1a1a1a;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">Guardar</button>
+        <button onclick="restaurarPlantillasDefault()" style="flex:1;background:transparent;border:2px solid var(--border2);color:var(--text2);padding:10px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">Restaurar predeterminadas</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1959,6 +1998,49 @@ function confirmDelete() {
 // ═══════════════════════════════════════
 // TOAST
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+// PLANTILLAS DE MENSAJES (editables desde la UI)
+// ═══════════════════════════════════════
+const PLANTILLAS_DEFAULT = {
+  recordatorio: 'Hola{nombre}, le saluda León Ingeniería 👋. Le recordamos que la mantención de su equipo de climatización está próxima a vencer{venc}. ¿Coordinamos una visita para dejarlo funcionando perfecto? ❄️',
+  resena: 'Hola{nombre}, gracias por confiar en León Ingeniería para el servicio de climatización 🙏❄️. Si quedaste conforme, ¿nos regalarías una reseña en Google? Nos ayuda muchísimo a seguir creciendo:\n{link}',
+  respaldo: 'Hola{nombre}, le envío el respaldo de la mantención realizada {cuando}:\n\n{detalle}\n\n— León Ingeniería y Proyectos SpA ❄️',
+};
+function getPlantilla(key){
+  try {
+    const custom = JSON.parse(localStorage.getItem('leon_plantillas')||'{}');
+    return custom[key] || PLANTILLAS_DEFAULT[key];
+  } catch(e) { return PLANTILLAS_DEFAULT[key]; }
+}
+function renderPlantilla(tpl, vars){
+  return tpl.replace(/\{(\w+)\}/g, function(m,k){ return vars[k]!=null ? vars[k] : ''; });
+}
+function openPlantillas(){
+  document.getElementById('tpl-recordatorio').value = getPlantilla('recordatorio');
+  document.getElementById('tpl-resena').value = getPlantilla('resena');
+  document.getElementById('tpl-respaldo').value = getPlantilla('respaldo');
+  document.getElementById('plantillas-ov').style.display = 'flex';
+}
+function closePlantillas(){
+  document.getElementById('plantillas-ov').style.display = 'none';
+}
+function guardarPlantillas(){
+  const custom = {
+    recordatorio: document.getElementById('tpl-recordatorio').value.trim() || PLANTILLAS_DEFAULT.recordatorio,
+    resena: document.getElementById('tpl-resena').value.trim() || PLANTILLAS_DEFAULT.resena,
+    respaldo: document.getElementById('tpl-respaldo').value.trim() || PLANTILLAS_DEFAULT.respaldo,
+  };
+  localStorage.setItem('leon_plantillas', JSON.stringify(custom));
+  toast('Plantillas guardadas ✓');
+  closePlantillas();
+}
+function restaurarPlantillasDefault(){
+  if(!confirm('¿Restaurar las 3 plantillas al texto original?')) return;
+  localStorage.removeItem('leon_plantillas');
+  openPlantillas();
+  toast('Plantillas restauradas');
+}
+
 function waCliente(id){
   var r = data.find(function(x){return x.id===id;});
   if(!r||!r.telefono){ toast('Este cliente no tiene teléfono'); return; }
@@ -1966,7 +2048,10 @@ function waCliente(id){
   var num = raw.indexOf('56')===0 ? raw : ('569'+raw.replace(/^9/,''));
   var nombre = (r.cliente||'').trim().split(' ')[0].replace(/\(.*\)/,'').trim();
   var venc = (typeof fmtFinal==='function') ? fmtFinal(r) : '';
-  var msg = 'Hola'+(nombre?' '+nombre:'')+', le saluda León Ingeniería 👋. Le recordamos que la mantención de su equipo de climatización está próxima a vencer'+(venc?' el '+venc:'')+'. ¿Coordinamos una visita para dejarlo funcionando perfecto? ❄️';
+  var msg = renderPlantilla(getPlantilla('recordatorio'), {
+    nombre: nombre ? ' '+nombre : '',
+    venc: venc ? ' el '+venc : ''
+  });
   window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');
 }
 
@@ -1983,7 +2068,10 @@ function pedirResena(id){
   var raw = String(r.telefono).replace(/\D/g,'');
   var num = raw.indexOf('56')===0 ? raw : ('569'+raw.replace(/^9/,''));
   var nombre = (r.cliente||'').trim().split(' ')[0].replace(/\(.*\)/,'').trim();
-  var msg = 'Hola'+(nombre?' '+nombre:'')+', gracias por confiar en León Ingeniería para el servicio de climatización 🙏❄️. Si quedaste conforme, ¿nos regalarías una reseña en Google? Nos ayuda muchísimo a seguir creciendo:\n'+link;
+  var msg = renderPlantilla(getPlantilla('resena'), {
+    nombre: nombre ? ' '+nombre : '',
+    link: link
+  });
   window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');
 }
 function cambiarLinkResena(){
@@ -2308,7 +2396,11 @@ function enviarRespaldoMantencion(clienteId, histIdx) {
   const fechaFmt = h.fecha.split('-').reverse().join('-');
   const nombre = (r.cliente||'').trim().split(' ')[0].replace(/\(.*\)/,'').trim();
   const cuando = h.hora ? `el ${fechaFmt} a las ${h.hora}` : `el ${fechaFmt}`;
-  const texto = `Hola${nombre?' '+nombre:''}, le envío el respaldo de la mantención realizada ${cuando}:\n\n${h.detalle||'Mantención de equipo de climatización realizada correctamente.'}\n\n— León Ingeniería y Proyectos SpA ❄️`;
+  const texto = renderPlantilla(getPlantilla('respaldo'), {
+    nombre: nombre ? ' '+nombre : '',
+    cuando,
+    detalle: h.detalle || 'Mantención de equipo de climatización realizada correctamente.'
+  });
   const raw = String(r.telefono).replace(/\D/g,'');
   const num = raw.indexOf('56')===0 ? raw : ('569'+raw.replace(/^9/,''));
   const fotos = h.fotos||[];
