@@ -2119,11 +2119,24 @@ function restaurarPlantillasDefault(){
   toast('Plantillas restauradas');
 }
 
+// Arma el numero completo (56 9 XXXXXXXX) para wa.me a partir de lo que haya
+// guardado en telefono. Antes se asumia que el numero ya traia el "56" si
+// *empezaba* con esos digitos, pero un telefono local de 8 digitos puede
+// empezar con "56" por pura coincidencia (ej: 56781234) sin ser el codigo de
+// pais -- eso mandaba un numero incompleto a WhatsApp ("no existe"). Ahora
+// solo se recorta el "56" o el "9" sobrante si sobran digitos de mas (si el
+// campo trae justo 8 digitos, se usan tal cual).
+function numeroWa(telefono){
+  var raw = String(telefono).replace(/\D/g,'');
+  if (raw.length>8 && raw.indexOf('56')===0) raw = raw.slice(2);
+  if (raw.length===9 && raw.charAt(0)==='9') raw = raw.slice(1);
+  return '569'+raw.slice(-8);
+}
+
 function waCliente(id){
   var r = data.find(function(x){return x.id===id;});
   if(!r||!r.telefono){ toast('Este cliente no tiene teléfono'); return; }
-  var raw = String(r.telefono).replace(/\D/g,'');
-  var num = raw.indexOf('56')===0 ? raw : ('569'+raw.replace(/^9/,''));
+  var num = numeroWa(r.telefono);
   var nombre = (r.cliente||'').trim().split(' ')[0].replace(/\(.*\)/,'').trim();
   var venc = (typeof fmtFinal==='function') ? fmtFinal(r) : '';
   var st = statusOf(r);
@@ -2150,8 +2163,7 @@ function pedirResena(id){
     link = link.trim();
     localStorage.setItem('google_review_link', link);
   }
-  var raw = String(r.telefono).replace(/\D/g,'');
-  var num = raw.indexOf('56')===0 ? raw : ('569'+raw.replace(/^9/,''));
+  var num = numeroWa(r.telefono);
   var nombre = (r.cliente||'').trim().split(' ')[0].replace(/\(.*\)/,'').trim();
   var msg = renderPlantilla(getPlantilla('resena'), {
     nombre: nombre ? ' '+nombre : '',
@@ -2513,8 +2525,7 @@ function enviarRespaldoMantencion(clienteId, histIdx) {
     cuando,
     detalle: h.detalle || 'Mantención de equipo de climatización realizada correctamente.'
   });
-  const raw = String(r.telefono).replace(/\D/g,'');
-  const num = raw.indexOf('56')===0 ? raw : ('569'+raw.replace(/^9/,''));
+  const num = numeroWa(r.telefono);
   const fotos = h.fotos||[];
   const abrirWhatsapp = () => window.open('https://wa.me/'+num+'?text='+encodeURIComponent(texto),'_blank');
   if (navigator.canShare && fotos.length) {
