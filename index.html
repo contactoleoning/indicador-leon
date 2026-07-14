@@ -966,14 +966,21 @@ button{cursor:pointer}
       <div style="font-size:12px;color:var(--text3);line-height:1.6">
         Usa <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{nombre}</code>,
         <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{venc}</code>,
+        <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{dias}</code>,
+        <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{servicio}</code>,
+        <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{comuna}</code>,
         <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{link}</code>,
         <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{cuando}</code> o
         <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{detalle}</code>
         según corresponda — se reemplazan solos al enviar. Deja el campo vacío y guarda para volver al texto original.
       </div>
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">RECORDATORIO DE VENCIMIENTO (botón WhatsApp verde)</div>
-        <textarea id="tpl-recordatorio" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">RECORDATORIO — CLIENTE VENCIDO (botón WhatsApp verde)</div>
+        <textarea id="tpl-recordatorio-vencido" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">RECORDATORIO — CLIENTE POR VENCER (botón WhatsApp verde)</div>
+        <textarea id="tpl-recordatorio-porvencer" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
       </div>
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">PEDIR RESEÑA (botón ⭐)</div>
@@ -2070,7 +2077,8 @@ function confirmDelete() {
 // PLANTILLAS DE MENSAJES (editables desde la UI)
 // ═══════════════════════════════════════
 const PLANTILLAS_DEFAULT = {
-  recordatorio: 'Hola{nombre}, le saluda León Ingeniería 👋. Le recordamos que la mantención de su equipo de climatización está próxima a vencer{venc}. ¿Coordinamos una visita para dejarlo funcionando perfecto? ❄️',
+  recordatorio_vencido: 'Hola{nombre}, le escribe León Ingeniería ❄️. Notamos que la mantención de {servicio} venció el{venc}{dias}. Un mantenimiento a tiempo evita fallas, alarga la vida útil del equipo y mantiene el consumo eléctrico bajo control. ¿Coordinamos una visita esta semana para dejarlo funcionando al 100%? 🔧',
+  recordatorio_porvencer: 'Hola{nombre}, le saluda León Ingeniería 👋❄️. Le recordamos que la mantención de {servicio} vence el{venc}{dias}. Si agendamos con anticipación, aseguramos el horario que más le acomode antes de que llegue la fecha. ¿Coordinamos su visita esta semana?',
   resena: 'Hola{nombre}, gracias por confiar en León Ingeniería para el servicio de climatización 🙏❄️. Si quedaste conforme, ¿nos regalarías una reseña en Google? Nos ayuda muchísimo a seguir creciendo:\n{link}',
   respaldo: 'Hola{nombre}, le envío el respaldo de la mantención realizada {cuando}:\n\n{detalle}\n\n— León Ingeniería y Proyectos SpA ❄️',
 };
@@ -2084,7 +2092,8 @@ function renderPlantilla(tpl, vars){
   return tpl.replace(/\{(\w+)\}/g, function(m,k){ return vars[k]!=null ? vars[k] : ''; });
 }
 function openPlantillas(){
-  document.getElementById('tpl-recordatorio').value = getPlantilla('recordatorio');
+  document.getElementById('tpl-recordatorio-vencido').value = getPlantilla('recordatorio_vencido');
+  document.getElementById('tpl-recordatorio-porvencer').value = getPlantilla('recordatorio_porvencer');
   document.getElementById('tpl-resena').value = getPlantilla('resena');
   document.getElementById('tpl-respaldo').value = getPlantilla('respaldo');
   document.getElementById('plantillas-ov').style.display = 'flex';
@@ -2094,7 +2103,8 @@ function closePlantillas(){
 }
 function guardarPlantillas(){
   const custom = {
-    recordatorio: document.getElementById('tpl-recordatorio').value.trim() || PLANTILLAS_DEFAULT.recordatorio,
+    recordatorio_vencido: document.getElementById('tpl-recordatorio-vencido').value.trim() || PLANTILLAS_DEFAULT.recordatorio_vencido,
+    recordatorio_porvencer: document.getElementById('tpl-recordatorio-porvencer').value.trim() || PLANTILLAS_DEFAULT.recordatorio_porvencer,
     resena: document.getElementById('tpl-resena').value.trim() || PLANTILLAS_DEFAULT.resena,
     respaldo: document.getElementById('tpl-respaldo').value.trim() || PLANTILLAS_DEFAULT.respaldo,
   };
@@ -2103,7 +2113,7 @@ function guardarPlantillas(){
   closePlantillas();
 }
 function restaurarPlantillasDefault(){
-  if(!confirm('¿Restaurar las 3 plantillas al texto original?')) return;
+  if(!confirm('¿Restaurar las 4 plantillas al texto original?')) return;
   localStorage.removeItem('leon_plantillas');
   openPlantillas();
   toast('Plantillas restauradas');
@@ -2116,9 +2126,16 @@ function waCliente(id){
   var num = raw.indexOf('56')===0 ? raw : ('569'+raw.replace(/^9/,''));
   var nombre = (r.cliente||'').trim().split(' ')[0].replace(/\(.*\)/,'').trim();
   var venc = (typeof fmtFinal==='function') ? fmtFinal(r) : '';
-  var msg = renderPlantilla(getPlantilla('recordatorio'), {
+  var st = statusOf(r);
+  var dr = diasRestantes(r);
+  var dias = dr==null ? '' : (dr<0 ? ' ('+Math.abs(dr)+' días vencido)' : dr===0 ? ' (vence hoy)' : ' (quedan '+dr+' días)');
+  var plantillaKey = st==='red' ? 'recordatorio_vencido' : 'recordatorio_porvencer';
+  var msg = renderPlantilla(getPlantilla(plantillaKey), {
     nombre: nombre ? ' '+nombre : '',
-    venc: venc ? ' el '+venc : ''
+    venc: venc ? ' '+venc : '',
+    servicio: r.servicio ? ('su '+r.servicio) : 'su equipo de climatización',
+    comuna: r.comuna || '',
+    dias: dias
   });
   window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');
 }
