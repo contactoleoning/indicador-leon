@@ -314,7 +314,7 @@ button{cursor:pointer}
 /* ── MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(1,4,9,0.85);z-index:200;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:520px){.modal-overlay{align-items:center;padding:16px}}
-.modal{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:500px;max-height:94dvh;display:flex;flex-direction:column;animation:slideUp .2s ease;border:1px solid var(--border)}
+.modal{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:640px;max-height:94dvh;display:flex;flex-direction:column;animation:slideUp .2s ease;border:1px solid var(--border)}
 @media(min-width:520px){.modal{border-radius:var(--radius);max-height:90dvh}}
 @keyframes slideUp{from{transform:translateY(50px);opacity:0}to{transform:translateY(0);opacity:1}}
 .modal-handle{width:32px;height:3px;border-radius:2px;background:var(--border2);margin:10px auto 4px;flex-shrink:0}
@@ -453,7 +453,7 @@ button{cursor:pointer}
 /* Gallery modal */
 .gallery-overlay{position:fixed;inset:0;background:rgba(1,4,9,0.88);z-index:650;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:520px){.gallery-overlay{align-items:center;padding:16px}}
-.gallery-box{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:560px;max-height:88dvh;display:flex;flex-direction:column;border:1px solid var(--border);animation:slideUp .2s ease}
+.gallery-box{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:680px;max-height:88dvh;display:flex;flex-direction:column;border:1px solid var(--border);animation:slideUp .2s ease}
 @media(min-width:520px){.gallery-box{border-radius:var(--radius);max-height:82dvh}}
 .gallery-head{background:#101014;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;border-radius:16px 16px 0 0}
 @media(min-width:520px){.gallery-head{border-radius:var(--radius) var(--radius) 0 0}}
@@ -937,7 +937,7 @@ button{cursor:pointer}
 
 <!-- GALLERY MODAL -->
 <div class="gallery-overlay" id="backup-ov" style="display:none" onclick="if(event.target===this)closeBackup()">
-  <div class="gallery-box" style="max-width:420px">
+  <div class="gallery-box" style="max-width:480px">
     <div class="gallery-head">
       <span class="gallery-ttl">💾 RESPALDO DE DATOS</span>
       <button class="gallery-x" onclick="closeBackup()">
@@ -955,7 +955,7 @@ button{cursor:pointer}
   </div>
 </div>
 <div class="gallery-overlay" id="plantillas-ov" style="display:none" onclick="if(event.target===this)closePlantillas()">
-  <div class="gallery-box" style="max-width:540px">
+  <div class="gallery-box" style="max-width:760px">
     <div class="gallery-head">
       <span class="gallery-ttl">✏️ PLANTILLAS DE MENSAJES</span>
       <button class="gallery-x" onclick="closePlantillas()">
@@ -998,7 +998,7 @@ button{cursor:pointer}
   </div>
 </div>
 <div class="gallery-overlay" id="recordatorios-ov" style="display:none" onclick="if(event.target===this)closeRecordatorios()">
-  <div class="gallery-box" style="max-width:520px">
+  <div class="gallery-box" style="max-width:680px">
     <div class="gallery-head">
       <span class="gallery-ttl">📢 RECORDATORIOS PENDIENTES</span>
       <button class="gallery-x" onclick="closeRecordatorios()">
@@ -1017,7 +1017,7 @@ button{cursor:pointer}
   </div>
 </div>
 <div class="gallery-overlay" id="ruteo-ov" style="display:none" onclick="if(event.target===this)closeRuteo()">
-  <div class="gallery-box" style="max-width:560px">
+  <div class="gallery-box" style="max-width:720px">
     <div class="gallery-head">
       <span class="gallery-ttl">🗺 RUTEO POR COMUNA</span>
       <button class="gallery-x" onclick="closeRuteo()">
@@ -1036,7 +1036,7 @@ button{cursor:pointer}
   </div>
 </div>
 <div class="gallery-overlay" id="metricas-ov" style="display:none" onclick="if(event.target===this)closeMetricas()">
-  <div class="gallery-box" style="max-width:600px">
+  <div class="gallery-box" style="max-width:780px">
     <div class="gallery-head">
       <span class="gallery-ttl">📊 MÉTRICAS DE NEGOCIO</span>
       <button class="gallery-x" onclick="closeMetricas()">
@@ -1080,7 +1080,7 @@ button{cursor:pointer}
 
 <!-- PERFIL CLIENTE (vista detallada por cliente, pensada para escritorio) -->
 <div class="gallery-overlay" id="perfil-ov" style="display:none" onclick="if(event.target===this)closePerfil()">
-  <div class="gallery-box" style="max-width:640px">
+  <div class="gallery-box" style="max-width:760px">
     <div class="gallery-head">
       <span class="gallery-ttl" id="perfil-ttl">PERFIL CLIENTE</span>
       <button class="gallery-x" onclick="closePerfil()">
@@ -1093,7 +1093,7 @@ button{cursor:pointer}
 
 <!-- REGISTRAR MANTENCIÓN (detalle + fotos de respaldo) -->
 <div class="gallery-overlay" id="mant-ov" style="display:none" onclick="if(event.target===this)closeMantModal()">
-  <div class="gallery-box" style="max-width:520px">
+  <div class="gallery-box" style="max-width:680px">
     <div class="gallery-head">
       <span class="gallery-ttl" id="mant-ttl">REGISTRAR MANTENCIÓN</span>
       <button class="gallery-x" onclick="closeMantModal()">
