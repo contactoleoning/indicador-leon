@@ -673,6 +673,9 @@ button{cursor:pointer}
   <button class="theme-btn" id="plantillas-btn" onclick="openPlantillas()" title="Plantillas de mensajes" aria-label="Plantillas de mensajes">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
   </button>
+  <button class="theme-btn" id="lock-btn-header" onclick="cerrarSesion()" title="Cerrar sesión ahora" aria-label="Cerrar sesión ahora">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+  </button>
   <div class="header-today" style="margin-left:8px">HOY: <strong id="hoy"></strong></div>
 </header>
 
@@ -2758,14 +2761,23 @@ function showLockOverlay(){
   document.getElementById('lock-input').value='';
   setTimeout(function(){document.getElementById('lock-input').focus();},100);
 }
+function cerrarSesion(){
+  lastHiddenAt = Date.now()-RELOCK_MS-1;
+  showLockOverlay();
+}
 showLockOverlay();
 // iOS reabre las PWA instaladas desde un snapshot congelado sin re-ejecutar el
 // script; forzamos el bloqueo al volver a primer plano, pero SOLO si estuvo
 // oculta un buen rato (reapertura real), no en una salida breve a la camara
 // o galeria (ej: al adjuntar una foto en "Mantencion hoy"), que tambien
 // dispara estos eventos y no debe interrumpir un formulario a medio llenar.
+// 45s era demasiado agresivo: cualquier cambio de pestaña del navegador
+// disparaba el bloqueo. Se sube a 4 horas -- suficiente para toda una
+// jornada cambiando de ventana, pero sigue bloqueando si el equipo queda
+// abierto de un dia para otro. Ademas hay un boton para cerrar sesion
+// manualmente cuando se quiera bloquear antes de eso.
 var lastHiddenAt = 0;
-var RELOCK_MS = 45000;
+var RELOCK_MS = 4*60*60*1000;
 document.addEventListener('visibilitychange',function(){
   if (document.visibilityState==='hidden') {
     lastHiddenAt = Date.now();
