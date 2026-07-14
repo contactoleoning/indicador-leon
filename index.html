@@ -1876,6 +1876,16 @@ function ta(el) {
   saveRecord(row);
   render();
 }
+// Igual que ta(), pero además refresca la lista de Recordatorios Pendientes
+// (ese modal no forma parte de render() porque es un overlay aparte).
+function taRec(el) {
+  const row = data.find(r=>r.id===+el.dataset.id);
+  if (!row) return;
+  row.aviso = el.checked;
+  saveRecord(row);
+  render();
+  renderRecordatorios();
+}
 let mantModalId = null;
 let mantModalPhotos = [];
 function mantDraftKey(id) { return 'mant_draft_' + id; }
@@ -2154,6 +2164,13 @@ function waCliente(id){
     dias: dias
   });
   window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');
+  // Enviar el recordatorio ES el aviso: se marca solo, sin un clic aparte.
+  if(!r.aviso){
+    r.aviso = true;
+    saveRecord(r);
+    render();
+    if(document.getElementById('recordatorios-ov').style.display!=='none') renderRecordatorios();
+  }
 }
 
 function pedirResena(id){
@@ -3003,18 +3020,22 @@ function renderRecordatorios(){
       var btnWa=tieneFono
         ?'<button onclick="waCliente('+r.id+')" style="background:#25d366;color:#073b22;border:none;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📲 WhatsApp</button>'
         :'<span style="font-size:12px;color:var(--text3)">sin teléfono</span>';
-      var avisado=r.aviso?'<span style="font-size:11px;color:#1a56db;font-weight:700"> ✓ avisado</span>':'';
       var antiguoTag=antiguo?' <span style="font-size:10px;color:#e03131;font-weight:700;border:1px solid rgba(224,49,49,.4);border-radius:5px;padding:1px 5px;margin-left:4px">+120d</span>':'';
       var seguSel='<select onchange="setSeguimiento('+r.id+',this.value)" style="font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);margin-top:6px">'
         +seguOpts.map(function(o){return '<option value="'+esc(o)+'"'+((r.seguimiento||'')===o?' selected':'')+'>'+(o||'— seguimiento —')+'</option>';}).join('')
         +'</select>';
+      var avisoToggle='<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:'+(r.aviso?'#1a56db':'var(--text3)')+';font-weight:'+(r.aviso?'700':'500')+';cursor:pointer;margin-top:6px;width:fit-content">'
+        +'<input type="checkbox" '+(r.aviso?'checked':'')+' data-id="'+r.id+'" onchange="taRec(this)" style="width:14px;height:14px;accent-color:#1a56db;cursor:pointer;flex-shrink:0">'
+        +(r.aviso?'✓ Avisado':'Marcar avisado')
+        +'</label>';
       return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 4px;border-bottom:1px solid var(--border)'+(antiguo?';background:rgba(224,49,49,0.05)':'')+'">'
         +'<div style="min-width:0;flex:1">'
-        +'<div style="font-weight:700;font-size:14px;color:var(--text)">'+esc(r.cliente||'—')+avisado+antiguoTag+'</div>'
+        +'<div style="font-weight:700;font-size:14px;color:var(--text)">'+esc(r.cliente||'—')+antiguoTag+'</div>'
         +'<div style="font-size:12px;color:var(--text3)">'
         +'<span style="color:'+color+';font-weight:700">'+estado+'</span> · '+esc(fmtFinal(r))+(dias?' · '+dias:'')
         +(r.comuna?' · '+esc(r.comuna):'')+'</div>'
         +seguSel
+        +avisoToggle
         +'</div>'
         +'<div style="flex-shrink:0">'+btnWa+'</div>'
         +'</div>';
