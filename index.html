@@ -78,7 +78,7 @@ button{cursor:pointer}
 .legend-title{font-size:11px;font-weight:700;letter-spacing:0.8px;color:var(--text3);margin-right:4px;text-transform:uppercase}
 .leg-item{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 11px}
 .leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.leg-aviso{background:var(--aviso-bg);border-color:var(--aviso-border);color:var(--aviso)}
+.leg-aviso{background:rgba(214,217,222,0.14);border-color:rgba(214,217,222,0.4);color:var(--gold2)}
 
 /* ── REMINDER BANNER ── */
 .reminder-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 16px;font-size:13px;border-bottom:1px solid var(--border)}
@@ -155,7 +155,7 @@ button{cursor:pointer}
 
 /* badge aviso */
 .aviso-cell{display:flex;flex-direction:column;align-items:center;gap:3px}
-.aviso-tag{font-size:10.5px;font-weight:700;letter-spacing:0.6px;color:var(--aviso);background:var(--aviso-bg);border:1px solid var(--aviso-border);padding:3px 9px;border-radius:10px;white-space:nowrap}
+.aviso-tag{font-size:10.5px;font-weight:700;letter-spacing:0.6px;color:#1a1a1a;background:linear-gradient(180deg,var(--gold2),var(--gold));border:1px solid var(--gold);padding:3px 9px;border-radius:10px;white-space:nowrap}
 
 /* obs textarea */
 .td-obs{min-width:190px;max-width:300px;white-space:normal;vertical-align:top!important;padding-top:12px!important}
@@ -172,7 +172,7 @@ button{cursor:pointer}
 .td-input:focus{background:var(--surface2);border:1px solid var(--gold);border-radius:4px;padding:1px 5px;box-shadow:0 0 0 2px rgba(214,217,222,0.12)}
 .td-input[type=date]{min-width:112px;color-scheme:dark}
 .td-input[type=number]{min-width:40px;text-align:center}
-.cb-aviso{width:18px;height:18px;accent-color:var(--aviso);cursor:pointer;display:block;margin:auto}
+.cb-aviso{width:18px;height:18px;accent-color:var(--gold);cursor:pointer;display:block;margin:auto}
 
 /* status circles */
 .st-circle{width:11px;height:11px;border-radius:50%;display:inline-block;vertical-align:middle;flex-shrink:0}
@@ -227,8 +227,8 @@ button{cursor:pointer}
 .card-foot{padding:9px 14px;display:flex;align-items:center;gap:10px;border-top:1px solid var(--border)}
 .card-aviso-label{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer;flex:1;padding:6px 10px;border-radius:6px;border:1px solid transparent;transition:all .15s}
 .card-aviso-label:hover{background:var(--surface3);border-color:var(--border)}
-.card-aviso-label.avisado{color:var(--aviso);font-weight:600;background:var(--aviso-bg);border-color:var(--aviso-border)}
-.card-aviso-cb{width:15px;height:15px;accent-color:var(--aviso);cursor:pointer;flex-shrink:0}
+.card-aviso-label.avisado{color:var(--gold2);font-weight:600;background:rgba(214,217,222,0.14);border-color:rgba(214,217,222,0.4)}
+.card-aviso-cb{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
 .card-btns{display:flex;gap:6px}
 .card-btn{padding:6px 13px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .12s}
 .card-btn:hover{background:var(--surface3);border-color:var(--border2);color:var(--text)}
@@ -334,8 +334,8 @@ button{cursor:pointer}
 .ff textarea{resize:vertical;min-height:72px;line-height:1.5}
 .ff select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%233d4f68' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
 .aviso-label{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface2);cursor:pointer;font-size:14px;color:var(--text);transition:all .12s}
-.aviso-label.checked{background:var(--aviso-bg);border-color:var(--aviso-border);color:var(--aviso);font-weight:600}
-.aviso-label input{width:17px;height:17px;accent-color:var(--aviso);cursor:pointer;flex-shrink:0}
+.aviso-label.checked{background:rgba(214,217,222,0.14);border-color:rgba(214,217,222,0.4);color:var(--gold2);font-weight:600}
+.aviso-label input{width:17px;height:17px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
 .modal-foot{padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
 .btn-cancel{flex:1;padding:12px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:14px;font-weight:500;cursor:pointer;transition:all .12s}
 .btn-cancel:hover{background:var(--surface3);border-color:var(--border2);color:var(--text)}
@@ -684,7 +684,7 @@ button{cursor:pointer}
   <span class="leg-item"><span class="leg-dot" style="background:#2dc653"></span>Al día (+1 mes)</span>
   <span class="leg-item"><span class="leg-dot" style="background:#f5a623"></span>Por vencer (&lt;1 mes)</span>
   <span class="leg-item"><span class="leg-dot" style="background:#e03131"></span>Vencido</span>
-  <span class="leg-item leg-aviso"><span class="leg-dot" style="background:#1a56db"></span>Aviso enviado</span>
+  <span class="leg-item leg-aviso"><span class="leg-dot" style="background:#d6d9de"></span>Aviso enviado</span>
 </div>
 
 <div id="reminder-banner" class="reminder-banner" style="display:none">
@@ -863,9 +863,13 @@ button{cursor:pointer}
         <div class="ff">
           <label>TELÉFONO</label>
           <div class="input-tel-wrap">
-            <span class="tel-prefix">+569</span>
+            <span class="tel-prefix" id="ftel-prefix">+569</span>
             <input id="ftel" type="tel" placeholder="XXXX XXXX" maxlength="8" inputmode="numeric"/>
           </div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;margin-top:6px">
+            <input type="checkbox" id="ftelfijo" onchange="toggleTelFijoStyle()" style="width:14px;height:14px;cursor:pointer;flex-shrink:0"/>
+            Es teléfono fijo (sin WhatsApp)
+          </label>
         </div>
         <div class="ff"><label>FECHA INICIO</label><input id="fi" type="date"/></div>
         <div class="ff">
@@ -1660,8 +1664,8 @@ function render() {
             <button class="act-btn mant" onclick="marcarMantencionHoy(${r.id})" title="Registrar mantención de hoy" aria-label="Registrar mantención de hoy">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
             </button>
-            ${r.telefono?`<button class="act-btn wa" onclick="waCliente(${r.id})" title="WhatsApp" aria-label="Enviar WhatsApp"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.3A7.9 7.9 0 0 0 12 4a8 8 0 0 0-6.9 12l-1 3.6 3.7-1a8 8 0 0 0 3.8 1h.3a8 8 0 0 0 5.7-13.3zM12 18.5a6.6 6.6 0 0 1-3.4-.9l-.2-.1-2.2.6.6-2.1-.2-.3A6.6 6.6 0 1 1 12 18.5zm3.6-4.9c-.2-.1-1.2-.6-1.3-.6s-.3-.1-.4.1l-.6.7c-.1.1-.2.2-.4 0a5.4 5.4 0 0 1-1.6-1 6 6 0 0 1-1.1-1.4c-.1-.2 0-.3.1-.4l.3-.4.2-.3v-.4l-.6-1.4c-.1-.3-.3-.3-.4-.3h-.4a.7.7 0 0 0-.5.3 2.1 2.1 0 0 0-.7 1.6 3.7 3.7 0 0 0 .8 2 8.3 8.3 0 0 0 3.2 2.8c1.1.5 1.6.5 2.1.5a1.8 1.8 0 0 0 1.2-.9 1.5 1.5 0 0 0 .1-.8c-.1-.1-.2-.1-.4-.2z"/></svg></button>`:''}
-            ${r.telefono?`<button class="act-btn resena" onclick="pedirResena(${r.id})" title="Pedir reseña de Google" aria-label="Pedir reseña de Google"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9l-6.2 3.4 1.6-6.8L2.2 8.9l6.9-.6z"/></svg></button>`:''}
+            ${puedeWhatsapp(r)?`<button class="act-btn wa" onclick="waCliente(${r.id})" title="WhatsApp" aria-label="Enviar WhatsApp"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.3A7.9 7.9 0 0 0 12 4a8 8 0 0 0-6.9 12l-1 3.6 3.7-1a8 8 0 0 0 3.8 1h.3a8 8 0 0 0 5.7-13.3zM12 18.5a6.6 6.6 0 0 1-3.4-.9l-.2-.1-2.2.6.6-2.1-.2-.3A6.6 6.6 0 1 1 12 18.5zm3.6-4.9c-.2-.1-1.2-.6-1.3-.6s-.3-.1-.4.1l-.6.7c-.1.1-.2.2-.4 0a5.4 5.4 0 0 1-1.6-1 6 6 0 0 1-1.1-1.4c-.1-.2 0-.3.1-.4l.3-.4.2-.3v-.4l-.6-1.4c-.1-.3-.3-.3-.4-.3h-.4a.7.7 0 0 0-.5.3 2.1 2.1 0 0 0-.7 1.6 3.7 3.7 0 0 0 .8 2 8.3 8.3 0 0 0 3.2 2.8c1.1.5 1.6.5 2.1.5a1.8 1.8 0 0 0 1.2-.9 1.5 1.5 0 0 0 .1-.8c-.1-.1-.2-.1-.4-.2z"/></svg></button>`:''}
+            ${puedeWhatsapp(r)?`<button class="act-btn resena" onclick="pedirResena(${r.id})" title="Pedir reseña de Google" aria-label="Pedir reseña de Google"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9l-6.2 3.4 1.6-6.8L2.2 8.9l6.9-.6z"/></svg></button>`:''}
             <button class="act-btn${(r.photos&&r.photos.length)?' has-photos':''}" onclick="openGallery(${r.id})" title="Fotos (${(r.photos||[]).length})" aria-label="Ver fotos (${(r.photos||[]).length})">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               ${(r.photos&&r.photos.length)?`<span style="font-size:9px;font-weight:700">${r.photos.length}</span>`:''}
@@ -1700,7 +1704,7 @@ function render() {
         </div>
         <div class="card-body">
           ${(r.direccion||r.detalle)?`<div class="card-field full"><label>DIRECCIÓN</label><a class="card-addr card-addr-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([r.direccion,r.comuna].filter(Boolean).join(', '))}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" style="vertical-align:-1px;margin-right:3px;flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc([r.direccion,r.detalle].filter(Boolean).join(' — '))}</a></div>`:''}
-          ${r.telefono?`<div class="card-field full"><label>TELÉFONO</label><a class="card-phone-link" href="tel:+569${r.telefono}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.81a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+569 ${r.telefono.replace(/(\d{4})(\d{4})/,'$1 $2')}</a></div>`:''}
+          ${r.telefono?`<div class="card-field full"><label>TELÉFONO</label><a class="card-phone-link" href="${telHref(r)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.81a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>${telLabel(r)}${r.telefonoFijo?' (fijo)':''}</a></div>`:''}
           <div class="card-field full"><label>SERVICIO</label><div class="card-field-val">${esc(r.servicio)||'—'}</div></div>
           ${(r.equipos&&r.equipos.length)?`<div class="card-field full"><label>EQUIPOS (${r.equipos.length})</label><div class="card-equipos">${r.equipos.map(eq=>`<div>• <b>${esc([eq.marca,eq.modelo].filter(Boolean).join(' '))||'Equipo'}</b>${eq.btu?' '+esc(eq.btu)+' BTU':''}${eq.ubicacion?' — '+esc(eq.ubicacion):''}</div>`).join('')}</div></div>`:''}
           ${(r.historial&&r.historial.length)?`<div class="card-historial">🔧 ${r.historial.length} mantención${r.historial.length>1?'es':''} registrada${r.historial.length>1?'s':''} — última: ${r.historial[r.historial.length-1].fecha.split('-').reverse().join('-')}</div>`:''}
@@ -1725,8 +1729,8 @@ function render() {
           <div class="card-btns">
             <button class="card-btn perfil" onclick="openPerfil(${r.id})">👁 Perfil</button>
             <button class="card-btn mant" onclick="marcarMantencionHoy(${r.id})">✓ Mantención hoy</button>
-            ${r.telefono?`<button class="card-btn wa" onclick="waCliente(${r.id})">WhatsApp</button>`:''}
-            ${r.telefono?`<button class="card-btn resena" onclick="pedirResena(${r.id})">⭐ Reseña</button>`:''}
+            ${puedeWhatsapp(r)?`<button class="card-btn wa" onclick="waCliente(${r.id})">WhatsApp</button>`:''}
+            ${puedeWhatsapp(r)?`<button class="card-btn resena" onclick="pedirResena(${r.id})">⭐ Reseña</button>`:''}
             <button class="card-btn" onclick="openModal(${r.id})">Editar</button>
             <button class="card-btn del" onclick="askDelete(${r.id})">Eliminar</button>
           </div>
@@ -1982,6 +1986,13 @@ function toggleAvisoStyle() {
   const cb = document.getElementById('fav');
   document.getElementById('aviso-label-wrap').classList.toggle('checked', cb.checked);
 }
+function toggleTelFijoStyle() {
+  const fijo = document.getElementById('ftelfijo').checked;
+  document.getElementById('ftel-prefix').style.display = fijo ? 'none' : '';
+  const inp = document.getElementById('ftel');
+  inp.maxLength = fijo ? 15 : 8;
+  inp.placeholder = fijo ? 'Número completo' : 'XXXX XXXX';
+}
 function openModal(id) {
   editId = id;
   const r = id ? data.find(x=>x.id===id) : null;
@@ -1996,6 +2007,8 @@ function openModal(id) {
   document.getElementById('fdet').value = r?.detalle||'';
   // Teléfono: guardar solo los 8 dígitos sin el +569
   document.getElementById('ftel').value = r?.telefono||'';
+  document.getElementById('ftelfijo').checked = r?.telefonoFijo||false;
+  toggleTelFijoStyle();
   document.getElementById('fs').value = r?.servicio||'';
   document.getElementById('fi').value = r?.inicia||'';
   // Duracion: seleccionar opción más cercana (4, 6, 12)
@@ -2042,6 +2055,7 @@ function saveModal() {
     direccion: document.getElementById('fdir').value.trim(),
     detalle: document.getElementById('fdet').value.trim(),
     telefono: document.getElementById('ftel').value.trim().replace(/\D/g,''),
+    telefonoFijo: document.getElementById('ftelfijo').checked,
     aviso: document.getElementById('fav').checked,
     plan: document.getElementById('fplan').checked,
     planhasta: document.getElementById('fplanhasta').value,
@@ -2145,10 +2159,22 @@ function numeroWa(telefono){
   if (raw.length===9 && raw.charAt(0)==='9') raw = raw.slice(1);
   return '569'+raw.slice(-8);
 }
+// Fijos no tienen WhatsApp -- sin esto se mandaban recordatorios a numeros
+// que WhatsApp nunca va a reconocer, aunque el numero este bien escrito.
+function puedeWhatsapp(r){ return !!(r && r.telefono && !r.telefonoFijo); }
+function telHref(r){
+  if(!r||!r.telefono) return '';
+  return r.telefonoFijo ? ('tel:'+r.telefono) : ('tel:+569'+r.telefono);
+}
+function telLabel(r){
+  if(!r||!r.telefono) return '';
+  return r.telefonoFijo ? r.telefono : ('+569 '+r.telefono.replace(/(\d{4})(\d{4})/,'$1 $2'));
+}
 
 function waCliente(id){
   var r = data.find(function(x){return x.id===id;});
   if(!r||!r.telefono){ toast('Este cliente no tiene teléfono'); return; }
+  if(r.telefonoFijo){ toast('Ese teléfono es fijo, no tiene WhatsApp'); return; }
   var num = numeroWa(r.telefono);
   var nombre = (r.cliente||'').trim().split(' ')[0].replace(/\(.*\)/,'').trim();
   var venc = (typeof fmtFinal==='function') ? fmtFinal(r) : '';
@@ -2176,6 +2202,7 @@ function waCliente(id){
 function pedirResena(id){
   var r = data.find(function(x){return x.id===id;});
   if(!r||!r.telefono){ toast('Este cliente no tiene teléfono'); return; }
+  if(r.telefonoFijo){ toast('Ese teléfono es fijo, no tiene WhatsApp'); return; }
   var link = localStorage.getItem('google_review_link');
   if(!link){
     link = prompt('Pega aquí el link de reseñas de tu Perfil de Empresa en Google (Google Business Profile → Pedir reseñas → Copiar link). Se guardará para usarlo siempre.');
@@ -2525,7 +2552,7 @@ function historialListHTML(r) {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--text2)">
         <span><span style="width:6px;height:6px;border-radius:50%;background:var(--green,#3fb950);display:inline-block;margin-right:6px"></span>
         ${esc(h.fecha.split('-').reverse().join('-'))}${h.hora?` <span style="color:var(--text3)">${esc(h.hora)}</span>`:''}${h.inicioPrevio?` <span style="color:var(--text3)">(inicio previo: ${esc(h.inicioPrevio.split('-').reverse().join('-'))})</span>`:''}</span>
-        ${r.telefono?`<button onclick="enviarRespaldoMantencion(${r.id},${h._i})" style="background:none;border:1px solid rgba(214,217,222,0.4);color:var(--gold);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">📤 Enviar</button>`:''}
+        ${puedeWhatsapp(r)?`<button onclick="enviarRespaldoMantencion(${r.id},${h._i})" style="background:none;border:1px solid rgba(214,217,222,0.4);color:var(--gold);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">📤 Enviar</button>`:''}
       </div>
       ${h.detalle?`<div style="font-size:12px;color:var(--text2);margin-top:5px;white-space:pre-wrap;line-height:1.5">${esc(h.detalle)}</div>`:''}
       ${fotos.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">${fotos.map(p=>`<img class="card-photo-thumb" style="width:48px;height:48px" src="${esc(photoSrc(p))}" onclick="openLightboxHist('${escAttr(p.id)}',${r.id},${h._i})" title="${esc(p.date||'')}"/>`).join('')}</div>`:''}
@@ -2535,6 +2562,7 @@ function historialListHTML(r) {
 function enviarRespaldoMantencion(clienteId, histIdx) {
   const r = data.find(x => x.id === clienteId);
   if (!r || !r.telefono) { toast('Este cliente no tiene teléfono'); return; }
+  if (r.telefonoFijo) { toast('Ese teléfono es fijo, no tiene WhatsApp'); return; }
   const h = r.historial && r.historial[histIdx];
   if (!h) return;
   const fechaFmt = h.fecha.split('-').reverse().join('-');
@@ -2588,7 +2616,7 @@ function renderPerfil(r) {
     </div>
     <div class="card-body" style="padding:0 2px 12px">
       ${(r.direccion||r.detalle)?`<div class="card-field full"><label>DIRECCIÓN</label><a class="card-addr card-addr-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([r.direccion,r.comuna].filter(Boolean).join(', '))}">${esc([r.direccion,r.detalle].filter(Boolean).join(' — '))}</a></div>`:''}
-      ${r.telefono?`<div class="card-field"><label>TELÉFONO</label><a class="card-phone-link" href="tel:+569${r.telefono}">+569 ${r.telefono.replace(/(\d{4})(\d{4})/,'$1 $2')}</a></div>`:''}
+      ${r.telefono?`<div class="card-field"><label>TELÉFONO</label><a class="card-phone-link" href="${telHref(r)}">${telLabel(r)}${r.telefonoFijo?' (fijo)':''}</a></div>`:''}
       <div class="card-field"><label>SERVICIO</label><div class="card-field-val">${esc(r.servicio)||'—'}</div></div>
       <div class="card-field"><label>INICIO</label><div class="card-field-val">${r.inicia?r.inicia.split('-').reverse().join('-'):'—'}</div></div>
       <div class="card-field"><label>DURACIÓN</label><div class="card-field-val">${r.duracion} meses</div></div>
@@ -2610,8 +2638,8 @@ function renderPerfil(r) {
       </label>
       <div class="card-btns" style="flex-wrap:wrap">
         <button class="card-btn mant" onclick="marcarMantencionHoy(${r.id})">✓ Mantención hoy</button>
-        ${r.telefono?`<button class="card-btn wa" onclick="waCliente(${r.id})">WhatsApp</button>`:''}
-        ${r.telefono?`<button class="card-btn resena" onclick="pedirResena(${r.id})">⭐ Reseña</button>`:''}
+        ${puedeWhatsapp(r)?`<button class="card-btn wa" onclick="waCliente(${r.id})">WhatsApp</button>`:''}
+        ${puedeWhatsapp(r)?`<button class="card-btn resena" onclick="pedirResena(${r.id})">⭐ Reseña</button>`:''}
         <button class="card-btn" onclick="closePerfil();openModal(${r.id})">Editar</button>
       </div>
     </div>
@@ -2840,7 +2868,7 @@ function descargarExcel(){
     var campos = [
       r.cliente, r.lugar, r.comuna, r.servicio, r.inicia||'', r.duracion,
       fmtFinal(r), estadoTexto(statusOf(r)), r.aviso?'Sí':'No',
-      r.telefono?('+569'+r.telefono):'', r.obs||''
+      telLabel(r), r.obs||''
     ];
     csvRows.push(campos.map(csvEscape).join(';'));
   });
@@ -3016,16 +3044,15 @@ function renderRecordatorios(){
       var dr=diasRestantes(r);
       var dias=dr===null?'':(dr<0?Math.abs(dr)+' días vencido':dr===0?'vence hoy':'quedan '+dr+' días');
       var antiguo=(dr!==null && dr<-120);
-      var tieneFono=r.telefono&&String(r.telefono).replace(/\D/g,'').length>=8;
-      var btnWa=tieneFono
+      var btnWa=puedeWhatsapp(r)
         ?'<button onclick="waCliente('+r.id+')" style="background:#25d366;color:#073b22;border:none;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📲 WhatsApp</button>'
-        :'<span style="font-size:12px;color:var(--text3)">sin teléfono</span>';
+        :(r.telefono?'<span style="font-size:12px;color:var(--text3)">fijo, sin WhatsApp</span>':'<span style="font-size:12px;color:var(--text3)">sin teléfono</span>');
       var antiguoTag=antiguo?' <span style="font-size:10px;color:#e03131;font-weight:700;border:1px solid rgba(224,49,49,.4);border-radius:5px;padding:1px 5px;margin-left:4px">+120d</span>':'';
       var seguSel='<select onchange="setSeguimiento('+r.id+',this.value)" style="font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);margin-top:6px">'
         +seguOpts.map(function(o){return '<option value="'+esc(o)+'"'+((r.seguimiento||'')===o?' selected':'')+'>'+(o||'— seguimiento —')+'</option>';}).join('')
         +'</select>';
-      var avisoToggle='<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:'+(r.aviso?'#1a56db':'var(--text3)')+';font-weight:'+(r.aviso?'700':'500')+';cursor:pointer;margin-top:6px;width:fit-content">'
-        +'<input type="checkbox" '+(r.aviso?'checked':'')+' data-id="'+r.id+'" onchange="taRec(this)" style="width:14px;height:14px;accent-color:#1a56db;cursor:pointer;flex-shrink:0">'
+      var avisoToggle='<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:'+(r.aviso?'var(--gold2)':'var(--text3)')+';font-weight:'+(r.aviso?'700':'500')+';cursor:pointer;margin-top:6px;width:fit-content">'
+        +'<input type="checkbox" '+(r.aviso?'checked':'')+' data-id="'+r.id+'" onchange="taRec(this)" style="width:14px;height:14px;accent-color:var(--gold);cursor:pointer;flex-shrink:0">'
         +(r.aviso?'✓ Avisado':'Marcar avisado')
         +'</label>';
       return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 4px;border-bottom:1px solid var(--border)'+(antiguo?';background:rgba(224,49,49,0.05)':'')+'">'
@@ -3125,7 +3152,7 @@ function renderMetricas(){
   html += metricaSeccion('Seguimiento de avisos');
   html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'
     + metricaBox(vencidosAntiguos, 'Vencidos +120 días', '#e03131')
-    + metricaBox(conAviso, 'Con aviso enviado', 'var(--aviso)')
+    + metricaBox(conAviso, 'Con aviso enviado', 'var(--gold2)')
     + metricaBox(sinAviso, 'Vencidos/por vencer sin avisar', 'var(--text2)')
     + '</div>';
 
@@ -3213,7 +3240,7 @@ function renderRuteo(){
           +'<div style="font-size:11.5px;font-weight:700;color:'+color+'">'+esc(fmtFinal(r))+'</div>'
           +diasLabel(r)
           +'</div>'
-          +(r.telefono?'<button class="ruteo-wa-btn" onclick="event.stopPropagation();waCliente('+r.id+')" title="WhatsApp"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.3A7.9 7.9 0 0 0 12 4a8 8 0 0 0-6.9 12l-1 3.6 3.7-1a8 8 0 0 0 3.8 1h.3a8 8 0 0 0 5.7-13.3zM12 18.5a6.6 6.6 0 0 1-3.4-.9l-.2-.1-2.2.6.6-2.1-.2-.3A6.6 6.6 0 1 1 12 18.5zm3.6-4.9c-.2-.1-1.2-.6-1.3-.6s-.3-.1-.4.1l-.6.7c-.1.1-.2.2-.4 0a5.4 5.4 0 0 1-1.6-1 6 6 0 0 1-1.1-1.4c-.1-.2 0-.3.1-.4l.3-.4.2-.3v-.4l-.6-1.4c-.1-.3-.3-.3-.4-.3h-.4a.7.7 0 0 0-.5.3 2.1 2.1 0 0 0-.7 1.6 3.7 3.7 0 0 0 .8 2 8.3 8.3 0 0 0 3.2 2.8c1.1.5 1.6.5 2.1.5a1.8 1.8 0 0 0 1.2-.9 1.5 1.5 0 0 0 .1-.8c-.1-.1-.2-.1-.4-.2z"/></svg></button>':'')
+          +(puedeWhatsapp(r)?'<button class="ruteo-wa-btn" onclick="event.stopPropagation();waCliente('+r.id+')" title="WhatsApp"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.3A7.9 7.9 0 0 0 12 4a8 8 0 0 0-6.9 12l-1 3.6 3.7-1a8 8 0 0 0 3.8 1h.3a8 8 0 0 0 5.7-13.3zM12 18.5a6.6 6.6 0 0 1-3.4-.9l-.2-.1-2.2.6.6-2.1-.2-.3A6.6 6.6 0 1 1 12 18.5zm3.6-4.9c-.2-.1-1.2-.6-1.3-.6s-.3-.1-.4.1l-.6.7c-.1.1-.2.2-.4 0a5.4 5.4 0 0 1-1.6-1 6 6 0 0 1-1.1-1.4c-.1-.2 0-.3.1-.4l.3-.4.2-.3v-.4l-.6-1.4c-.1-.3-.3-.3-.4-.3h-.4a.7.7 0 0 0-.5.3 2.1 2.1 0 0 0-.7 1.6 3.7 3.7 0 0 0 .8 2 8.3 8.3 0 0 0 3.2 2.8c1.1.5 1.6.5 2.1.5a1.8 1.8 0 0 0 1.2-.9 1.5 1.5 0 0 0 .1-.8c-.1-.1-.2-.1-.4-.2z"/></svg></button>':'')
           +'</div>';
       }).join('')
       +'</div>';
