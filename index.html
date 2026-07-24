@@ -673,6 +673,9 @@ button{cursor:pointer}
   <button class="theme-btn" id="plantillas-btn" onclick="openPlantillas()" title="Plantillas de mensajes" aria-label="Plantillas de mensajes">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
   </button>
+  <button class="theme-btn" id="respuestas-btn" onclick="openRespuestas()" title="Respuestas rápidas ante objeciones" aria-label="Respuestas rápidas ante objeciones">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+  </button>
   <button class="theme-btn" id="lock-btn-header" onclick="cerrarSesion()" title="Cerrar sesión ahora" aria-label="Cerrar sesión ahora">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
   </button>
@@ -981,14 +984,35 @@ button{cursor:pointer}
         <code style="background:var(--surface3);padding:1px 5px;border-radius:4px">{detalle}</code>
         según corresponda — se reemplazan solos al enviar. Deja el campo vacío y guarda para volver al texto original.
       </div>
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;color:var(--gold2);border-bottom:1px solid var(--border);padding-bottom:4px">🔴 SECUENCIA — CLIENTES VENCIDOS</div>
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">RECORDATORIO — CLIENTE VENCIDO (botón WhatsApp verde)</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">CONTACTO 1 (botón 📲 WhatsApp)</div>
         <textarea id="tpl-recordatorio-vencido" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
       </div>
       <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">RECORDATORIO — CLIENTE POR VENCER (botón WhatsApp verde)</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">CONTACTO 2 — reenvío (se sugiere solo si pasan 3+ días sin respuesta)</div>
+        <textarea id="tpl-vencido-paso2" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">CONTACTO 3 — último aviso</div>
+        <textarea id="tpl-vencido-paso3" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;color:var(--gold2);border-bottom:1px solid var(--border);padding-bottom:4px;margin-top:6px">🟡 SECUENCIA — CLIENTES POR VENCER</div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">CONTACTO 1 (botón 📲 WhatsApp)</div>
         <textarea id="tpl-recordatorio-porvencer" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
       </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">CONTACTO 2 — reenvío (se sugiere solo si pasan 4+ días sin respuesta)</div>
+        <textarea id="tpl-porvencer-paso2" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">CONTACTO 3 — urgencia (se sugiere cuando quedan menos de 7 días)</div>
+        <textarea id="tpl-porvencer-paso3" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;color:var(--gold2);border-bottom:1px solid var(--border);padding-bottom:4px;margin-top:6px">OTROS MENSAJES</div>
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">PEDIR RESEÑA (botón ⭐)</div>
         <textarea id="tpl-resena" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
@@ -997,10 +1021,37 @@ button{cursor:pointer}
         <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">RESPALDO DE MANTENCIÓN (botón 📤 Enviar en el historial)</div>
         <textarea id="tpl-respaldo" rows="4" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
       </div>
+
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;color:var(--gold2);border-bottom:1px solid var(--border);padding-bottom:4px;margin-top:6px">🗣️ RESPUESTAS RÁPIDAS (se copian, no van a un cliente puntual)</div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">CUANDO DICEN "TE AVISO YO"</div>
+        <textarea id="tpl-resp-teaviso" rows="3" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.7px;color:var(--text3);margin-bottom:6px">CUANDO DICEN "ESTOY OCUPADO AHORA"</div>
+        <textarea id="tpl-resp-ocupado" rows="3" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+
       <div style="display:flex;gap:10px">
         <button onclick="guardarPlantillas()" style="flex:1;background:var(--gold);color:#1a1a1a;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">Guardar</button>
         <button onclick="restaurarPlantillasDefault()" style="flex:1;background:transparent;border:2px solid var(--border2);color:var(--text2);padding:10px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">Restaurar predeterminadas</button>
       </div>
+    </div>
+  </div>
+</div>
+<div class="gallery-overlay" id="respuestas-ov" style="display:none" onclick="if(event.target===this)closeRespuestas()">
+  <div class="gallery-box" style="max-width:600px">
+    <div class="gallery-head">
+      <span class="gallery-ttl">🗣️ RESPUESTAS RÁPIDAS</span>
+      <button class="gallery-x" onclick="closeRespuestas()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="gallery-body" style="padding:16px">
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:14px">
+        Respuestas listas para copiar y pegar en WhatsApp cuando un cliente contesta con estas objeciones. No van dirigidas a nadie en particular — edítalas desde ✏️ Plantillas.
+      </div>
+      <div id="respuestas-list"></div>
     </div>
   </div>
 </div>
@@ -1508,6 +1559,50 @@ function diasRestantes(r) {
   const fin = addMonths(r.inicia, r.duracion);
   return fin ? Math.round((fin - TODAY)/(24*60*60*1000)) : null;
 }
+
+// ═══════════════════════════════════════
+// SECUENCIA DE SEGUIMIENTO (contacto 1/2/3 según cuánto ha pasado)
+// ═══════════════════════════════════════
+var DIAS_ENTRE_CONTACTOS = {vencido:3, porvencer:4};
+function segmentoContacto(r){
+  var st = statusOf(r);
+  if (st==='red') return 'vencido';
+  if (st==='amber') return 'porvencer';
+  return null;
+}
+function diasDesdeContacto(r){
+  if (!r.contactoFecha) return null;
+  var f = new Date(r.contactoFecha+'T00:00:00');
+  return Math.round((TODAY - f)/(24*60*60*1000));
+}
+// Devuelve qué contacto (1, 2 o 3) corresponde enviar ahora. Si el cliente
+// ya respondió o se dio por perdido, se queda en el paso actual (no insiste).
+function pasoSugerido(r){
+  var seg = segmentoContacto(r);
+  if (!seg) return 0;
+  if (r.seguimiento==='Perdido' || r.seguimiento==='Respondió') return r.contactoPaso||0;
+  var paso = r.contactoPaso||0;
+  if (paso===0) return 1;
+  if (paso>=3) return 3;
+  // Por vencer: si queda menos de una semana, salta directo a la urgencia.
+  if (seg==='porvencer'){
+    var dr = diasRestantes(r);
+    if (dr!==null && dr<7) return 3;
+  }
+  var dd = diasDesdeContacto(r);
+  var esperar = DIAS_ENTRE_CONTACTOS[seg];
+  if (dd!==null && dd>=esperar) return Math.min(paso+1, 3);
+  return paso;
+}
+function tocaEnviar(r){
+  if (r.seguimiento==='Perdido' || r.seguimiento==='Respondió') return false;
+  if (!segmentoContacto(r)) return false;
+  return pasoSugerido(r) > (r.contactoPaso||0);
+}
+function claveTemplateSecuencia(seg, paso){
+  if (seg==='vencido') return paso<=1 ? 'recordatorio_vencido' : (paso===2 ? 'vencido_paso2' : 'vencido_paso3');
+  return paso<=1 ? 'recordatorio_porvencer' : (paso===2 ? 'porvencer_paso2' : 'porvencer_paso3');
+}
 function fmtFinal(r) {
   const f = addMonths(r.inicia, r.duracion);
   if (!f) return '—';
@@ -1966,6 +2061,10 @@ function confirmMantModal() {
   row.historial.push({ fecha, hora, detalle, fotos: mantModalPhotos, inicioPrevio: row.inicia||null });
   row.inicia = fecha;
   row.aviso = false;
+  // Ciclo nuevo -- la secuencia de contacto del ciclo anterior ya no aplica.
+  row.contactoPaso = 0;
+  row.contactoFecha = null;
+  row.seguimiento = '';
   try { sessionStorage.removeItem(mantDraftKey(mantModalId)); } catch (e) {}
   saveRecord(row);
   render();
@@ -2104,10 +2203,20 @@ function confirmDelete() {
 // PLANTILLAS DE MENSAJES (editables desde la UI)
 // ═══════════════════════════════════════
 const PLANTILLAS_DEFAULT = {
+  // Vencidos -- secuencia de 3 contactos
   recordatorio_vencido: 'Hola{nombre}, te saluda León Ingeniería ❄️. La mantención de {servicio} venció el{venc}{dias} y no queríamos que se te pasara. Con un mantenimiento a tiempo evitas fallas y el equipo te dura mucho más. ¿Vemos esta semana un horario que te acomode? 🔧',
+  vencido_paso2: 'Hola{nombre}, reenvío por si no llegó mi mensaje anterior 😊. ¿Tienes disponibilidad esta semana o la próxima para la mantención de {servicio}{dias}? Dime un día y me adapto a tu horario.',
+  vencido_paso3: 'Hola{nombre}, último aviso de mi parte por ahora. Si quieres coordinar la mantención de {servicio} este mes avísame — si no, te vuelvo a escribir más adelante. ¡Cualquier cosa, aquí estoy! 👷',
+  // Por vencer -- secuencia de 3 contactos
   recordatorio_porvencer: 'Hola{nombre}, le saluda León Ingeniería 👋❄️. Le recordamos que la mantención de {servicio} vence el{venc}{dias}. Si agendamos con anticipación, aseguramos el horario que más le acomode antes de que llegue la fecha. ¿Coordinamos su visita esta semana?',
+  porvencer_paso2: 'Hola{nombre}, reenvío por si no llegó — la mantención de {servicio} vence{venc}{dias}. ¿Lunes, miércoles o viernes te acomoda? Dime el horario y yo me adapto.',
+  porvencer_paso3: 'Hola{nombre}, te aviso que la mantención de {servicio} vence{venc}{dias}. Si la dejamos vencer, el equipo queda sin cobertura hasta la próxima visita. ¿Coordinamos esta semana?',
+  // Reseña y respaldo
   resena: 'Hola{nombre}, gracias por confiar en León Ingeniería para el servicio de climatización 🙏❄️. Si quedaste conforme, ¿nos regalarías una reseña en Google? Nos ayuda muchísimo a seguir creciendo:\n{link}',
   respaldo: 'Hola{nombre}, le envío el respaldo de la mantención realizada {cuando}:\n\n{detalle}\n\n— León Ingeniería y Proyectos SpA ❄️',
+  // Respuestas rápidas ante objeciones comunes (no van a un cliente puntual, se copian y pegan)
+  resp_teaviso: 'Claro{nombre}, sin problema 😊. Para no perdernos, ¿te parece si te escribo el [día específico] para ver cómo estás de agenda?',
+  resp_ocupado: 'Sin problema{nombre}, entiendo perfectamente. ¿La próxima semana te vendría bien? Si no, dime qué semana y lo coordino.',
 };
 function getPlantilla(key){
   try {
@@ -2118,32 +2227,64 @@ function getPlantilla(key){
 function renderPlantilla(tpl, vars){
   return tpl.replace(/\{(\w+)\}/g, function(m,k){ return vars[k]!=null ? vars[k] : ''; });
 }
+function tplElId(key){ return 'tpl-'+key.replace(/_/g,'-'); }
 function openPlantillas(){
-  document.getElementById('tpl-recordatorio-vencido').value = getPlantilla('recordatorio_vencido');
-  document.getElementById('tpl-recordatorio-porvencer').value = getPlantilla('recordatorio_porvencer');
-  document.getElementById('tpl-resena').value = getPlantilla('resena');
-  document.getElementById('tpl-respaldo').value = getPlantilla('respaldo');
+  Object.keys(PLANTILLAS_DEFAULT).forEach(function(key){
+    var el=document.getElementById(tplElId(key));
+    if(el) el.value=getPlantilla(key);
+  });
   document.getElementById('plantillas-ov').style.display = 'flex';
 }
 function closePlantillas(){
   document.getElementById('plantillas-ov').style.display = 'none';
 }
 function guardarPlantillas(){
-  const custom = {
-    recordatorio_vencido: document.getElementById('tpl-recordatorio-vencido').value.trim() || PLANTILLAS_DEFAULT.recordatorio_vencido,
-    recordatorio_porvencer: document.getElementById('tpl-recordatorio-porvencer').value.trim() || PLANTILLAS_DEFAULT.recordatorio_porvencer,
-    resena: document.getElementById('tpl-resena').value.trim() || PLANTILLAS_DEFAULT.resena,
-    respaldo: document.getElementById('tpl-respaldo').value.trim() || PLANTILLAS_DEFAULT.respaldo,
-  };
+  var custom={};
+  Object.keys(PLANTILLAS_DEFAULT).forEach(function(key){
+    var el=document.getElementById(tplElId(key));
+    custom[key]=(el&&el.value.trim())||PLANTILLAS_DEFAULT[key];
+  });
   localStorage.setItem('leon_plantillas', JSON.stringify(custom));
   toast('Plantillas guardadas ✓');
   closePlantillas();
 }
 function restaurarPlantillasDefault(){
-  if(!confirm('¿Restaurar las 4 plantillas al texto original?')) return;
+  if(!confirm('¿Restaurar todas las plantillas al texto original?')) return;
   localStorage.removeItem('leon_plantillas');
   openPlantillas();
   toast('Plantillas restauradas');
+}
+
+// ═══════════════════════════════════════
+// RESPUESTAS RÁPIDAS ANTE OBJECIONES (texto de referencia para copiar/pegar)
+// ═══════════════════════════════════════
+var RESPUESTAS_RAPIDAS=[
+  {key:'resp_teaviso', titulo:'Cuando dicen "Te aviso yo"'},
+  {key:'resp_ocupado', titulo:'Cuando dicen "Estoy ocupado ahora"'}
+];
+function openRespuestas(){
+  renderRespuestas();
+  document.getElementById('respuestas-ov').style.display='flex';
+}
+function closeRespuestas(){ document.getElementById('respuestas-ov').style.display='none'; }
+function renderRespuestas(){
+  var el=document.getElementById('respuestas-list');
+  el.innerHTML=RESPUESTAS_RAPIDAS.map(function(r){
+    var texto=renderPlantilla(getPlantilla(r.key),{nombre:''});
+    return '<div style="padding:12px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">'+esc(r.titulo)+'</div>'
+      +'<div style="font-size:13px;color:var(--text);white-space:pre-wrap;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px">'+esc(texto)+'</div>'
+      +'<button onclick="copiarRespuesta(this,\''+r.key+'\')" style="background:var(--gold);color:#1a1a1a;border:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">📋 Copiar</button>'
+      +'</div>';
+  }).join('');
+}
+function copiarRespuesta(btn,key){
+  var texto=renderPlantilla(getPlantilla(key),{nombre:''});
+  var textoOrig=btn.textContent;
+  navigator.clipboard.writeText(texto).then(function(){
+    btn.textContent='✓ Copiado';
+    setTimeout(function(){btn.textContent=textoOrig;},1500);
+  }).catch(function(){ toast('No se pudo copiar. Selecciona el texto manualmente.'); });
 }
 
 // Arma el numero completo (56 9 XXXXXXXX) para wa.me a partir de lo que haya
@@ -2181,7 +2322,11 @@ function waCliente(id){
   var st = statusOf(r);
   var dr = diasRestantes(r);
   var dias = dr==null ? '' : (dr<0 ? ' ('+Math.abs(dr)+' días vencido)' : dr===0 ? ' (vence hoy)' : ' (quedan '+dr+' días)');
-  var plantillaKey = st==='red' ? 'recordatorio_vencido' : 'recordatorio_porvencer';
+  // Clientes al día/sin fecha no tienen secuencia -- usan el tono "por vencer"
+  // como recordatorio general de cortesía.
+  var seg = segmentoContacto(r) || 'porvencer';
+  var paso = segmentoContacto(r) ? Math.max(1, pasoSugerido(r)) : 1;
+  var plantillaKey = claveTemplateSecuencia(seg, paso);
   var msg = renderPlantilla(getPlantilla(plantillaKey), {
     nombre: nombre ? ' '+nombre : '',
     venc: venc ? ' '+venc : '',
@@ -2190,13 +2335,13 @@ function waCliente(id){
     dias: dias
   });
   window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');
-  // Enviar el recordatorio ES el aviso: se marca solo, sin un clic aparte.
-  if(!r.aviso){
-    r.aviso = true;
-    saveRecord(r);
-    render();
-    if(document.getElementById('recordatorios-ov').style.display!=='none') renderRecordatorios();
-  }
+  // Enviar el mensaje ES el aviso: se marca solo, y avanza el paso de la secuencia.
+  r.aviso = true;
+  r.contactoPaso = paso;
+  r.contactoFecha = new Date().toISOString().slice(0,10);
+  saveRecord(r);
+  render();
+  if(document.getElementById('recordatorios-ov').style.display!=='none') renderRecordatorios();
 }
 
 function pedirResena(id){
@@ -3044,8 +3189,15 @@ function renderRecordatorios(){
       var dr=diasRestantes(r);
       var dias=dr===null?'':(dr<0?Math.abs(dr)+' días vencido':dr===0?'vence hoy':'quedan '+dr+' días');
       var antiguo=(dr!==null && dr<-120);
+      var pasoActual=r.contactoPaso||0;
+      var pasoSug=pasoSugerido(r);
+      var listo=tocaEnviar(r);
+      var pausado=(r.seguimiento==='Perdido'||r.seguimiento==='Respondió');
+      var pasoTxt=pasoActual===0?'Sin contactar aún':('Contacto '+pasoActual+' de 3 enviado'+(function(){var dd=diasDesdeContacto(r);return dd!=null?(dd===0?' hoy':' hace '+dd+'d'):'';})());
+      var pasoBadge='<div style="font-size:11px;margin-top:4px;'+(listo?'color:var(--gold2);font-weight:700':'color:var(--text3)')+'">'
+        +pasoTxt+(listo?' · toca Contacto '+pasoSug+' →':'')+(pausado?' · '+esc(r.seguimiento):'')+'</div>';
       var btnWa=puedeWhatsapp(r)
-        ?'<button onclick="waCliente('+r.id+')" style="background:#25d366;color:#073b22;border:none;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📲 WhatsApp</button>'
+        ?'<button onclick="waCliente('+r.id+')" style="background:#25d366;color:#073b22;border:none;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📲 Enviar Contacto '+Math.max(1,pasoSug)+'</button>'
         :(r.telefono?'<span style="font-size:12px;color:var(--text3)">fijo, sin WhatsApp</span>':'<span style="font-size:12px;color:var(--text3)">sin teléfono</span>');
       var antiguoTag=antiguo?' <span style="font-size:10px;color:#e03131;font-weight:700;border:1px solid rgba(224,49,49,.4);border-radius:5px;padding:1px 5px;margin-left:4px">+120d</span>':'';
       var seguSel='<select onchange="setSeguimiento('+r.id+',this.value)" style="font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);margin-top:6px">'
@@ -3055,12 +3207,13 @@ function renderRecordatorios(){
         +'<input type="checkbox" '+(r.aviso?'checked':'')+' data-id="'+r.id+'" onchange="taRec(this)" style="width:14px;height:14px;accent-color:var(--gold);cursor:pointer;flex-shrink:0">'
         +(r.aviso?'✓ Avisado':'Marcar avisado')
         +'</label>';
-      return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 4px;border-bottom:1px solid var(--border)'+(antiguo?';background:rgba(224,49,49,0.05)':'')+'">'
+      return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 4px;border-bottom:1px solid var(--border)'+(antiguo?';background:rgba(224,49,49,0.05)':(listo?';background:rgba(214,217,222,0.05)':''))+'">'
         +'<div style="min-width:0;flex:1">'
         +'<div style="font-weight:700;font-size:14px;color:var(--text)">'+esc(r.cliente||'—')+antiguoTag+'</div>'
         +'<div style="font-size:12px;color:var(--text3)">'
         +'<span style="color:'+color+';font-weight:700">'+estado+'</span> · '+esc(fmtFinal(r))+(dias?' · '+dias:'')
         +(r.comuna?' · '+esc(r.comuna):'')+'</div>'
+        +pasoBadge
         +seguSel
         +avisoToggle
         +'</div>'
@@ -3253,6 +3406,7 @@ function setSeguimiento(id, val){
   r.seguimiento = val;
   saveRecord(r);
   toast(val?'Seguimiento: '+val:'Seguimiento borrado');
+  if(document.getElementById('recordatorios-ov').style.display!=='none') renderRecordatorios();
 }
 
 // Registrar service worker (PWA instalable)
