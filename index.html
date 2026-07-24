@@ -2208,11 +2208,11 @@ const PLANTILLAS_DEFAULT = {
   vencido_paso2: 'Hola{nombre}, reenvío por si no llegó mi mensaje anterior 😊. ¿Tienes disponibilidad esta semana o la próxima para la mantención de {servicio}{dias}? Dime un día y me adapto a tu horario.',
   vencido_paso3: 'Hola{nombre}, último aviso de mi parte por ahora. Si quieres coordinar la mantención de {servicio} este mes avísame — si no, te vuelvo a escribir más adelante. ¡Cualquier cosa, aquí estoy! 👷',
   // Por vencer -- secuencia de 3 contactos
-  recordatorio_porvencer: 'Hola{nombre}, le saluda León Ingeniería 👋❄️. Le recordamos que la mantención de {servicio} vence el{venc}{dias}. Si agendamos con anticipación, aseguramos el horario que más le acomode antes de que llegue la fecha. ¿Coordinamos su visita esta semana?',
+  recordatorio_porvencer: 'Hola{nombre}, te saluda León Ingeniería 👋 ❄️. Te recordamos que la mantención de {servicio} vence el{venc}{dias}. Si agendamos con anticipación, aseguramos el horario que más te acomode antes de que llegue la fecha. ¿Coordinamos tu visita esta semana?',
   porvencer_paso2: 'Hola{nombre}, reenvío por si no llegó — la mantención de {servicio} vence{venc}{dias}. ¿Lunes, miércoles o viernes te acomoda? Dime el horario y yo me adapto.',
   porvencer_paso3: 'Hola{nombre}, te aviso que la mantención de {servicio} vence{venc}{dias}. Si la dejamos vencer, el equipo queda sin cobertura hasta la próxima visita. ¿Coordinamos esta semana?',
   // Reseña y respaldo
-  resena: 'Hola{nombre}, gracias por confiar en León Ingeniería para el servicio de climatización 🙏❄️. Si quedaste conforme, ¿nos regalarías una reseña en Google? Nos ayuda muchísimo a seguir creciendo:\n{link}',
+  resena: 'Hola{nombre}, gracias por confiar en León Ingeniería para el servicio de climatización 🙏 ❄️. Si quedaste conforme, ¿nos regalarías una reseña en Google? Nos ayuda muchísimo a seguir creciendo:\n{link}',
   respaldo: 'Hola{nombre}, le envío el respaldo de la mantención realizada {cuando}:\n\n{detalle}\n\n— León Ingeniería y Proyectos SpA ❄️',
   // Respuestas rápidas ante objeciones comunes (no van a un cliente puntual, se copian y pegan)
   resp_teaviso: 'Claro{nombre}, sin problema 😊. Para no perdernos, ¿te parece si te escribo el [día específico] para ver cómo estás de agenda?',
@@ -2312,6 +2312,20 @@ function telLabel(r){
   return r.telefonoFijo ? r.telefono : ('+569 '+r.telefono.replace(/(\d{4})(\d{4})/,'$1 $2'));
 }
 
+// El campo "Servicio" es una categoría genérica (Instalación/Mantención/
+// Reparación/Electricidad), no una descripción del equipo -- usarlo tal cual
+// en "la mantención de su {servicio}" producía frases como "la mantención de
+// su Mantención". Se arma en cambio desde el inventario real de equipos del
+// cliente (marca+modelo), si existe.
+function descripcionEquipo(r){
+  var eqs=(r.equipos||[]).filter(function(e){return (e.marca||e.modelo||'').toString().trim();});
+  if(eqs.length===1){
+    var partes=[eqs[0].marca,eqs[0].modelo].filter(function(x){return (x||'').toString().trim();}).join(' ');
+    return partes ? ('su '+partes) : 'su equipo de climatización';
+  }
+  if(eqs.length>1) return 'sus equipos de climatización';
+  return 'su equipo de climatización';
+}
 function waCliente(id){
   var r = data.find(function(x){return x.id===id;});
   if(!r||!r.telefono){ toast('Este cliente no tiene teléfono'); return; }
@@ -2330,7 +2344,7 @@ function waCliente(id){
   var msg = renderPlantilla(getPlantilla(plantillaKey), {
     nombre: nombre ? ' '+nombre : '',
     venc: venc ? ' '+venc : '',
-    servicio: r.servicio ? ('su '+r.servicio) : 'su equipo de climatización',
+    servicio: descripcionEquipo(r),
     comuna: r.comuna || '',
     dias: dias
   });
