@@ -91,8 +91,9 @@ button{cursor:pointer}
 
 /* ── STATS ── */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 12px;background:var(--bg);border-bottom:1px solid var(--border)}
-.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 8px;text-align:center;transition:border-color .2s,transform .15s}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 8px;text-align:center;transition:border-color .2s,transform .15s;cursor:pointer}
 .stat-box:hover{border-color:var(--border2);transform:translateY(-1px)}
+.stat-box.active{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 0 1px var(--gold)}
 .stat-num{font-size:27px;font-weight:700;line-height:1;letter-spacing:-0.5px}
 .stat-lbl{font-size:10.5px;font-weight:700;letter-spacing:0.8px;color:var(--text3);margin-top:5px;text-transform:uppercase}
 .c-navy{color:#79c0ff}.c-green{color:var(--green)}.c-amber{color:var(--amber)}.c-red{color:var(--red)}
@@ -1799,14 +1800,27 @@ function getFiltered() {
 // ═══════════════════════════════════════
 // STATS
 // ═══════════════════════════════════════
+// Los recuadros de resumen son clicables: filtran la lista de abajo por esa
+// condición (mismo filtro que el selector "Todos"), y quedan resaltados
+// mientras ese filtro esté activo.
+function filtrarPorEstado(st) {
+  const sel = document.getElementById('fst');
+  if (!sel) return;
+  sel.value = sel.value === st ? 'all' : st; // clic de nuevo = quitar filtro
+  render();
+  document.querySelector('.table-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function renderStats() {
   const t=data.length, ok=data.filter(r=>statusOf(r)==='green').length,
         w=data.filter(r=>statusOf(r)==='amber').length, rd=data.filter(r=>statusOf(r)==='red').length;
+  const cur = document.getElementById('fst') ? document.getElementById('fst').value : 'all';
+  const act = st => cur === st ? ' active' : '';
   document.getElementById('stats-row').innerHTML =
-    `<div class="stat-box"><div class="stat-num c-navy">${t}</div><div class="stat-lbl">TOTAL</div></div>
-     <div class="stat-box"><div class="stat-num c-green">${ok}</div><div class="stat-lbl">AL DÍA</div></div>
-     <div class="stat-box"><div class="stat-num c-amber">${w}</div><div class="stat-lbl">POR VENCER</div></div>
-     <div class="stat-box"><div class="stat-num c-red">${rd}</div><div class="stat-lbl">VENCIDOS</div></div>`;
+    `<div class="stat-box${act('all')}" onclick="filtrarPorEstado('all')" title="Ver todos"><div class="stat-num c-navy">${t}</div><div class="stat-lbl">TOTAL</div></div>
+     <div class="stat-box${act('green')}" onclick="filtrarPorEstado('green')" title="Ver solo los al día"><div class="stat-num c-green">${ok}</div><div class="stat-lbl">AL DÍA</div></div>
+     <div class="stat-box${act('amber')}" onclick="filtrarPorEstado('amber')" title="Ver solo los por vencer"><div class="stat-num c-amber">${w}</div><div class="stat-lbl">POR VENCER</div></div>
+     <div class="stat-box${act('red')}" onclick="filtrarPorEstado('red')" title="Ver solo los vencidos"><div class="stat-num c-red">${rd}</div><div class="stat-lbl">VENCIDOS</div></div>`;
 }
 
 // ═══════════════════════════════════════
