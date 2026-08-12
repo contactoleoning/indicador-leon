@@ -2258,7 +2258,12 @@ function ie(el) {
   if (!row) return;
   row[f] = f==='duracion' ? (+el.value||6) : el.value;
   saveRecord(row);
-  if (f==='inicia'||f==='duracion') render();
+  // Antes solo se re-renderizaba para inicia/duracion (asumiendo que el
+  // input ya mostraba lo tecleado); pero si el eco de Firebase tarda o
+  // falla con mala señal, un render() posterior por otra acción podía pisar
+  // el campo con el valor viejo. Renderizar siempre deja lo recién guardado
+  // como fuente de verdad mientras tanto.
+  render();
 }
 function ta(el) {
   const row = data.find(r=>r.id===+el.dataset.id);
@@ -2505,7 +2510,11 @@ function saveModal() {
   }
   saveRecord(row);
   closeModal();
-  if (!useFirebase) render(); // Firebase re-renders via listener
+  // Se renderiza al toque con lo que quedó en memoria, sin esperar a que
+  // vuelva el eco de Firebase -- con señal débil (celular) esa vuelta podía
+  // tardar o fallar en silencio, y la pantalla se quedaba mostrando el dato
+  // viejo aunque el toast dijera "actualizado".
+  render();
 }
 
 // ═══════════════════════════════════════
@@ -2524,7 +2533,7 @@ function confirmDelete() {
   data = data.filter(r=>r.id!==pendingDelId);
   deleteRecord(pendingDelId, row);
   closeConfirm();
-  if (!useFirebase) render();
+  render();
   toast('Cliente movido a la papelera (se elimina en 30 días)');
 }
 
