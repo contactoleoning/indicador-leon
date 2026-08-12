@@ -739,6 +739,7 @@ button{cursor:pointer}
   <button class="btn-cal-toggle" onclick="openRecordatorios()">📢 Recordatorios</button>
   <button class="btn-cal-toggle" onclick="openRuteo()">🗺 Ruteo</button>
   <button class="btn-cal-toggle" onclick="openMetricas()">📊 Métricas</button>
+  <button class="btn-cal-toggle" onclick="sincronizarTodoCalendar()" title="Crea/actualiza en Google Calendar los eventos de todos los clientes con fecha">🔄 Sync Calendar</button>
   <div class="export-wrap">
     <button class="btn-cal-toggle" onclick="toggleExportMenu()">⬇️ Exportar</button>
     <div class="export-menu" id="export-menu" style="display:none">
@@ -1433,6 +1434,28 @@ function deleteCalendarioCliente(row) {
   if (!CAL_GAS_URL || !row) return;
   if (row.calIngresoId) calPost({ action: 'eliminar', eventId: row.calIngresoId });
   if (row.calMantId) calPost({ action: 'eliminar', eventId: row.calMantId });
+}
+
+function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+// Sincronización manual "de una vez" para clientes que ya existían antes de
+// activar Calendar (los nuevos/editados desde ahora se sincronizan solos al
+// guardar). Reutiliza los mismos calIngresoId/calMantId si ya existen, así
+// que se puede correr más de una vez sin duplicar eventos.
+async function sincronizarTodoCalendar() {
+  if (!CAL_GAS_URL) { toast('Falta configurar la URL de Calendar en el código'); return; }
+  const pendientes = data.filter(r => r.inicia);
+  if (!pendientes.length) { toast('No hay clientes con fecha de inicio para sincronizar'); return; }
+  if (!confirm('Se van a crear/actualizar en Google Calendar los eventos de ' + pendientes.length + ' clientes (ingreso + próxima mantención). Puede tardar uno o dos minutos. ¿Continuar?')) return;
+  toast('Sincronizando 0/' + pendientes.length + '…');
+  let i = 0;
+  for (const row of pendientes) {
+    syncCalendarioCliente(row);
+    i++;
+    if (i % 5 === 0 || i === pendientes.length) toast('Sincronizando ' + i + '/' + pendientes.length + '…');
+    await sleep(350);
+  }
+  toast('Listo: ' + pendientes.length + ' clientes enviados a Calendar. Revisa en unos minutos.');
 }
 
 function deleteRecord(id, row) {
