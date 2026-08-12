@@ -193,6 +193,22 @@ button{cursor:pointer}
 .act-btn:hover{background:var(--surface3);color:var(--text);border-color:var(--border2)}
 .act-btn.del{border-color:rgba(248,81,73,0.25);color:var(--red);background:rgba(248,81,73,0.06)}
 .act-btn.del:hover{background:rgba(248,81,73,0.14)}
+.act-btn.perfil.active{background:var(--gold);color:#1a1a1a;border-color:var(--gold)}
+
+/* avatar (foto o iniciales) para identificar al cliente de un vistazo */
+.row-avatar{border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+.row-avatar-ph{display:flex;align-items:center;justify-content:center;background:var(--surface3);color:var(--text3);font-weight:700}
+.row-avatar-click{cursor:pointer;transition:box-shadow .12s}
+.row-avatar-click:hover{box-shadow:0 0 0 2px var(--border2)}
+.row-avatar-click.active{box-shadow:0 0 0 2px var(--gold)}
+.avatar-wrap{position:relative;flex-shrink:0}
+.avatar-edit-btn{position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:var(--gold);color:#1a1a1a;border:2px solid var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.avatar-edit-btn:hover{filter:brightness(1.08)}
+.avatar-remove-btn{position:absolute;top:-4px;right:-4px;width:20px;height:20px;border-radius:50%;background:var(--red,#f85149);color:#fff;border:2px solid var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;line-height:1;font-weight:700;padding:0}
+
+/* fila expandida: ficha grande con fotos, contacto e historial, inline */
+.row-expand td{padding:0;border-right:none}
+.row-expand-inner{padding:18px 20px 20px;background:var(--surface2);border-top:1px solid var(--border);border-bottom:2px solid var(--gold);white-space:normal}
 
 /* empty */
 .empty-row td{text-align:center;padding:32px;color:var(--text3);font-size:13px}
@@ -1184,6 +1200,7 @@ button{cursor:pointer}
 <input type="file" id="card-file" accept="image/*" multiple style="display:none" onchange="handleCardPhotoUpload(this)"/>
 <input type="file" id="mant-file" accept="image/*" multiple style="display:none" onchange="handleMantPhotoUpload(this)"/>
 <input type="file" id="gallery-file" accept="image/*" multiple style="display:none" onchange="handleGalleryUpload(this)"/>
+<input type="file" id="avatar-file" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)"/>
 
 <!-- DELETE CONFIRM -->
 <div class="confirm-overlay" id="conf-ov" style="display:none">
@@ -1221,8 +1238,14 @@ const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const CFG_KEY = 'leon_fb_config';
 const LOCAL_KEY = 'leon_local_data';
 
+// Sincronización automática con Google Calendar (Apps Script propio, corre
+// con la cuenta de León Ingeniería — ver Codigo_Calendario.gs).
+const CAL_GAS_URL = "https://script.google.com/macros/s/AKfycbz4201_g1TcQ72nLuRSkLVgcsJmqkr0jXNY3hSgevkLuv2tBfMFqeCI_xtUi6_2_2ZLpQ/exec";
+const CAL_GAS_KEY = "931ae6fd8b05dcadb18b09244161efa5b2723997bca3097d";
+
 let data = [];
 let editId = null, pendingDelId = null;
+let expandedId = null; // fila actualmente expandida en la tabla (una a la vez)
 let fbRef = null;   // Firebase database reference
 let fbTrashRef = null;
 let fbStorage = null; // Firebase Storage reference (fotos)
@@ -1335,9 +1358,85 @@ function saveRecord(row) {
     // local only
     localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
   }
+  syncCalendarioCliente(row);
+}
+
+// ── Sincronización con Google Calendar ──
+// Fecha local (no UTC) en formato YYYY-MM-DD, para no correr el día por
+// zona horaria como pasaría con toISOString().
+function ymd(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// Actualiza solo los campos indicados sin volver a disparar la sincronización
+// con Calendar (si no, guardar el eventId generado llamaría de nuevo a
+// saveRecord y crearía un ciclo).
+function patchRecordFields(row, patch) {
+  Object.assign(row, patch);
+  if (useFirebase && fbRef) {
+    fbRef.child('c' + row.id).update(patch).catch(e => console.error('patch calendario:', e));
+  } else {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
+  }
+}
+
+function calPost(payload) {
+  if (!CAL_GAS_URL) return Promise.resolve(null);
+  return fetch(CAL_GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ key: CAL_GAS_KEY }, payload))
+  }).then(r => r.json()).catch(e => { console.error('calPost error:', e); return null; });
+}
+
+// Crea/actualiza en Google Calendar el evento de "ingreso" del cliente (en
+// la fecha de inicio) y el de "próxima mantención" (en la fecha final
+// calculada). Se llama automáticamente cada vez que se guarda un cliente,
+// sin que el usuario tenga que hacer nada.
+function syncCalendarioCliente(row) {
+  if (!CAL_GAS_URL || !row || !row.inicia) return;
+  const lugarComuna = [row.lugar, row.comuna].filter(Boolean).join(' · ');
+  const desc = [
+    'Servicio: ' + (row.servicio || '—'),
+    lugarComuna,
+    row.telefono ? 'Teléfono: ' + row.telefono : '',
+    row.direccion || '',
+    row.obs || ''
+  ].filter(Boolean).join('\n');
+
+  calPost({
+    action: 'actualizar',
+    eventId: row.calIngresoId || '',
+    titulo: '🆕 Ingreso cliente: ' + (row.cliente || 'Sin nombre'),
+    fecha: row.inicia,
+    descripcion: desc
+  }).then(res => {
+    if (res && res.eventId && res.eventId !== row.calIngresoId) patchRecordFields(row, { calIngresoId: res.eventId });
+  });
+
+  const fin = addMonths(row.inicia, row.duracion);
+  if (fin) {
+    calPost({
+      action: 'actualizar',
+      eventId: row.calMantId || '',
+      titulo: '🔧 Mantención: ' + (row.cliente || 'Sin nombre'),
+      fecha: ymd(fin),
+      descripcion: desc,
+      recordatorioDias: 3
+    }).then(res => {
+      if (res && res.eventId && res.eventId !== row.calMantId) patchRecordFields(row, { calMantId: res.eventId });
+    });
+  }
+}
+
+function deleteCalendarioCliente(row) {
+  if (!CAL_GAS_URL || !row) return;
+  if (row.calIngresoId) calPost({ action: 'eliminar', eventId: row.calIngresoId });
+  if (row.calMantId) calPost({ action: 'eliminar', eventId: row.calMantId });
 }
 
 function deleteRecord(id, row) {
+  deleteCalendarioCliente(row);
   if (useFirebase && fbRef) {
     setSyncStatus('syncing', 'eliminando…');
     const trashRow = { ...row, deletedAt: Date.now() };
@@ -1698,6 +1797,118 @@ function autoResize(el) {
 // ═══════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════
+// Avatar circular (foto real del cliente si hay, si no iniciales) — para
+// reconocer "quién es quién" de un vistazo, no solo por el nombre escrito.
+function avatarHTML(r, size, clickable) {
+  size = size || 34;
+  // El ícono elegido a mano (r.avatar) manda; si no hay, se usa la primera
+  // foto de la galería como respaldo; si tampoco hay, iniciales.
+  const photo = r.avatar || (r.photos && r.photos[0]);
+  const cls = 'row-avatar' + (clickable ? ' row-avatar-click' : '') + (clickable && r.id === expandedId ? ' active' : '');
+  const click = clickable ? ` onclick="toggleExpand(${r.id})"` : '';
+  const nombre = esc(r.cliente) || 'Sin nombre';
+  if (photo) {
+    return `<img class="${cls}" style="width:${size}px;height:${size}px"${click} src="${esc(photoSrc(photo))}" title="${nombre}"/>`;
+  }
+  const initials = ((r.cliente || '').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase()) || '?';
+  return `<div class="${cls} row-avatar-ph" style="width:${size}px;height:${size}px;font-size:${Math.round(size * 0.38)}px"${click} title="${nombre}">${esc(initials)}</div>`;
+}
+
+// ── Ícono del cliente (avatar) ──
+let avatarTargetId = null;
+function cambiarIcono(recId) {
+  avatarTargetId = recId;
+  document.getElementById('avatar-file').click();
+}
+async function handleAvatarUpload(input) {
+  const rec = data.find(r => r.id === avatarTargetId);
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!rec || !file) { avatarTargetId = null; return; }
+  try {
+    const nuevo = await compressImage(file);
+    if (rec.avatar) deletePhotoFromStorage(rec.avatar);
+    rec.avatar = nuevo;
+    saveRecord(rec);
+    render();
+    toast('Ícono actualizado');
+  } catch (e) {
+    toast(e.message || 'No se pudo actualizar el ícono');
+  }
+  avatarTargetId = null;
+}
+function quitarIcono(recId) {
+  const rec = data.find(r => r.id === recId);
+  if (!rec || !rec.avatar) return;
+  deletePhotoFromStorage(rec.avatar);
+  rec.avatar = null;
+  saveRecord(rec);
+  render();
+  toast('Ícono quitado');
+}
+
+// Expande/colapsa la ficha grande de un cliente directamente bajo su fila
+// (una sola fila expandida a la vez, para no saturar la tabla).
+function toggleExpand(id) {
+  expandedId = (expandedId === id) ? null : id;
+  render();
+}
+
+// Ficha grande inline: fotos ampliadas, contacto, equipos, historial y
+// acciones (WhatsApp, reseña, mantención), igual que el perfil pero sin
+// salir de la tabla.
+function expandRowHTML(r) {
+  const st = statusOf(r);
+  const stColor = st === 'red' ? 'var(--red)' : st === 'amber' ? 'var(--amber)' : st === 'green' ? 'var(--green)' : 'var(--text3)';
+  const lugarComuna = [r.lugar, r.comuna].filter(Boolean).join(' · ');
+  return `<tr class="row-expand"><td colspan="11"><div class="row-expand-inner">
+    <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+      <div class="avatar-wrap">
+        ${avatarHTML(r, 76, false)}
+        <button class="avatar-edit-btn" onclick="cambiarIcono(${r.id})" title="Cambiar ícono" aria-label="Cambiar ícono del cliente">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        ${r.avatar ? `<button class="avatar-remove-btn" onclick="quitarIcono(${r.id})" title="Quitar ícono" aria-label="Quitar ícono del cliente">×</button>` : ''}
+      </div>
+      <div style="flex:1;min-width:240px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-weight:700;font-size:18px;color:var(--text)">${esc(r.cliente) || 'Sin nombre'}</span>${planBadge(r)}
+          ${diasLabel(r)}
+        </div>
+        ${lugarComuna ? `<div style="font-size:12.5px;color:var(--text3);margin-top:2px">${esc(lugarComuna)}</div>` : ''}
+        <div class="card-body" style="padding:10px 0 0">
+          ${(r.direccion || r.detalle) ? `<div class="card-field full"><label>DIRECCIÓN</label><a class="card-addr card-addr-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([r.direccion, r.comuna].filter(Boolean).join(', '))}">${esc([r.direccion, r.detalle].filter(Boolean).join(' — '))}</a></div>` : ''}
+          ${r.telefono ? `<div class="card-field"><label>TELÉFONO</label><a class="card-phone-link" href="${telHref(r)}">${telLabel(r)}${r.telefonoFijo ? ' (fijo)' : ''}</a></div>` : ''}
+          <div class="card-field"><label>SERVICIO</label><div class="card-field-val">${esc(r.servicio) || '—'}</div></div>
+          <div class="card-field full"><label>FECHA FINAL</label><div class="card-field-val" style="color:${stColor};font-weight:700">${fmtFinal(r)}</div></div>
+          ${(r.equipos && r.equipos.length) ? `<div class="card-field full"><label>EQUIPOS (${r.equipos.length})</label><div class="card-equipos">${r.equipos.map(eq => `<div>• <b>${esc([eq.marca, eq.modelo].filter(Boolean).join(' ')) || 'Equipo'}</b>${eq.btu ? ' ' + esc(eq.btu) + ' BTU' : ''}${eq.ubicacion ? ' — ' + esc(eq.ubicacion) : ''}</div>`).join('')}</div></div>` : ''}
+          ${r.obs ? `<div class="card-field full"><label>OBSERVACIÓN</label><div class="card-obs">${esc(r.obs)}</div></div>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="card-photo-strip" style="padding:14px 0 0;flex-wrap:wrap">
+      ${(r.photos && r.photos.length) ? r.photos.map(p => `<img class="card-photo-thumb" style="width:92px;height:92px" src="${esc(photoSrc(p))}" onclick="openLightbox('${escAttr(p.id)}',${r.id})" title="${esc(p.date)}"/>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin fotos registradas.</div>'}
+      <div class="card-photo-add" onclick="addCardPhoto(${r.id})">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>FOTO</span>
+      </div>
+    </div>
+    ${(r.historial && r.historial.length) ? `<div class="card-field full" style="margin-top:14px"><label>HISTORIAL DE MANTENCIONES (${r.historial.length})</label>${historialListHTML(r)}</div>` : ''}
+    <div class="card-foot" style="padding-top:14px;border-top:1px solid var(--border);margin-top:14px;flex-wrap:wrap">
+      <label class="card-aviso-label${r.aviso ? ' avisado' : ''}">
+        <input type="checkbox" class="card-aviso-cb" ${r.aviso ? 'checked' : ''} data-id="${r.id}" onchange="ta(this)"/>
+        ${r.aviso ? '✓ Aviso enviado' : 'Marcar aviso enviado'}
+      </label>
+      <div class="card-btns" style="flex-wrap:wrap">
+        <button class="card-btn mant" onclick="marcarMantencionHoy(${r.id})">✓ Mantención hoy</button>
+        ${puedeWhatsapp(r) ? `<button class="card-btn wa" onclick="waCliente(${r.id})">WhatsApp</button>` : ''}
+        ${puedeWhatsapp(r) ? `<button class="card-btn resena" onclick="pedirResena(${r.id})">⭐ Reseña</button>` : ''}
+        <button class="card-btn" onclick="openModal(${r.id})">Editar</button>
+      </div>
+    </div>
+  </div></td></tr>`;
+}
+
 function render() {
   // Si el usuario esta a medio escribir en un input/textarea de la tabla,
   // un cambio remoto de Firebase (u otro cliente) dispara este mismo
@@ -1731,7 +1942,7 @@ function render() {
       const stWeight = (st==='red'||st==='amber')?'700':'500';
       return `<tr class="${r.aviso?'row-avisado':''}">
         <td style="color:var(--text3);font-size:13px;font-weight:600;text-align:center">${idx+1}</td>
-        <td class="td-cliente"><div style="display:flex;align-items:center;gap:2px"><input class="td-input" value="${esc(r.cliente)}" data-id="${r.id}" data-f="cliente" onchange="ie(this)" placeholder="—"/>${planBadge(r)}</div></td>
+        <td class="td-cliente"><div style="display:flex;align-items:center;gap:8px">${avatarHTML(r,30,true)}<div style="display:flex;align-items:center;gap:2px;flex:1;min-width:0"><input class="td-input" value="${esc(r.cliente)}" data-id="${r.id}" data-f="cliente" onchange="ie(this)" placeholder="—"/>${planBadge(r)}</div></div></td>
         <td><input class="td-input" value="${esc(r.lugar)}" data-id="${r.id}" data-f="lugar" onchange="ie(this)" placeholder="—" style="min-width:48px"/></td>
         <td><input class="td-input" value="${esc(r.comuna)}" data-id="${r.id}" data-f="comuna" onchange="ie(this)" placeholder="—" style="min-width:80px"/></td>
         <td><input class="td-input" value="${esc(r.servicio)}" data-id="${r.id}" data-f="servicio" onchange="ie(this)" placeholder="—" style="min-width:140px"/></td>
@@ -1753,7 +1964,7 @@ function render() {
         <td class="td-obs"><textarea class="obs-ta" data-id="${r.id}" data-f="obs" onchange="ie(this)" oninput="autoResize(this)" placeholder="—" rows="1">${esc(r.obs)}</textarea></td>
         <td class="td-center">
           <div class="row-acts">
-            <button class="act-btn perfil" onclick="openPerfil(${r.id})" title="Ver perfil del cliente" aria-label="Ver perfil del cliente">
+            <button class="act-btn perfil${r.id===expandedId?' active':''}" onclick="toggleExpand(${r.id})" title="Ver ficha (fotos, contacto, historial)" aria-label="Ver ficha del cliente">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
             <button class="act-btn mant" onclick="marcarMantencionHoy(${r.id})" title="Registrar mantención de hoy" aria-label="Registrar mantención de hoy">
@@ -1773,7 +1984,7 @@ function render() {
             </button>
           </div>
         </td>
-      </tr>`;
+      </tr>${r.id===expandedId?expandRowHTML(r):''}`;
     }).join('');
     document.querySelectorAll('.obs-ta').forEach(autoResize);
   }
@@ -2165,7 +2376,15 @@ function saveModal() {
   };
   if (editId) {
     const i = data.findIndex(r=>r.id===editId);
-    if (i>=0) data[i] = row;
+    if (i>=0) {
+      // Preservar campos que este formulario no gestiona: si no, editar
+      // desde aquí borraría el ícono elegido a mano y forzaría a recrear
+      // los eventos de Calendar en vez de actualizar los que ya existían.
+      row.avatar = data[i].avatar;
+      row.calIngresoId = data[i].calIngresoId;
+      row.calMantId = data[i].calMantId;
+      data[i] = row;
+    }
     toast('Cliente actualizado');
   } else {
     data.push(row);
