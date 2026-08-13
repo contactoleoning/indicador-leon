@@ -3341,8 +3341,12 @@ function cargarRolUsuario(user, listo){
     .then(function(snap){
       var v = snap.val();
       if (v){
-        if (v.nombre) perfil.nombre = v.nombre;
-        if (v.rol === 'admin') perfil.rol = 'admin';
+        // Las fichas se escriben a mano en la consola de Firebase, donde es
+        // facil que salga 'Nombre' con mayuscula. Se aceptan ambas: el
+        // nombre es solo para mostrar y no vale la pena que falle por eso.
+        var n = v.nombre || v.Nombre;
+        if (n) perfil.nombre = n;
+        if ((v.rol || v.Rol) === 'admin') perfil.rol = 'admin';
       }
     })
     .catch(function(e){ console.error('No se pudo leer el rol:', e); })

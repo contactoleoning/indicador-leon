@@ -38,6 +38,12 @@
       ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()"
     },
 
+    "_leon_comprobantes": "Comprobantes emitidos. Estaba en las reglas anteriores aunque el nodo todavía no tenga datos.",
+    "leon_comprobantes": {
+      ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
+      ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()"
+    },
+
     "_leon_comprobantes_meta": "Contador de folios de la app de comprobantes. Se descubrió tarde: no estaba en la primera versión de estas reglas, y sin este bloque el folio dejaba de avanzar en silencio. El folio solo sube, nunca retrocede.",
     "leon_comprobantes_meta": {
       ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",

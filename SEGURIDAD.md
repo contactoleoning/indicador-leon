@@ -82,7 +82,26 @@ En **Authentication → Sign-in method**, habilitar **Correo electrónico/contra
 En **Authentication → Users**, crear una cuenta por persona. Conviene usar
 correos reales del equipo, no uno compartido: la gracia es saber quién hizo qué.
 
-### 2. Crear las fichas — en Realtime Database
+### 2. Abrir la lectura de `/usuarios` en las reglas
+
+Las reglas de hoy cubren `leon_clientes`, `leon_clientes_trash`,
+`leon_comprobantes` y `leon_comprobantes_meta`, todas con `auth != null`. No
+hay bloque para `usuarios`, y en Realtime Database lo que no está declarado
+queda denegado. Sin agregarlo, el rol se lee siempre como `vendedor`.
+
+Es un cambio aditivo: agregar este bloque a las reglas actuales, sin tocar el
+resto, no afecta a las apps publicadas.
+
+```json
+"usuarios": {
+  "$uid": {
+    ".read": "auth != null && auth.uid === $uid",
+    ".write": false
+  }
+}
+```
+
+### 3. Crear las fichas — en Realtime Database
 
 Copiar el UID de cada usuario y crear en la base:
 
@@ -92,30 +111,35 @@ usuarios/
   {UID del vendedor}/ nombre: "…"            rol: "vendedor"
 ```
 
-Sin ficha en `/usuarios`, las reglas del paso 6 no dejan entrar. Es a propósito:
+El código acepta `nombre` o `Nombre` — es fácil equivocarse escribiéndolo a
+mano en la consola y no vale la pena que falle por eso. El `rol` sí importa:
+cualquier valor que no sea exactamente `admin` deja a la persona como
+vendedor, que es el lado seguro del error.
+
+Sin ficha en `/usuarios`, las reglas del paso 7 no dejan entrar. Es a propósito:
 así una cuenta creada por error no tiene acceso a nada.
 
-### 3. Publicar el indicador
+### 4. Publicar el indicador
 
 Solo después de que existan los usuarios. Probar el login en el sitio real, con
 una cuenta, antes de seguir.
 
-### 4. Publicar el cotizador
+### 5. Publicar el cotizador
 
 Mismo criterio. Verificar además que el botón «Agregar a Indicador de
 Vencimiento» siga escribiendo bien, porque ahora usa el token de la sesión.
 
-### 5. Publicar el comprobante
+### 6. Publicar el comprobante
 
 Probar que la lista de clientes carga y que el folio avanza. Es el que más
 cambió: antes no tenía pantalla de acceso de ningún tipo.
 
-### 6. Recién ahora, aplicar las reglas
+### 7. Recién ahora, aplicar las reglas completas
 
 Pegar `reglas-firebase.json` en **Realtime Database → Reglas**. Usar antes el
 simulador que trae la consola.
 
-### 7. Apagar el acceso anónimo
+### 8. Apagar el acceso anónimo
 
 En **Authentication → Método de acceso**, el proveedor **Anónimo** aparece
 habilitado. Es la puerta que se está cerrando: mientras siga encendida,
@@ -125,7 +149,7 @@ cualquiera con el `apiKey` público puede pedir un token válido.
 `contactoleoning.github.io` siguen usando auth anónima; si se desactiva antes,
 dejan de sincronizar en plena jornada.
 
-### 8. App Check en modo obligatorio
+### 9. App Check en modo obligatorio
 
 En **App Check**, pasar Realtime Database y Storage de *Monitor* a *Enforce*.
 Revisar primero las métricas: si aparecen peticiones legítimas sin verificar,
