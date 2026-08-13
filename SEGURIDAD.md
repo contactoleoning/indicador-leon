@@ -49,6 +49,11 @@ Hecho en las dos apps, cada una en su rama `fase1-login-por-usuario`.
 - La pestaña ADMINISTRADOR, que muestra costos y márgenes, se esconde para el
   rol `vendedor`.
 - El campo Vendedor se autocompleta con el nombre de quien inició sesión.
+- Botón **Salir** en el encabezado y bloqueo por inactividad a las 4 horas,
+  igual que el indicador. Hacía falta porque antes la sesión moría al cerrar
+  la pestaña (`sessionStorage`) y Firebase Auth, en cambio, la deja guardada:
+  sin esto el cotizador quedaba abierto para siempre en un computador
+  compartido.
 
 Probado en local en ambas: sin sesión no hay token ni datos, y la pestaña de
 administrador solo aparece con rol `admin`.
@@ -96,7 +101,17 @@ Vencimiento» siga escribiendo bien, porque ahora usa el token de la sesión.
 Pegar `reglas-firebase.json` en **Realtime Database → Reglas**. Usar antes el
 simulador que trae la consola.
 
-### 6. App Check en modo obligatorio
+### 6. Apagar el acceso anónimo
+
+En **Authentication → Método de acceso**, el proveedor **Anónimo** aparece
+habilitado. Es la puerta que se está cerrando: mientras siga encendida,
+cualquiera con el `apiKey` público puede pedir un token válido.
+
+**No apagarlo antes de este punto.** Las versiones publicadas hoy en
+`contactoleoning.github.io` siguen usando auth anónima; si se desactiva antes,
+dejan de sincronizar en plena jornada.
+
+### 7. App Check en modo obligatorio
 
 En **App Check**, pasar Realtime Database y Storage de *Monitor* a *Enforce*.
 Revisar primero las métricas: si aparecen peticiones legítimas sin verificar,
