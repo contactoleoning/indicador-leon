@@ -37,6 +37,7 @@ Realtime Database del proyecto `leon-clientes`:
 | `usuarios/{uid}` | solo la consola, a mano | Nombre y rol (`admin` o `vendedor`) de cada persona |
 | `leon_clientes` | Indicador, Cotizador, Comprobante | La base de clientes con sus vencimientos |
 | `leon_clientes_trash` | Indicador | Papelera |
+| `leon_cotizaciones` | Cotizador | Registro de cotizaciones y su seguimiento. Clave: `n`+número |
 | `leon_comprobantes` | Comprobante | Comprobantes emitidos |
 | `leon_comprobantes_meta/nextFolio` | Comprobante | Contador del correlativo |
 
@@ -44,8 +45,9 @@ Las reglas están en `reglas-firebase.json`, en este mismo repositorio.
 Exigen sesión con correo **y** ficha en `/usuarios`. La raíz está cerrada por
 defecto, así que **un nodo nuevo no funciona hasta que se agregue a las reglas**.
 
-El Cotizador además usa un **Google Apps Script** aparte para catálogos,
-registro de cotizaciones y PDFs. No está en Firebase.
+El Cotizador además usa un **Google Apps Script** aparte para catálogos y PDFs.
+El registro de cotizaciones va por ahí *y* por Firebase a la vez, hasta que se
+corte el Apps Script para ese dato.
 
 ---
 
@@ -56,6 +58,7 @@ registro de cotizaciones y PDFs. No está en Firebase.
 - Reglas de base que rechazan tokens anónimos (verificado con el simulador).
 - Respaldo diario automático de datos y reglas, sin borrado a los 30 días.
 - Copia de prueba en `/beta` para las tres.
+- Proveedor **Anónimo inhabilitado** en Authentication (13 de agosto).
 
 Lo de la Fase 2 ya está publicado:
 
@@ -83,8 +86,6 @@ Rama `fase4-canal-origen` en el cotizador, también en la beta.
 
 ## Pendiente
 
-- **Apagar el proveedor Anónimo** en Firebase Authentication. Las reglas ya lo
-  bloquean; esto es clausurar la puerta que ya está con llave.
 - **App Check de Monitor a Enforce.** Al 13 de agosto había 50% de solicitudes
   sin verificar; activarlo así corta la mitad del tráfico. Revisar la tabla
   antes.
