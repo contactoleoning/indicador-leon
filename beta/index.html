@@ -622,9 +622,7 @@ button{cursor:pointer}
   text-transform:uppercase;text-align:center;padding:6px 8px 8px;
   box-shadow:0 -2px 12px rgba(0,0,0,.45)}
 @media print{#beta-flag{display:none}}
-/* En pantalla angosta el texto se partia en dos lineas. */
 @media (max-width:430px){#beta-flag{letter-spacing:.04em;font-size:10px;padding:5px 6px 7px}}
-/* La franja es fija sobre el contenido: sin este hueco tapaba la ultima fila. */
 body{padding-bottom:30px}
 </style>
 </head>
@@ -1118,6 +1116,7 @@ body{padding-bottom:30px}
           Solo vencidos antiguos (+120 días)
         </label>
       </div>
+      <div id="rec-cotizaciones"></div>
       <div id="recordatorios-list"></div>
     </div>
   </div>
@@ -3654,9 +3653,123 @@ function mostrarNotificacionRecordatorio(vencidos, porVencer) {
 // ═══════════════════════════════════════
 function openRecordatorios(){
   document.getElementById('rec-solo-antiguos').checked = false;
+  cargarCotizacionesPendientes();
   renderRecordatorios();
   document.getElementById('recordatorios-ov').style.display='flex';
 }
+// ═══════════════════════════════════════
+// COTIZACIONES ESPERANDO RESPUESTA
+// ═══════════════════════════════════════
+// El plan original prometía una sola pantalla diaria con las dos cosas que
+// hay que perseguir: mantenciones por vencer y cotizaciones sin respuesta.
+// Vivían en apps distintas porque el registro de cotizaciones estaba en el
+// Apps Script del Cotizador. Ahora que está en Firebase, el Indicador -- que
+// es la app que se usa en terreno -- puede mostrarlas también.
+//
+// Aquí solo se leen y se marca el contacto. El registro completo, los estados
+// y las estadísticas siguen viviendo en el Cotizador: no tiene sentido tener
+// la misma pantalla dos veces.
+var COT_PEND = [];
+var SEG_DIAS_IND = [2,7,15];
+
+function cotFechaISO(f){
+  var t=String(f||'').trim();
+  if(!t) return '';
+  if(/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0,10);
+  var m=t.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);   // el Cotizador guarda DD-MM-YYYY
+  return m ? (m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)) : '';
+}
+function cotDias(desde){
+  var a=cotFechaISO(desde);
+  if(!a) return null;
+  var da=new Date(a+'T00:00:00'), db=new Date(ymd(new Date())+'T00:00:00');
+  if(isNaN(da)||isNaN(db)) return null;
+  return Math.round((db-da)/86400000);
+}
+function cotSeguimiento(c){
+  var contactos=c.contactos||[];
+  var paso=contactos.length;
+  if(paso>=SEG_DIAS_IND.length) return {agotado:true, paso:paso, tocaHoy:false};
+  var desde = paso ? contactos[paso-1].fecha : c.fecha;
+  var dias = cotDias(desde) || 0;
+  var espera = paso===0 ? SEG_DIAS_IND[0] : (SEG_DIAS_IND[paso]-SEG_DIAS_IND[paso-1]);
+  return {agotado:false, paso:paso, pasoSugerido:paso+1,
+          diasTotal:cotDias(c.fecha), faltan:espera-dias, tocaHoy:(espera-dias)<=0};
+}
+
+function cargarCotizacionesPendientes(){
+  if(!useFirebase) return;
+  firebase.database().ref('leon_cotizaciones').once('value')
+    .then(function(snap){
+      var v=snap.val()||{};
+      COT_PEND=Object.keys(v).map(function(k){return v[k];})
+        .filter(function(c){return c && (c.estado||'Pendiente')==='Pendiente';});
+      renderCotizacionesPendientes();
+    })
+    .catch(function(e){ console.error('No se pudieron leer las cotizaciones:', e); });
+}
+
+function cotWa(nro){
+  var c=COT_PEND.find(function(x){return String(x.nro)===String(nro);});
+  if(!c || !c.tel) return;
+  var s=cotSeguimiento(c);
+  var paso=Math.min((s.paso||0)+1,3);
+  var nombre=(c.nombre||'').trim().split(/\s+/)[0]||'';
+  var esEmpresa=/constructora|empresa|spa|ltda|s\.a|sociedad|comercial|inmobiliaria|hotel|clinica|colegio/i.test(c.nombre||'');
+  var saludo=(!esEmpresa && nombre) ? (' '+nombre) : '';
+  var d=s.diasTotal;
+  var cuando = d==null ? 'hace unos días' : (d<=0?'hoy':(d===1?'hace 1 día':'hace '+d+' días'));
+  var tpl=[
+    'Hola'+saludo+', te saluda León Ingeniería ❄️. Te envié la cotización N°'+c.nro+' '+cuando+' y quería saber si te llegó bien y si te surgió alguna duda. Cualquier cosa que necesites aclarar, aquí estoy 👷',
+    'Hola'+saludo+', ¿cómo estás? Te escribo por la cotización N°'+c.nro+'. Si el presupuesto te hace sentido podemos coordinar la visita esta semana o la próxima; si necesitas ajustar algo, dime y lo vemos. 🔧',
+    'Hola'+saludo+', último mensaje de mi parte por ahora sobre la cotización N°'+c.nro+' 😊. Si más adelante retomas la idea avísame y la actualizamos con los precios del momento. ¡Que estés muy bien! ❄️'
+  ][paso-1];
+
+  var num=String(c.tel).replace(/\D/g,'');
+  if(num.length>8 && num.indexOf('56')===0) num=num.slice(2);
+  if(num.length===9 && num.charAt(0)==='9') num=num.slice(1);
+  window.open('https://wa.me/569'+num.slice(-8)+'?text='+encodeURIComponent(tpl),'_blank');
+
+  // Se anota el contacto en Firebase. El Cotizador lo va a ver la próxima vez
+  // que cargue: al fusionar gana el que tenga más contactos registrados.
+  c.contactos=(c.contactos||[]).concat([{fecha:ymd(new Date())}]);
+  firebase.database().ref('leon_cotizaciones/n'+c.nro+'/contactos').set(c.contactos)
+    .catch(function(e){ console.error('No se pudo anotar el contacto:', e); });
+  renderCotizacionesPendientes();
+}
+
+function renderCotizacionesPendientes(){
+  var el=document.getElementById('rec-cotizaciones');
+  if(!el) return;
+  var tocan=COT_PEND.map(function(c){return {c:c, s:cotSeguimiento(c)};})
+    .filter(function(x){return !x.s.agotado && x.s.tocaHoy;})
+    .sort(function(a,b){return (b.s.diasTotal||0)-(a.s.diasTotal||0);});
+  if(!tocan.length){ el.innerHTML=''; return; }
+
+  var enJuego=tocan.reduce(function(a,x){return a+(x.c.total||0);},0);
+  el.innerHTML='<div style="border:1px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:14px;background:var(--surface2)">'
+    +'<div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:2px">COTIZACIONES ESPERANDO RESPUESTA</div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-bottom:10px">'+tocan.length+' por contactar hoy · '
+      +fmtPesos(enJuego)+' en juego</div>'
+    +tocan.map(function(x){
+      var c=x.c, s=x.s;
+      var atraso=s.faltan<0?('atrasado '+Math.abs(s.faltan)+'d'):'toca hoy';
+      return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0;border-top:1px solid var(--border)">'
+        +'<div style="flex:1;min-width:150px">'
+          +'<div style="font-size:14px;font-weight:600;color:var(--text)">'+esc(c.nombre||'Sin nombre')+'</div>'
+          +'<div style="font-size:11.5px;color:var(--text3)">N°'+esc(String(c.nro))+' · '+atraso
+          +(s.diasTotal!=null?(' · enviada hace '+s.diasTotal+'d'):'')+'</div>'
+        +'</div>'
+        +'<div style="font-weight:700;color:var(--green);white-space:nowrap">'+fmtPesos(c.total||0)+'</div>'
+        +(c.tel
+          ?'<button onclick="cotWa(\''+escAttr(String(c.nro))+'\')" style="background:#25d366;color:#073b22;border:none;border-radius:7px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap">📲 Contacto '+s.pasoSugerido+'</button>'
+          :'<span style="font-size:11.5px;color:var(--text3)">sin teléfono</span>')
+        +'</div>';
+    }).join('')
+    +'<div style="font-size:11px;color:var(--text3);margin-top:9px">Para cerrarlas o marcarlas perdidas, en el Cotizador.</div>'
+    +'</div>';
+}
+
 function renderRecordatorios(){
   var soloAntiguos = document.getElementById('rec-solo-antiguos').checked;
   var pendientes=data.filter(function(r){
