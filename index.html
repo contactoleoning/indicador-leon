@@ -766,6 +766,8 @@ button{cursor:pointer}
   <button class="btn-add" onclick="openModal(null)">+ NUEVO CLIENTE</button>
 </div>
 
+<div id="rut-faltante"></div>
+
 <!-- DESKTOP TABLE -->
 <div class="table-container">
   <table class="main-table">
@@ -897,7 +899,6 @@ button{cursor:pointer}
         </div>
         <div class="ff"><label>DEPTO / PISO / OF.</label><input id="fdet" type="text" placeholder="Ej: Depto 4B, Piso 3"/></div>
         <div class="ff"><label>RUT</label><input id="frut" type="text" placeholder="12.345.678-9" autocapitalize="off" spellcheck="false"/></div>
-        <div class="ff"><label>CORREO</label><input id="fmail" type="email" placeholder="correo@ejemplo.cl" autocapitalize="off" spellcheck="false"/></div>
         <div class="ff">
           <label>TELÉFONO</label>
           <div class="input-tel-wrap">
@@ -1105,6 +1106,7 @@ button{cursor:pointer}
           Solo vencidos antiguos (+120 días)
         </label>
       </div>
+      <div id="rec-cotizaciones"></div>
       <div id="recordatorios-list"></div>
     </div>
   </div>
@@ -2008,7 +2010,6 @@ function expandRowHTML(r) {
           </div>
           ${(r.equipos && r.equipos.length) ? `<div class="card-field full"><label>EQUIPOS (${r.equipos.length})</label><div class="card-equipos">${r.equipos.map(eq => `<div>• <b>${esc([eq.marca, eq.modelo].filter(Boolean).join(' ')) || 'Equipo'}</b>${eq.btu ? ' ' + esc(eq.btu) + ' BTU' : ''}${eq.ubicacion ? ' — ' + esc(eq.ubicacion) : ''}</div>`).join('')}</div></div>` : ''}
           ${r.rut ? `<div class="card-field"><label>RUT</label><div class="card-field-val">${esc(r.rut)}</div></div>` : ''}
-          ${r.email ? `<div class="card-field"><label>CORREO</label><a class="card-phone-link" href="mailto:${escAttr(r.email)}">${esc(r.email)}</a></div>` : ''}
           ${cotizacionesHTML(r)}
           ${r.obs ? `<div class="card-field full"><label>OBSERVACIÓN</label><div class="card-obs">${esc(r.obs)}</div></div>` : ''}
         </div>
@@ -2186,6 +2187,7 @@ function render() {
       }
     }
   }
+  if (typeof renderAvisoRut === 'function') renderAvisoRut();
 }
 
 // ═══════════════════════════════════════
@@ -2483,7 +2485,6 @@ function openModal(id) {
   document.getElementById('fdir').value = r?.direccion||'';
   document.getElementById('fdet').value = r?.detalle||'';
   document.getElementById('frut').value = r?.rut||'';
-  document.getElementById('fmail').value = r?.email||'';
   // Teléfono: guardar solo los 8 dígitos sin el +569
   document.getElementById('ftel').value = r?.telefono||'';
   document.getElementById('ftelfijo').checked = r?.telefonoFijo||false;
@@ -2535,7 +2536,6 @@ function saveModal() {
     detalle: document.getElementById('fdet').value.trim(),
     telefono: document.getElementById('ftel').value.trim().replace(/\D/g,''),
     rut: document.getElementById('frut').value.trim(),
-    email: document.getElementById('fmail').value.trim(),
     telefonoFijo: document.getElementById('ftelfijo').checked,
     aviso: document.getElementById('fav').checked,
     plan: document.getElementById('fplan').checked,
@@ -2548,18 +2548,19 @@ function saveModal() {
   if (editId) {
     const i = data.findIndex(r=>r.id===editId);
     if (i>=0) {
-      // Se parte de la ficha que ya existe y encima se aplica lo del
-      // formulario. Antes se hacía al revés -- se armaba una ficha nueva y se
-      // iban rescatando campos uno por uno -- y cada vez que el Cotizador
-      // mandaba un dato nuevo había que acordarse de sumarlo a esa lista. Ya
-      // pasó dos veces: primero con el número de cotización y el monto, y
-      // después con el historial comercial y el canal de origen, que se
-      // borraban solos en la primera edición.
-      //
-      // Así, lo que el formulario no muestra sobrevive sin tener que
-      // enumerarlo. Los campos que el formulario sí gestiona vienen todos en
-      // 'row' con su valor actual, así que se aplican igual.
-      data[i] = Object.assign({}, data[i], row);
+      // Preservar campos que este formulario no gestiona: si no, editar
+      // desde aquí borraría el ícono elegido a mano y forzaría a recrear
+      // los eventos de Calendar en vez de actualizar los que ya existían.
+      row.avatar = data[i].avatar;
+      row.calIngresoId = data[i].calIngresoId;
+      row.calMantId = data[i].calMantId;
+      row.reagenda = data[i].reagenda;
+      // Vienen del Cotizador y este formulario no los muestra. Sin esto, la
+      // primera edicion del cliente los borraba en silencio -- y con ellos se
+      // perdia de que cotizacion salio y por cuanto.
+      row.nroCotizacion = data[i].nroCotizacion;
+      row.montoCotizado = data[i].montoCotizado;
+      data[i] = row;
     }
     toast('Cliente actualizado');
   } else {
@@ -3643,9 +3644,212 @@ function mostrarNotificacionRecordatorio(vencidos, porVencer) {
 // ═══════════════════════════════════════
 function openRecordatorios(){
   document.getElementById('rec-solo-antiguos').checked = false;
+  cargarCotizacionesPendientes();
   renderRecordatorios();
   document.getElementById('recordatorios-ov').style.display='flex';
 }
+// ═══════════════════════════════════════
+// COTIZACIONES ESPERANDO RESPUESTA
+// ═══════════════════════════════════════
+// El plan original prometía una sola pantalla diaria con las dos cosas que
+// hay que perseguir: mantenciones por vencer y cotizaciones sin respuesta.
+// Vivían en apps distintas porque el registro de cotizaciones estaba en el
+// Apps Script del Cotizador. Ahora que está en Firebase, el Indicador -- que
+// es la app que se usa en terreno -- puede mostrarlas también.
+//
+// Aquí solo se leen y se marca el contacto. El registro completo, los estados
+// y las estadísticas siguen viviendo en el Cotizador: no tiene sentido tener
+// la misma pantalla dos veces.
+var COT_PEND = [];
+var SEG_DIAS_IND = [2,7,15];
+
+function cotFechaISO(f){
+  var t=String(f||'').trim();
+  if(!t) return '';
+  if(/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0,10);
+  var m=t.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);   // el Cotizador guarda DD-MM-YYYY
+  return m ? (m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)) : '';
+}
+function cotDias(desde){
+  var a=cotFechaISO(desde);
+  if(!a) return null;
+  var da=new Date(a+'T00:00:00'), db=new Date(ymd(new Date())+'T00:00:00');
+  if(isNaN(da)||isNaN(db)) return null;
+  return Math.round((db-da)/86400000);
+}
+function cotSeguimiento(c){
+  var contactos=c.contactos||[];
+  var paso=contactos.length;
+  if(paso>=SEG_DIAS_IND.length) return {agotado:true, paso:paso, tocaHoy:false};
+  var desde = paso ? contactos[paso-1].fecha : c.fecha;
+  var dias = cotDias(desde) || 0;
+  var espera = paso===0 ? SEG_DIAS_IND[0] : (SEG_DIAS_IND[paso]-SEG_DIAS_IND[paso-1]);
+  return {agotado:false, paso:paso, pasoSugerido:paso+1,
+          diasTotal:cotDias(c.fecha), faltan:espera-dias, tocaHoy:(espera-dias)<=0};
+}
+
+function cargarCotizacionesPendientes(){
+  if(!useFirebase) return;
+  firebase.database().ref('leon_cotizaciones').once('value')
+    .then(function(snap){
+      var v=snap.val()||{};
+      COT_PEND=Object.keys(v).map(function(k){return v[k];})
+        .filter(function(c){return c && (c.estado||'Pendiente')==='Pendiente';});
+      renderCotizacionesPendientes();
+    })
+    .catch(function(e){ console.error('No se pudieron leer las cotizaciones:', e); });
+}
+
+function cotWa(nro){
+  var c=COT_PEND.find(function(x){return String(x.nro)===String(nro);});
+  if(!c || !c.tel) return;
+  var s=cotSeguimiento(c);
+  var paso=Math.min((s.paso||0)+1,3);
+  var nombre=(c.nombre||'').trim().split(/\s+/)[0]||'';
+  var esEmpresa=/constructora|empresa|spa|ltda|s\.a|sociedad|comercial|inmobiliaria|hotel|clinica|colegio/i.test(c.nombre||'');
+  var saludo=(!esEmpresa && nombre) ? (' '+nombre) : '';
+  var d=s.diasTotal;
+  var cuando = d==null ? 'hace unos días' : (d<=0?'hoy':(d===1?'hace 1 día':'hace '+d+' días'));
+  var tpl=[
+    'Hola'+saludo+', te saluda León Ingeniería ❄️. Te envié la cotización N°'+c.nro+' '+cuando+' y quería saber si te llegó bien y si te surgió alguna duda. Cualquier cosa que necesites aclarar, aquí estoy 👷',
+    'Hola'+saludo+', ¿cómo estás? Te escribo por la cotización N°'+c.nro+'. Si el presupuesto te hace sentido podemos coordinar la visita esta semana o la próxima; si necesitas ajustar algo, dime y lo vemos. 🔧',
+    'Hola'+saludo+', último mensaje de mi parte por ahora sobre la cotización N°'+c.nro+' 😊. Si más adelante retomas la idea avísame y la actualizamos con los precios del momento. ¡Que estés muy bien! ❄️'
+  ][paso-1];
+
+  var num=String(c.tel).replace(/\D/g,'');
+  if(num.length>8 && num.indexOf('56')===0) num=num.slice(2);
+  if(num.length===9 && num.charAt(0)==='9') num=num.slice(1);
+  window.open('https://wa.me/569'+num.slice(-8)+'?text='+encodeURIComponent(tpl),'_blank');
+
+  // Se anota el contacto en Firebase. El Cotizador lo va a ver la próxima vez
+  // que cargue: al fusionar gana el que tenga más contactos registrados.
+  c.contactos=(c.contactos||[]).concat([{fecha:ymd(new Date())}]);
+  firebase.database().ref('leon_cotizaciones/n'+c.nro+'/contactos').set(c.contactos)
+    .catch(function(e){ console.error('No se pudo anotar el contacto:', e); });
+  renderCotizacionesPendientes();
+}
+
+// ═══════════════════════════════════════
+// COMPLETAR RUT DESDE LAS COTIZACIONES
+// ═══════════════════════════════════════
+// El RUT llega al Indicador solo cuando el cliente entra desde el Cotizador,
+// así que los que ya estaban no lo tienen. Pero el RUT sí quedó guardado en
+// cada cotización -- a diferencia del teléfono, esa columna nunca se rompió.
+//
+// Se cruza por teléfono, que es exacto, y solo se rellena lo que está vacío:
+// un RUT escrito a mano en el Indicador siempre gana.
+function rutClaveTel(t){
+  var d=String(t||'').replace(/\D/g,'');
+  return d.length>=8 ? d.slice(-8) : '';
+}
+
+// El cruce es por NOMBRE, no por teléfono. Parece menos exacto y es al revés:
+// la columna de teléfono de la planilla está rota (devuelve #ERROR!), así que
+// las cotizaciones no tienen teléfono con el cual cruzar. El nombre sí está en
+// las dos partes.
+//
+// Se compara sin tildes, sin mayúsculas y sin puntuación, porque "Andrés
+// Nawrath" y "Andres Nawrath" son la misma persona.
+function nombreClaveInd(n){
+  return String(n||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function renderAvisoRut(){
+  var el=document.getElementById('rut-faltante');
+  if(!el) return;
+  var sinRut=data.filter(function(r){return !r.rut;}).length;
+  el.innerHTML = sinRut
+    ? '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--text3);padding:9px 12px;border-bottom:1px solid var(--border)">'
+      +'<span>'+sinRut+' cliente'+(sinRut>1?'s':'')+' sin RUT.</span>'
+      +'<button onclick="completarRutDesdeCotizaciones()" style="font-size:12px;font-weight:700;padding:6px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer">Buscarlos en las cotizaciones</button>'
+      +'</div>'
+    : '';
+}
+
+function completarRutDesdeCotizaciones(){
+  if(!useFirebase){ toast('Necesitas sesión iniciada'); return; }
+  firebase.database().ref('leon_cotizaciones').once('value')
+    .then(function(snap){
+      var cots=snap.val()||{};
+      var porNombre={}, ambiguos={}, cotsConRut=0;
+      Object.keys(cots).forEach(function(k){
+        var c=cots[k];
+        if(!c || !c.rut || /#ERROR/i.test(String(c.rut))) return;
+        cotsConRut++;
+        var nk=nombreClaveInd(c.nombre);
+        if(!nk) return;
+        var ru=String(c.rut).trim();
+        if(porNombre[nk] && porNombre[nk]!==ru) ambiguos[nk]=true;   // mismo nombre, dos RUT
+        else porNombre[nk]=ru;
+      });
+
+      if(!cotsConRut){
+        toast('Las cotizaciones todavía no tienen RUT — córrelo primero en el Cotizador');
+        return;
+      }
+
+      var puestos=0, chocaron=0, sinDato=0, cambios=[];
+      data.forEach(function(r){
+        if(r.rut) return;
+        var nk=nombreClaveInd(r.cliente);
+        if(!nk){ sinDato++; return; }
+        if(ambiguos[nk]){ chocaron++; return; }
+        if(!porNombre[nk]){ sinDato++; return; }
+        r.rut=porNombre[nk];
+        cambios.push(r);
+        puestos++;
+      });
+
+      cambios.forEach(function(r){ saveRecord(r); });
+      render();
+      renderAvisoRut();
+      toast(puestos
+        ? (puestos+' RUT completado'+(puestos>1?'s':'')+' desde las cotizaciones')
+        : 'No se encontró ningún RUT nuevo');
+      if(chocaron){
+        console.warn(chocaron+' nombres con dos RUT distintos en las cotizaciones — se dejaron sin tocar');
+      }
+    })
+    .catch(function(e){
+      console.error('No se pudieron leer las cotizaciones:', e);
+      toast('No se pudieron leer las cotizaciones');
+    });
+}
+
+function renderCotizacionesPendientes(){
+  var el=document.getElementById('rec-cotizaciones');
+  if(!el) return;
+  var tocan=COT_PEND.map(function(c){return {c:c, s:cotSeguimiento(c)};})
+    .filter(function(x){return !x.s.agotado && x.s.tocaHoy;})
+    .sort(function(a,b){return (b.s.diasTotal||0)-(a.s.diasTotal||0);});
+  if(!tocan.length){ el.innerHTML=''; return; }
+
+  var enJuego=tocan.reduce(function(a,x){return a+(x.c.total||0);},0);
+  el.innerHTML='<div style="border:1px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:14px;background:var(--surface2)">'
+    +'<div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:2px">COTIZACIONES ESPERANDO RESPUESTA</div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-bottom:10px">'+tocan.length+' por contactar hoy · '
+      +fmtPesos(enJuego)+' en juego</div>'
+    +tocan.map(function(x){
+      var c=x.c, s=x.s;
+      var atraso=s.faltan<0?('atrasado '+Math.abs(s.faltan)+'d'):'toca hoy';
+      return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0;border-top:1px solid var(--border)">'
+        +'<div style="flex:1;min-width:150px">'
+          +'<div style="font-size:14px;font-weight:600;color:var(--text)">'+esc(c.nombre||'Sin nombre')+'</div>'
+          +'<div style="font-size:11.5px;color:var(--text3)">N°'+esc(String(c.nro))+' · '+atraso
+          +(s.diasTotal!=null?(' · enviada hace '+s.diasTotal+'d'):'')+'</div>'
+        +'</div>'
+        +'<div style="font-weight:700;color:var(--green);white-space:nowrap">'+fmtPesos(c.total||0)+'</div>'
+        +(c.tel
+          ?'<button onclick="cotWa(\''+escAttr(String(c.nro))+'\')" style="background:#25d366;color:#073b22;border:none;border-radius:7px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap">📲 Contacto '+s.pasoSugerido+'</button>'
+          :'<span style="font-size:11.5px;color:var(--text3)">sin teléfono</span>')
+        +'</div>';
+    }).join('')
+    +'<div style="font-size:11px;color:var(--text3);margin-top:9px">Para cerrarlas o marcarlas perdidas, en el Cotizador.</div>'
+    +'</div>';
+}
+
 function renderRecordatorios(){
   var soloAntiguos = document.getElementById('rec-solo-antiguos').checked;
   var pendientes=data.filter(function(r){
