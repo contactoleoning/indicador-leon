@@ -604,9 +604,11 @@ button{cursor:pointer}
 #lock-overlay .lock-logo img{width:100%;height:100%;object-fit:cover}
 #lock-overlay h2{color:var(--gold);font-size:22px;font-weight:700;letter-spacing:.1em;margin:0;font-family:'Barlow Condensed',sans-serif}
 #lock-overlay .lock-sub{color:#8b9bb8;font-size:12px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;margin-top:-12px}
-#lock-overlay input{background:rgba(22,29,51,.85);border:2px solid #2a3554;border-radius:12px;color:#fff;font-size:28px;font-weight:700;letter-spacing:.3em;text-align:center;padding:13px 24px;width:190px;outline:none;transition:border-color .2s,box-shadow .2s}
+#lock-overlay input{background:rgba(22,29,51,.85);border:2px solid #2a3554;border-radius:12px;color:#fff;font-size:16px;font-weight:600;text-align:center;padding:13px 18px;width:270px;max-width:80vw;outline:none;transition:border-color .2s,box-shadow .2s}
 #lock-overlay input:focus{border-color:var(--gold);box-shadow:0 0 0 4px rgba(214,217,222,.15)}
-#lock-overlay .lock-btn{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1a1a;border:none;border-radius:12px;font-size:16px;font-weight:800;padding:13px 40px;cursor:pointer;width:190px;transition:transform .15s,box-shadow .2s;box-shadow:0 6px 18px rgba(214,217,222,.25)}
+#lock-overlay input::placeholder{color:#6b7a99;font-weight:500}
+#lock-overlay .lock-btn{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1a1a;border:none;border-radius:12px;font-size:16px;font-weight:800;padding:13px 40px;cursor:pointer;width:270px;max-width:80vw;transition:transform .15s,box-shadow .2s;box-shadow:0 6px 18px rgba(214,217,222,.25)}
+#lock-overlay .lock-btn[disabled]{opacity:.55;cursor:default;transform:none}
 #lock-overlay .lock-btn:hover{transform:translateY(-1px);box-shadow:0 9px 24px rgba(214,217,222,.35)}
 #lock-overlay .lock-btn:active{transform:translateY(0)}
 #lock-overlay .lock-err{color:#e74c3c;font-size:13px;font-weight:600;min-height:18px}
@@ -617,8 +619,9 @@ button{cursor:pointer}
   <div class="lock-logo"><img src="icon-192.png" alt="León Ingeniería"/></div>
   <h2>INDICADOR DE VENCIMIENTO</h2>
   <div class="lock-sub">León Ingeniería y Proyectos SpA</div>
-  <input id="lock-input" type="password" inputmode="numeric" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter')checkPass()"/>
-  <button class="lock-btn" onclick="checkPass()">Entrar</button>
+  <input id="lock-email" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Correo" onkeydown="if(event.key==='Enter')document.getElementById('lock-input').focus()"/>
+  <input id="lock-input" type="password" autocomplete="current-password" placeholder="Contraseña" onkeydown="if(event.key==='Enter')checkPass()"/>
+  <button class="lock-btn" id="lock-btn" onclick="checkPass()">Entrar</button>
   <div class="lock-err" id="lock-err"></div>
 </div>
 
@@ -1296,12 +1299,23 @@ function initFirebase(config) {
       console.error('App Check no se pudo activar:', e);
     }
 
-    setSyncStatus('syncing', 'conectando…');
-    firebase.auth().signInAnonymously().then(function(){
-      initFirebaseDb(app);
-    }).catch(function(err){
-      console.error('Auth anónima falló:', err);
-      setSyncStatus('error', 'sin autorización');
+    // Antes se entraba con signInAnonymously(), o sea que cualquiera que
+    // copiara el apiKey de esta página obtenía el mismo permiso que un
+    // trabajador de León y podía leer la base completa de clientes. La
+    // pantalla de contraseña no lo impedía: era solo un display:none y la
+    // descarga de datos partía igual. Ahora la sesión la abre una persona
+    // con su propio correo, y la base solo se conecta después de eso.
+    setSyncStatus('off', 'sin sesión');
+    firebase.auth().onAuthStateChanged(function(user){
+      if (user && !user.isAnonymous) {
+        ocultarLockOverlay();
+        setSyncStatus('syncing', 'conectando…');
+        cargarRolUsuario(user, function(){ initFirebaseDb(app); });
+      } else {
+        useFirebase = false;
+        setSyncStatus('off', 'sin sesión');
+        showLockOverlay();
+      }
     });
   } catch (e) {
     console.error('Firebase init error:', e);
@@ -3278,36 +3292,100 @@ localStorage.removeItem('leon-theme');
 applyTheme('dark');
 
 // ═══════════════════════════════════════
-// CLAVE DE ACCESO (misma clave del cotizador)
+// SESIÓN — cada persona entra con su propio correo
 // ═══════════════════════════════════════
-var LOCK_HASH='e86d40bcfa645d4ddf651e9ff464144243505d98b94f25810d0879adca55cc17';
-function sha256Hex(txt){
-  var d=new TextEncoder().encode(txt);
-  return crypto.subtle.digest('SHA-256',d).then(function(buf){
-    return Array.prototype.map.call(new Uint8Array(buf),function(b){return b.toString(16).padStart(2,'0');}).join('');
-  });
+// Antes esto era un PIN compartido comparado contra un hash guardado en
+// esta misma página. Eso tenía dos problemas: el PIN se podía sacar del
+// código, y sobre todo no protegía nada, porque los datos se descargaban
+// igual aunque nunca se escribiera. Ahora la puerta la abre Firebase Auth:
+// si no hay sesión válida, el servidor no entrega ni un cliente.
+var LEON_USUARIO = null;   // { uid, email, nombre, rol }
+function esAdmin(){ return !!(LEON_USUARIO && LEON_USUARIO.rol === 'admin'); }
+
+function lockError(msg){
+  var e = document.getElementById('lock-err');
+  e.textContent = msg;
+  setTimeout(function(){ if (e.textContent === msg) e.textContent=''; }, 5000);
 }
+
 function checkPass(){
-  var v=document.getElementById('lock-input').value;
-  sha256Hex(v).then(function(hash){
-    if(hash===LOCK_HASH){
-      document.getElementById('lock-overlay').style.display='none';
-    } else {
-      var e=document.getElementById('lock-err');
-      e.textContent='Contraseña incorrecta';
-      document.getElementById('lock-input').value='';
+  var email = (document.getElementById('lock-email').value||'').trim();
+  var pass  = document.getElementById('lock-input').value||'';
+  var btn   = document.getElementById('lock-btn');
+  if (!email){ lockError('Escribe tu correo.'); document.getElementById('lock-email').focus(); return; }
+  if (!pass){ lockError('Escribe tu contraseña.'); document.getElementById('lock-input').focus(); return; }
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .then(function(){
+      // onAuthStateChanged se encarga de ocultar la pantalla y conectar.
+      document.getElementById('lock-input').value = '';
+    })
+    .catch(function(err){
+      // Mensajes en castellano y sin decir si el correo existe o no.
+      var m = 'No pudimos entrar. Revisa el correo y la contraseña.';
+      if (err && err.code === 'auth/too-many-requests') m = 'Demasiados intentos. Espera unos minutos y vuelve a probar.';
+      if (err && err.code === 'auth/network-request-failed') m = 'Sin conexión. Revisa la señal e intenta de nuevo.';
+      lockError(m);
+      document.getElementById('lock-input').value = '';
       document.getElementById('lock-input').focus();
-      setTimeout(function(){e.textContent='';},2000);
-    }
-  });
+    })
+    .then(function(){ btn.disabled = false; btn.textContent = 'Entrar'; });
 }
+
+// Trae nombre y rol desde /usuarios/{uid}. Si el usuario existe en Auth
+// pero nadie le asignó ficha, entra como vendedor: es el permiso más
+// acotado, así un alta a medias nunca termina mostrando costos.
+function cargarRolUsuario(user, listo){
+  var perfil = { uid:user.uid, email:user.email, nombre:(user.email||'').split('@')[0], rol:'vendedor' };
+  firebase.database().ref('usuarios/'+user.uid).once('value')
+    .then(function(snap){
+      var v = snap.val();
+      if (v){
+        // Las fichas se escriben a mano en la consola de Firebase, donde es
+        // facil que salga 'Nombre' con mayuscula. Se aceptan ambas: el
+        // nombre es solo para mostrar y no vale la pena que falle por eso.
+        var n = v.nombre || v.Nombre;
+        if (n) perfil.nombre = n;
+        if ((v.rol || v.Rol) === 'admin') perfil.rol = 'admin';
+      }
+    })
+    .catch(function(e){ console.error('No se pudo leer el rol:', e); })
+    .then(function(){
+      LEON_USUARIO = perfil;
+      aplicarRolEnUI();
+      listo();
+    });
+}
+
+// Por ahora el indicador no muestra costos ni márgenes, así que el rol solo
+// se refleja en el saludo. Cuando se unifique con el cotizador, esta función
+// es el único lugar que hay que tocar para esconder lo que un vendedor no
+// debe ver.
+function aplicarRolEnUI(){
+  var el = document.getElementById('lock-btn-header');
+  if (el && LEON_USUARIO) el.title = 'Cerrar sesión — ' + LEON_USUARIO.nombre + ' (' + LEON_USUARIO.rol + ')';
+}
+
 function showLockOverlay(){
-  document.getElementById('lock-overlay').style.display='flex';
-  document.getElementById('lock-input').value='';
-  setTimeout(function(){document.getElementById('lock-input').focus();},100);
+  var ov = document.getElementById('lock-overlay');
+  if (!ov) return;
+  ov.style.display = 'flex';
+  document.getElementById('lock-input').value = '';
+  var em = document.getElementById('lock-email');
+  setTimeout(function(){ (em.value ? document.getElementById('lock-input') : em).focus(); }, 100);
+}
+function ocultarLockOverlay(){
+  var ov = document.getElementById('lock-overlay');
+  if (ov) ov.style.display = 'none';
 }
 function cerrarSesion(){
   lastHiddenAt = Date.now()-RELOCK_MS-1;
+  LEON_USUARIO = null;
+  // Cortar el listener antes de salir: si no, queda una suscripción viva
+  // sobre datos que el usuario ya no tiene permiso de leer.
+  try { if (fbRef) fbRef.off(); if (fbTrashRef) fbTrashRef.off(); } catch(e){}
+  useFirebase = false;
+  firebase.auth().signOut().catch(function(e){ console.error('Error al cerrar sesión:', e); });
   showLockOverlay();
 }
 showLockOverlay();
@@ -3327,7 +3405,10 @@ document.addEventListener('visibilitychange',function(){
   if (document.visibilityState==='hidden') {
     lastHiddenAt = Date.now();
   } else if (document.visibilityState==='visible') {
-    if (!lastHiddenAt || (Date.now()-lastHiddenAt) > RELOCK_MS) showLockOverlay();
+    // Cerrar sesión de verdad, no solo tapar la pantalla: si quedara la
+    // sesión abierta, el listener seguiría bajando datos con la app
+    // "bloqueada".
+    if (!lastHiddenAt || (Date.now()-lastHiddenAt) > RELOCK_MS) cerrarSesion();
   }
 });
 window.addEventListener('pageshow',function(){

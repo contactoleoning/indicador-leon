@@ -1,0 +1,50 @@
+{
+  "_comentario": [
+    "Reglas para la Realtime Database del proyecto leon-clientes.",
+    "Aplicar SOLO despues de publicar las tres apps con el login nuevo:",
+    "cierran la puerta a la autenticacion anonima, que es la que usan las",
+    "versiones anteriores. El orden esta en SEGURIDAD.md.",
+    "Las llaves que empiezan con _ son solo comentarios; Firebase las ignora."
+  ],
+
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "_usuarios": "Ficha de cada persona: nombre y rol (admin | vendedor). Solo se crea y edita desde la consola de Firebase, nunca desde la app.",
+    "usuarios": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+
+    "_leon_clientes": "Base de clientes. Exige sesión con correo Y ficha en /usuarios: un token anónimo obtenido con el apiKey público ya no alcanza.",
+    "leon_clientes": {
+      ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
+      ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
+      "_sin_validaciones_de_forma": "Aqui habia reglas .validate que exigian id, cliente, y tipos por campo. Se sacaron antes de publicar: las apps hacen actualizaciones parciales (marcar avisado, reagendar, agregar una foto al historial) y una validacion mal calibrada las rechaza en silencio, en terreno, sin forma comoda de probarlo antes. La proteccion que importa es la de arriba: quien puede entrar. Validar la forma de los datos es endurecimiento posterior, y hay que hacerlo con el simulador de reglas al lado."
+    },
+
+    "_leon_clientes_trash": "Papelera. Mismo permiso que la base: quien puede borrar puede restaurar.",
+    "leon_clientes_trash": {
+      ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
+      ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()"
+    },
+
+    "_leon_comprobantes": "Comprobantes emitidos. Estaba en las reglas anteriores aunque el nodo todavía no tenga datos.",
+    "leon_comprobantes": {
+      ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
+      ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()"
+    },
+
+    "_leon_comprobantes_meta": "Contador de folios de la app de comprobantes. Se descubrió tarde: no estaba en la primera versión de estas reglas, y sin este bloque el folio dejaba de avanzar en silencio. El folio solo sube, nunca retrocede.",
+    "leon_comprobantes_meta": {
+      ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
+      ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
+      "nextFolio": {
+        ".validate": "newData.isNumber() && newData.val() > 0 && (!data.exists() || newData.val() >= data.val())"
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 // Service worker — Indicador León
 // Estrategia: red primero (para recibir siempre la última versión publicada),
 // con caché de respaldo para abrir la app sin conexión.
-var CACHE = "indicador-leon-v5";
+var CACHE = "indicador-leon-v6";
 var ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function (e) {
@@ -23,8 +23,15 @@ self.addEventListener("fetch", function (e) {
   var url = new URL(e.request.url);
   // Solo manejar archivos propios; Firebase y otras APIs van directo a la red
   if (url.origin !== self.location.origin) return;
+  // "Red primero" no alcanzaba: entre este fetch y el servidor esta la cache
+  // HTTP del navegador, y GitHub Pages manda el HTML con max-age. Resultado:
+  // se publicaba una version nueva, el servidor ya la tenia, y la app seguia
+  // abriendo la vieja sin ningun aviso. Para el HTML se salta esa cache; el
+  // resto de los archivos (iconos, manifest) puede seguir usandola.
+  var esDocumento = e.request.mode === "navigate" ||
+                    (e.request.headers.get("accept") || "").indexOf("text/html") >= 0;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, esDocumento ? { cache: "reload" } : undefined)
       .then(function (res) {
         var copy = res.clone();
         caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
