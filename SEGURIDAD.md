@@ -29,7 +29,9 @@ bloquea nada, solo lo mide."* Hay que confirmar en qué modo está.
 
 ## Qué cambió en el código
 
-Ya está hecho, en la rama `fase1-login-por-usuario`:
+Hecho en las dos apps, cada una en su rama `fase1-login-por-usuario`.
+
+**Indicador:**
 
 - Cada persona entra con su propio correo y contraseña (Firebase Auth).
 - La base se conecta dentro de `onAuthStateChanged` y solo con un usuario real.
@@ -39,13 +41,25 @@ Ya está hecho, en la rama `fase1-login-por-usuario`:
 - Cerrar sesión y el bloqueo por inactividad hacen `signOut()` de verdad y
   cortan los listeners.
 
+**Cotizador:**
+
+- Se carga `firebase-auth-compat` y se entra con el mismo correo.
+- `getFirebaseIdToken()` devuelve el token de la sesión iniciada. Sin sesión
+  devuelve `null`, en vez de crear una identidad anónima.
+- La pestaña ADMINISTRADOR, que muestra costos y márgenes, se esconde para el
+  rol `vendedor`.
+- El campo Vendedor se autocompleta con el nombre de quien inició sesión.
+
+Probado en local en ambas: sin sesión no hay token ni datos, y la pestaña de
+administrador solo aparece con rol `admin`.
+
 ---
 
 ## Orden de puesta en marcha
 
-**El orden importa.** Si se aplican las reglas antes de migrar el cotizador, el
-botón «Agregar a Indicador de Vencimiento» deja de funcionar, porque el
-cotizador todavía entra con auth anónima.
+**El orden importa.** Las reglas del paso 5 cierran la puerta a la auth
+anónima, así que las dos apps tienen que estar publicadas con el login nuevo
+antes de aplicarlas.
 
 ### 1. Crear los usuarios — en Firebase Console
 
@@ -69,14 +83,13 @@ así una cuenta creada por error no tiene acceso a nada.
 
 ### 3. Publicar el indicador
 
-Solo después de que existan los usuarios. Primero probar el login en el sitio
-real, con una cuenta, antes de seguir.
+Solo después de que existan los usuarios. Probar el login en el sitio real, con
+una cuenta, antes de seguir.
 
-### 4. Migrar el cotizador
+### 4. Publicar el cotizador
 
-Falta hacerlo. Hoy pide su token con `identitytoolkit…/accounts:signUp`, que es
-un alta anónima. Tiene que pasar a `accounts:signInWithPassword` con la sesión
-iniciada, igual que el indicador.
+Mismo criterio. Verificar además que el botón «Agregar a Indicador de
+Vencimiento» siga escribiendo bien, porque ahora usa el token de la sesión.
 
 ### 5. Recién ahora, aplicar las reglas
 
