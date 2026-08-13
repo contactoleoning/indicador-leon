@@ -896,6 +896,7 @@ button{cursor:pointer}
           </div>
         </div>
         <div class="ff"><label>DEPTO / PISO / OF.</label><input id="fdet" type="text" placeholder="Ej: Depto 4B, Piso 3"/></div>
+        <div class="ff"><label>RUT</label><input id="frut" type="text" placeholder="12.345.678-9" autocapitalize="off" spellcheck="false"/></div>
         <div class="ff">
           <label>TELÉFONO</label>
           <div class="input-tel-wrap">
@@ -2446,6 +2447,7 @@ function openModal(id) {
   document.getElementById('fco').value = r?.comuna||'';
   document.getElementById('fdir').value = r?.direccion||'';
   document.getElementById('fdet').value = r?.detalle||'';
+  document.getElementById('frut').value = r?.rut||'';
   // Teléfono: guardar solo los 8 dígitos sin el +569
   document.getElementById('ftel').value = r?.telefono||'';
   document.getElementById('ftelfijo').checked = r?.telefonoFijo||false;
@@ -2496,6 +2498,7 @@ function saveModal() {
     direccion: document.getElementById('fdir').value.trim(),
     detalle: document.getElementById('fdet').value.trim(),
     telefono: document.getElementById('ftel').value.trim().replace(/\D/g,''),
+    rut: document.getElementById('frut').value.trim(),
     telefonoFijo: document.getElementById('ftelfijo').checked,
     aviso: document.getElementById('fav').checked,
     plan: document.getElementById('fplan').checked,
@@ -2515,6 +2518,11 @@ function saveModal() {
       row.calIngresoId = data[i].calIngresoId;
       row.calMantId = data[i].calMantId;
       row.reagenda = data[i].reagenda;
+      // Vienen del Cotizador y este formulario no los muestra. Sin esto, la
+      // primera edicion del cliente los borraba en silencio -- y con ellos se
+      // perdia de que cotizacion salio y por cuanto.
+      row.nroCotizacion = data[i].nroCotizacion;
+      row.montoCotizado = data[i].montoCotizado;
       data[i] = row;
     }
     toast('Cliente actualizado');
