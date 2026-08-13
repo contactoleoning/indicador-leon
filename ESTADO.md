@@ -1,6 +1,6 @@
 # Estado del sistema — León Ingeniería
 
-Última actualización: 13 de agosto de 2026.
+Última actualización: 13 de agosto de 2026 (tarde).
 
 Este archivo existe porque ya no es una app: son tres, comparten una base de
 datos, y hay trabajo publicado y trabajo esperando prueba. Sin esto, retomar
@@ -57,10 +57,7 @@ registro de cotizaciones y PDFs. No está en Firebase.
 - Respaldo diario automático de datos y reglas, sin borrado a los 30 días.
 - Copia de prueba en `/beta` para las tres.
 
-## En rama, esperando prueba
-
-Rama `fase2-cliente-completo` en cotizador e indicador, `fase2-folio` en
-comprobante. Todo está también en las betas.
+Lo de la Fase 2 ya está publicado:
 
 - El cotizador manda al indicador teléfono, RUT, dirección, equipos, monto y
   número de cotización. Antes solo el nombre.
@@ -72,6 +69,17 @@ comprobante. Todo está también en las betas.
 - Seguimiento de cotizaciones con cadencia de 3 contactos.
 - Métricas de cierre: ticket, demora, motivos de pérdida, efecto del seguimiento.
 - El folio del comprobante se reserva al guardar o imprimir, no al abrir.
+- El registro de cotizaciones se guarda en `leon_cotizaciones`, con migración
+  automática y relleno de teléfonos desde el Indicador.
+
+## En rama, esperando prueba
+
+Rama `fase4-canal-origen` en el cotizador, también en la beta.
+
+- Selector "¿Cómo llegó?" en los datos del cliente (Instagram, referido,
+  WhatsApp, llamada, cliente que vuelve).
+- Tabla de rendimiento por canal: cuántas cotizaciones, qué porcentaje cerró y
+  cuánta plata dejó cada uno.
 
 ## Pendiente
 
@@ -87,11 +95,18 @@ comprobante. Todo está también en las betas.
 
 ## Lo que hay que saber antes de tocar algo
 
-**El seguimiento de cotizaciones no está en Firebase.** Vive en `REG_LIST`, en
-el navegador, sincronizado con el Apps Script. Es la parte más frágil del
-sistema: no la cubren las reglas ni los respaldos. Moverlo a Firebase implica
-desarmar la sincronización del Apps Script, que arrastra también los catálogos,
-así que no es un cambio para hacer a la ligera.
+**Probar el cotizador en local escribe en producción.** `saveRegList()` llama a
+`saveCloudData()`, que hace un `fetch` directo al Apps Script con la URL y la
+clave incrustadas: no depende del dominio ni de la sesión. Ya pasó una vez —
+tres registros de prueba entraron al registro real y de ahí a Firebase. Antes de
+ejecutar en la consola cualquier función que termine en `saveRegList()`, hay que
+interceptar también `saveCloudData` y `postToGAS`.
+
+**El registro de cotizaciones se guarda en dos lados a la vez.** Firebase y el
+Apps Script, a propósito, hasta confirmar que Firebase no falla. Son dos fuentes
+de verdad y en algún momento pueden discrepar: no es un estado para quedarse
+mucho tiempo. Cortar el Apps Script para el registro es el siguiente paso; los
+catálogos seguirían ahí.
 
 **La clave del Apps Script está en el HTML público.** Cualquiera que abra el
 código fuente la tiene. Mientras siga así, el registro de cotizaciones queda
