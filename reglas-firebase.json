@@ -32,6 +32,12 @@
       ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()"
     },
 
+    "_leon_cotizaciones": "Registro de cotizaciones y su seguimiento. Vivia solo en localStorage y en el Apps Script, o sea fuera de estas reglas y fuera del respaldo diario. La clave es 'n'+numero de cotizacion, para que dos equipos que registran la misma no la dupliquen.",
+    "leon_cotizaciones": {
+      ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
+      ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()"
+    },
+
     "_leon_comprobantes": "Comprobantes emitidos. Estaba en las reglas anteriores aunque el nodo todavía no tenga datos.",
     "leon_comprobantes": {
       ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
