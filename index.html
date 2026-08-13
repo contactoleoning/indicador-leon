@@ -3743,10 +3743,23 @@ function rutClaveTel(t){
   return d.length>=8 ? d.slice(-8) : '';
 }
 
+// El cruce es por NOMBRE, no por teléfono. Parece menos exacto y es al revés:
+// la columna de teléfono de la planilla está rota (devuelve #ERROR!), así que
+// las cotizaciones no tienen teléfono con el cual cruzar. El nombre sí está en
+// las dos partes.
+//
+// Se compara sin tildes, sin mayúsculas y sin puntuación, porque "Andrés
+// Nawrath" y "Andres Nawrath" son la misma persona.
+function nombreClaveInd(n){
+  return String(n||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
 function renderAvisoRut(){
   var el=document.getElementById('rut-faltante');
   if(!el) return;
-  var sinRut=data.filter(function(r){return !r.rut && r.telefono;}).length;
+  var sinRut=data.filter(function(r){return !r.rut;}).length;
   el.innerHTML = sinRut
     ? '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--text3);padding:9px 12px;border-bottom:1px solid var(--border)">'
       +'<span>'+sinRut+' cliente'+(sinRut>1?'s':'')+' sin RUT.</span>'
@@ -3760,25 +3773,31 @@ function completarRutDesdeCotizaciones(){
   firebase.database().ref('leon_cotizaciones').once('value')
     .then(function(snap){
       var cots=snap.val()||{};
-      var porTel={}, ambiguos={};
+      var porNombre={}, ambiguos={}, cotsConRut=0;
       Object.keys(cots).forEach(function(k){
         var c=cots[k];
         if(!c || !c.rut || /#ERROR/i.test(String(c.rut))) return;
-        var t=rutClaveTel(c.tel);
-        if(!t) return;
+        cotsConRut++;
+        var nk=nombreClaveInd(c.nombre);
+        if(!nk) return;
         var ru=String(c.rut).trim();
-        if(porTel[t] && porTel[t]!==ru) ambiguos[t]=true;   // dos RUT para el mismo número
-        else porTel[t]=ru;
+        if(porNombre[nk] && porNombre[nk]!==ru) ambiguos[nk]=true;   // mismo nombre, dos RUT
+        else porNombre[nk]=ru;
       });
+
+      if(!cotsConRut){
+        toast('Las cotizaciones todavía no tienen RUT — córrelo primero en el Cotizador');
+        return;
+      }
 
       var puestos=0, chocaron=0, sinDato=0, cambios=[];
       data.forEach(function(r){
-        if(r.rut || !r.telefono) return;
-        var t=rutClaveTel(r.telefono);
-        if(!t){ sinDato++; return; }
-        if(ambiguos[t]){ chocaron++; return; }
-        if(!porTel[t]){ sinDato++; return; }
-        r.rut=porTel[t];
+        if(r.rut) return;
+        var nk=nombreClaveInd(r.cliente);
+        if(!nk){ sinDato++; return; }
+        if(ambiguos[nk]){ chocaron++; return; }
+        if(!porNombre[nk]){ sinDato++; return; }
+        r.rut=porNombre[nk];
         cambios.push(r);
         puestos++;
       });
@@ -3790,7 +3809,7 @@ function completarRutDesdeCotizaciones(){
         ? (puestos+' RUT completado'+(puestos>1?'s':'')+' desde las cotizaciones')
         : 'No se encontró ningún RUT nuevo');
       if(chocaron){
-        console.warn(chocaron+' teléfonos con dos RUT distintos en las cotizaciones — se dejaron sin tocar');
+        console.warn(chocaron+' nombres con dos RUT distintos en las cotizaciones — se dejaron sin tocar');
       }
     })
     .catch(function(e){
