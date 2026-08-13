@@ -6,7 +6,9 @@ Estado al 13 de agosto de 2026.
 
 ## El problema que se está corrigiendo
 
-La contraseña que pedían las dos apps no protegía los datos.
+La contraseña que pedían las apps no protegía los datos. Y la tercera, el
+comprobante, no pedía nada: quien tuviera la dirección veía la lista completa
+de clientes.
 
 En el indicador, `initFirebase()` se conectaba con `signInAnonymously()` y dejaba
 corriendo el listener de `leon_clientes` apenas cargaba la página. La base
@@ -29,7 +31,7 @@ bloquea nada, solo lo mide."* Hay que confirmar en qué modo está.
 
 ## Qué cambió en el código
 
-Hecho en las dos apps, cada una en su rama `fase1-login-por-usuario`.
+Hecho en las tres apps, cada una en su rama `fase1-login-por-usuario`.
 
 **Indicador:**
 
@@ -55,15 +57,22 @@ Hecho en las dos apps, cada una en su rama `fase1-login-por-usuario`.
   sin esto el cotizador quedaba abierto para siempre en un computador
   compartido.
 
-Probado en local en ambas: sin sesión no hay token ni datos, y la pestaña de
-administrador solo aparece con rol `admin`.
+**Comprobante:**
+
+- No tenía pantalla de acceso de ningún tipo. Se le agregó una, con el mismo
+  correo y contraseña de las otras dos.
+- La lista de clientes y la reserva de folio ocurren solo con sesión abierta.
+- Enlace **Salir** en la barra superior.
+
+Probado en local en las tres: sin sesión no hay token, ni datos, ni folio
+reservado, y la pestaña de administrador solo aparece con rol `admin`.
 
 ---
 
 ## Orden de puesta en marcha
 
-**El orden importa.** Las reglas del paso 5 cierran la puerta a la auth
-anónima, así que las dos apps tienen que estar publicadas con el login nuevo
+**El orden importa.** Las reglas del paso 6 cierran la puerta a la auth
+anónima, así que las tres apps tienen que estar publicadas con el login nuevo
 antes de aplicarlas.
 
 ### 1. Crear los usuarios — en Firebase Console
@@ -83,7 +92,7 @@ usuarios/
   {UID del vendedor}/ nombre: "…"            rol: "vendedor"
 ```
 
-Sin ficha en `/usuarios`, las reglas del paso 4 no dejan entrar. Es a propósito:
+Sin ficha en `/usuarios`, las reglas del paso 6 no dejan entrar. Es a propósito:
 así una cuenta creada por error no tiene acceso a nada.
 
 ### 3. Publicar el indicador
@@ -96,12 +105,17 @@ una cuenta, antes de seguir.
 Mismo criterio. Verificar además que el botón «Agregar a Indicador de
 Vencimiento» siga escribiendo bien, porque ahora usa el token de la sesión.
 
-### 5. Recién ahora, aplicar las reglas
+### 5. Publicar el comprobante
+
+Probar que la lista de clientes carga y que el folio avanza. Es el que más
+cambió: antes no tenía pantalla de acceso de ningún tipo.
+
+### 6. Recién ahora, aplicar las reglas
 
 Pegar `reglas-firebase.json` en **Realtime Database → Reglas**. Usar antes el
 simulador que trae la consola.
 
-### 6. Apagar el acceso anónimo
+### 7. Apagar el acceso anónimo
 
 En **Authentication → Método de acceso**, el proveedor **Anónimo** aparece
 habilitado. Es la puerta que se está cerrando: mientras siga encendida,
@@ -111,7 +125,7 @@ cualquiera con el `apiKey` público puede pedir un token válido.
 `contactoleoning.github.io` siguen usando auth anónima; si se desactiva antes,
 dejan de sincronizar en plena jornada.
 
-### 7. App Check en modo obligatorio
+### 8. App Check en modo obligatorio
 
 En **App Check**, pasar Realtime Database y Storage de *Monitor* a *Enforce*.
 Revisar primero las métricas: si aparecen peticiones legítimas sin verificar,
@@ -134,6 +148,11 @@ enforcing las va a cortar.
 
 - **Storage.** Las fotos de mantención en `clientes/{id}.jpg` necesitan sus
   propias reglas, equivalentes a las de la base.
+
+- **Buscar si hay una cuarta app.** El comprobante apareció de casualidad, al
+  ver un nodo `leon_comprobantes_meta` en la consola que las reglas no cubrían.
+  Antes de aplicar las reglas conviene mirar la raíz de la base y confirmar que
+  no queda ningún otro nodo sin dueño.
 
 ---
 
