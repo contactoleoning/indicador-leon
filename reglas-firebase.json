@@ -1,8 +1,9 @@
 {
   "_comentario": [
-    "Reglas propuestas para la Realtime Database del proyecto leon-clientes.",
-    "NO PEGAR TODAVÍA: apagan la autenticación anónima, y el cotizador aún",
-    "la usa. El orden correcto está en SEGURIDAD.md.",
+    "Reglas para la Realtime Database del proyecto leon-clientes.",
+    "Aplicar SOLO despues de publicar las tres apps con el login nuevo:",
+    "cierran la puerta a la autenticacion anonima, que es la que usan las",
+    "versiones anteriores. El orden esta en SEGURIDAD.md.",
     "Las llaves que empiezan con _ son solo comentarios; Firebase las ignora."
   ],
 
@@ -22,14 +23,7 @@
     "leon_clientes": {
       ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
       ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
-      "$cliente": {
-        ".validate": "newData.hasChildren(['id', 'cliente'])",
-        "cliente":  { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200" },
-        "id":       { ".validate": "newData.isNumber()" },
-        "duracion": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 60" },
-        "telefono": { ".validate": "newData.isString() && newData.val().length <= 20" },
-        "$otro":    { ".validate": true }
-      }
+      "_sin_validaciones_de_forma": "Aqui habia reglas .validate que exigian id, cliente, y tipos por campo. Se sacaron antes de publicar: las apps hacen actualizaciones parciales (marcar avisado, reagendar, agregar una foto al historial) y una validacion mal calibrada las rechaza en silencio, en terreno, sin forma comoda de probarlo antes. La proteccion que importa es la de arriba: quien puede entrar. Validar la forma de los datos es endurecimiento posterior, y hay que hacerlo con el simulador de reglas al lado."
     },
 
     "_leon_clientes_trash": "Papelera. Mismo permiso que la base: quien puede borrar puede restaurar.",
