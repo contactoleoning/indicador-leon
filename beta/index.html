@@ -622,6 +622,12 @@ button{cursor:pointer}
   text-transform:uppercase;text-align:center;padding:6px 8px 8px;
   box-shadow:0 -2px 12px rgba(0,0,0,.45)}
 @media print{#beta-flag{display:none}}
+/* En pantalla angosta el texto se partia en dos lineas: se aprieta el
+   espaciado en vez de acortar el aviso. */
+@media (max-width:430px){#beta-flag{letter-spacing:.04em;font-size:10px;padding:5px 6px 7px}}
+/* La franja es fija sobre el contenido: sin este hueco tapaba la ultima
+   fila de la lista de clientes en el celular. */
+body{padding-bottom:30px}
 </style>
 </head>
 <body>
