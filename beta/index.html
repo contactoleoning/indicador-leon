@@ -778,6 +778,8 @@ body{padding-bottom:30px}
   <button class="btn-add" onclick="openModal(null)">+ NUEVO CLIENTE</button>
 </div>
 
+<div id="rut-faltante" style="margin:0 0 10px"></div>
+
 <!-- DESKTOP TABLE -->
 <div class="table-container">
   <table class="main-table">
@@ -2197,6 +2199,7 @@ function render() {
       }
     }
   }
+  if (typeof renderAvisoRut === 'function') renderAvisoRut();
 }
 
 // ═══════════════════════════════════════
@@ -3736,6 +3739,76 @@ function cotWa(nro){
   firebase.database().ref('leon_cotizaciones/n'+c.nro+'/contactos').set(c.contactos)
     .catch(function(e){ console.error('No se pudo anotar el contacto:', e); });
   renderCotizacionesPendientes();
+}
+
+// ═══════════════════════════════════════
+// COMPLETAR RUT DESDE LAS COTIZACIONES
+// ═══════════════════════════════════════
+// El RUT llega al Indicador solo cuando el cliente entra desde el Cotizador,
+// así que los que ya estaban no lo tienen. Pero el RUT sí quedó guardado en
+// cada cotización -- a diferencia del teléfono, esa columna nunca se rompió.
+//
+// Se cruza por teléfono, que es exacto, y solo se rellena lo que está vacío:
+// un RUT escrito a mano en el Indicador siempre gana.
+function rutClaveTel(t){
+  var d=String(t||'').replace(/\D/g,'');
+  return d.length>=8 ? d.slice(-8) : '';
+}
+
+function renderAvisoRut(){
+  var el=document.getElementById('rut-faltante');
+  if(!el) return;
+  var sinRut=data.filter(function(r){return !r.rut && r.telefono;}).length;
+  el.innerHTML = sinRut
+    ? '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--text3)">'
+      +'<span>'+sinRut+' cliente'+(sinRut>1?'s':'')+' sin RUT.</span>'
+      +'<button onclick="completarRutDesdeCotizaciones()" style="font-size:12px;font-weight:700;padding:6px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer">Buscarlos en las cotizaciones</button>'
+      +'</div>'
+    : '';
+}
+
+function completarRutDesdeCotizaciones(){
+  if(!useFirebase){ toast('Necesitas sesión iniciada'); return; }
+  firebase.database().ref('leon_cotizaciones').once('value')
+    .then(function(snap){
+      var cots=snap.val()||{};
+      var porTel={}, ambiguos={};
+      Object.keys(cots).forEach(function(k){
+        var c=cots[k];
+        if(!c || !c.rut || /#ERROR/i.test(String(c.rut))) return;
+        var t=rutClaveTel(c.tel);
+        if(!t) return;
+        var ru=String(c.rut).trim();
+        if(porTel[t] && porTel[t]!==ru) ambiguos[t]=true;   // dos RUT para el mismo número
+        else porTel[t]=ru;
+      });
+
+      var puestos=0, chocaron=0, sinDato=0, cambios=[];
+      data.forEach(function(r){
+        if(r.rut || !r.telefono) return;
+        var t=rutClaveTel(r.telefono);
+        if(!t){ sinDato++; return; }
+        if(ambiguos[t]){ chocaron++; return; }
+        if(!porTel[t]){ sinDato++; return; }
+        r.rut=porTel[t];
+        cambios.push(r);
+        puestos++;
+      });
+
+      cambios.forEach(function(r){ saveRecord(r); });
+      render();
+      renderAvisoRut();
+      toast(puestos
+        ? (puestos+' RUT completado'+(puestos>1?'s':'')+' desde las cotizaciones')
+        : 'No se encontró ningún RUT nuevo');
+      if(chocaron){
+        console.warn(chocaron+' teléfonos con dos RUT distintos en las cotizaciones — se dejaron sin tocar');
+      }
+    })
+    .catch(function(e){
+      console.error('No se pudieron leer las cotizaciones:', e);
+      toast('No se pudieron leer las cotizaciones');
+    });
 }
 
 function renderCotizacionesPendientes(){
