@@ -140,6 +140,12 @@ Lo de la Fase 2 ya está publicado:
   la comparación entre años. Cuando se haga, conviene que muestre las dos
   dimensiones —facturado y al bolsillo— porque un mes de más ventas no es
   necesariamente un mes de más ganancia.
+
+  **Con gráfico de barras**, no sólo números: Isaac lo pidió expresamente. Una
+  barra por mes, y comparación entre años. En terreno y de un vistazo, la altura
+  de una barra dice más que una tabla. Va en HTML/CSS puro como el resto —no hay
+  librerías externas y no conviene agregarlas, porque las tres apps son un solo
+  archivo y funcionan sin conexión.
 - **Campañas por temporada**, para armar en septiembre cuando parte la temporada.
 - **La columna de teléfono de la planilla de cotizaciones devuelve `#ERROR!`**
   en todas las filas: una fórmula rota en la hoja. Por eso los teléfonos
