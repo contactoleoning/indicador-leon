@@ -107,6 +107,15 @@ Lo de la Fase 2 ya está publicado:
   / te quedó. **Todo sin IVA**: ese 19% se cobra por el fisco y nunca fue plata
   de Isaac. El bloque sólo afirma sobre los trabajos ya liquidados y dice
   cuántos faltan, en vez de mezclarlos y dar un margen que no significa nada.
+- **Ventas por mes y por año**, en Estadísticas, con barras horizontales
+  (verticales no se leen en el teléfono). Neto, sin IVA, igual que "Al bolsillo".
+  La línea de tiempo se rellena mes a mes aunque no haya ventas: un mes en cero
+  es información. Con un solo año muestra el total y avisa; con dos o más dibuja
+  las barras y el % contra el año anterior. Una sola serie por gráfico —si algún
+  día se quiere el margen en el tiempo, va en su propio gráfico, nunca un segundo
+  eje. El verde de las barras (`--barra:#35a862`) no es el `--grn` de los
+  botones: un relleno grande necesita menos luz que un acento chico, y se
+  verificó con validador, no a ojo.
 - Botón **Revisar contra la planilla** en Seguimiento. La planilla es la que
   Isaac cura a mano, así que manda ella: el botón corrige monto, cliente,
   servicio, comuna y RUT, y **elimina del registro lo que la planilla no tiene**
@@ -133,19 +142,6 @@ Lo de la Fase 2 ya está publicado:
   nuevos, no arregla los que ya están.
 - **RUT vacíos** en los clientes que nunca pasaron por una cotización. Isaac los
   ingresa a mano.
-- **Ventas por mes y por año.** Isaac lo pidió el 14 de agosto y decidió
-  dejarlo para más adelante. Cuánto se vende cada mes y cada año, para comparar
-  temporadas. Parte del terreno ya está: `mesDe()` agrupa bien por mes, hay
-  selector de mes en Estadísticas y tendencia mes a mes. Falta la vista anual y
-  la comparación entre años. Cuando se haga, conviene que muestre las dos
-  dimensiones —facturado y al bolsillo— porque un mes de más ventas no es
-  necesariamente un mes de más ganancia.
-
-  **Con gráfico de barras**, no sólo números: Isaac lo pidió expresamente. Una
-  barra por mes, y comparación entre años. En terreno y de un vistazo, la altura
-  de una barra dice más que una tabla. Va en HTML/CSS puro como el resto —no hay
-  librerías externas y no conviene agregarlas, porque las tres apps son un solo
-  archivo y funcionan sin conexión.
 - **Campañas por temporada**, para armar en septiembre cuando parte la temporada.
 - **La columna de teléfono de la planilla de cotizaciones devuelve `#ERROR!`**
   en todas las filas: una fórmula rota en la hoja. Por eso los teléfonos
