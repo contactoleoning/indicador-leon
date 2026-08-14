@@ -511,6 +511,85 @@ button{cursor:pointer}
 [data-theme="light"] .theme-btn:hover{background:rgba(255,255,255,0.2);color:#fff;border-color:rgba(255,255,255,0.3)}
 
 /* ── LIGHT THEME ── */
+
+/* ══ VISTA DE TARJETAS ══════════════════════════════════════════════ */
+.vista-tabs{display:flex;gap:4px;background:var(--surface3);border-radius:10px;padding:3px}
+.vista-tabs button{border:none;background:transparent;color:var(--text2);font-size:12.5px;font-weight:700;
+  padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:background .15s,color .15s}
+.vista-tabs button.act{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px;padding:16px 14px 40px}
+.ccard{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 16px 14px;cursor:pointer;transition:transform .14s ease,box-shadow .18s ease,border-color .18s;
+  display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.ccard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--text3)}
+.ccard.st-green::before{background:var(--green)}
+.ccard.st-amber::before{background:var(--amber)}
+.ccard.st-red::before{background:var(--red)}
+.ccard.st-resched::before{background:var(--resched)}
+.ccard:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--border2)}
+.ccard:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.ccard-top{display:flex;gap:13px;align-items:flex-start}
+.ccard-foto{width:56px;height:56px;border-radius:14px;flex:none;overflow:hidden;background:var(--surface3);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:var(--text2)}
+.ccard-foto img{width:100%;height:100%;object-fit:cover}
+.ccard-id{flex:1;min-width:0}
+.ccard-nom{font-size:16.5px;font-weight:750;color:var(--text);line-height:1.22;
+  overflow-wrap:anywhere}
+.ccard-sub{font-size:12.5px;color:var(--text3);margin-top:3px}
+.ccard-rut{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:1px}
+
+.ccard-estado{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;
+  letter-spacing:.03em;padding:4px 9px;border-radius:20px;white-space:nowrap;border:1px solid}
+.st-green .ccard-estado{color:var(--green);background:var(--green-bg);border-color:var(--green-border)}
+.st-amber .ccard-estado{color:var(--amber);background:var(--amber-bg);border-color:var(--amber-border)}
+.st-red .ccard-estado{color:var(--red);background:var(--red-bg);border-color:var(--red-border)}
+.st-resched .ccard-estado{color:var(--resched);background:var(--resched-bg);border-color:var(--resched-border)}
+
+.ccard-datos{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px;
+  border-top:1px solid var(--border);padding-top:11px}
+.ccard-dato label{display:block;font-size:9.5px;font-weight:800;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--text3);margin-bottom:2px}
+.ccard-dato .v{font-size:13px;color:var(--text);font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.ccard-dato .v.tenue{color:var(--text2);font-weight:500}
+
+.ccard-obs{font-size:12px;color:var(--text2);line-height:1.5;background:var(--surface2);
+  border:1px solid var(--border);border-radius:8px;padding:8px 10px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+.ccard-pie{display:flex;gap:7px;align-items:center;flex-wrap:wrap;
+  border-top:1px solid var(--border);padding-top:11px}
+.ccard-chip{font-size:11px;color:var(--text3);background:var(--surface3);
+  border-radius:20px;padding:3px 9px;font-weight:600}
+.ccard-acciones{display:flex;gap:6px;margin-left:auto}
+.ccard-acc{border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
+  width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:15px;transition:border-color .15s,color .15s,background .15s}
+.ccard-acc:hover{border-color:var(--gold);color:var(--gold)}
+.ccard-acc.wa:hover{border-color:#25d366;color:#25d366;background:rgba(37,211,102,.1)}
+
+.cards-vacio{grid-column:1/-1;text-align:center;padding:50px 20px;color:var(--text3);font-size:14px}
+
+/* detalle de una tarjeta */
+#ficha-ov{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:9000;display:none;
+  align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;backdrop-filter:blur(3px)}
+#ficha-ov .ficha-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  width:100%;max-width:900px;margin:auto;box-shadow:var(--shadow-md);overflow:hidden}
+#ficha-ov .ficha-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 18px;background:var(--surface2);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:2}
+#ficha-ov .ficha-head h3{font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
+#ficha-ov .ficha-cerrar{border:1px solid var(--border2);background:var(--surface3);color:var(--text2);
+  width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:16px;line-height:1}
+#ficha-ov .ficha-body{padding:18px}
+@media (max-width:600px){
+  .cards-grid{grid-template-columns:1fr;padding:12px 10px 40px;gap:12px}
+  .ccard-datos{grid-template-columns:1fr 1fr}
+  #ficha-ov{padding:0}
+  #ficha-ov .ficha-box{border-radius:0;min-height:100%}
+}
+
 [data-theme="light"]{
   --bg:#f0f4f8;
   --surface:#ffffff;
@@ -763,10 +842,28 @@ button{cursor:pointer}
       <button onclick="exportarPDF()">📄 PDF</button>
     </div>
   </div>
+  <div class="vista-tabs" id="vista-tabs">
+    <button id="vt-cards" onclick="setVista('cards')">Tarjetas</button>
+    <button id="vt-tabla" onclick="setVista('tabla')">Tabla</button>
+  </div>
   <button class="btn-add" onclick="openModal(null)">+ NUEVO CLIENTE</button>
 </div>
 
 <div id="rut-faltante"></div>
+
+<!-- TARJETAS -->
+<div id="cards-grid" class="cards-grid"></div>
+
+<!-- DETALLE DE UNA TARJETA -->
+<div id="ficha-ov" onclick="if(event.target===this)cerrarFicha()">
+  <div class="ficha-box">
+    <div class="ficha-head">
+      <h3 id="ficha-titulo">Ficha del cliente</h3>
+      <button class="ficha-cerrar" onclick="cerrarFicha()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="ficha-body" id="ficha-body"></div>
+  </div>
+</div>
 
 <!-- DESKTOP TABLE -->
 <div class="table-container">
@@ -1977,11 +2074,123 @@ function cotizacionesHTML(r){
     +'</div></div>';
 }
 
+// ═══════════════════════════════════════
+// VISTA DE TARJETAS
+// ═══════════════════════════════════════
+// La tabla tenía doce columnas y cortaba justo lo que importa: los nombres
+// quedaban en "Eduardo Aste" y la observación de terreno -- el dato más útil
+// que hay en la ficha -- iba apretada en una columna angosta. Y en el celular,
+// que es donde se usa, obligaba a desplazarse de lado.
+//
+// La tarjeta pone el nombre primero, con todo el ancho, y deja el detalle
+// para cuando se abre. La tabla sigue disponible por si se prefiere.
+var VISTA = localStorage.getItem('leon-vista') || 'cards';
+
+function setVista(v){
+  VISTA = v;
+  localStorage.setItem('leon-vista', v);
+  render();
+}
+
+function fechaCorta(iso){
+  if(!iso) return null;
+  var p = String(iso).slice(0,10).split('-');
+  if(p.length!==3) return null;
+  var M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return parseInt(p[2],10)+' '+M[parseInt(p[1],10)-1]+' '+p[0];
+}
+
+// Última mantención registrada, que es lo que responde "cuándo estuvimos allá".
+function ultimoTrabajo(r){
+  var h = r.historial||[];
+  if(!h.length) return null;
+  return h.map(function(x){return x.fecha;}).filter(Boolean).sort().pop();
+}
+
+function tarjetaHTML(r){
+  var st = statusOf(r);
+  var dr = diasRestantes(r);
+  var estadoTxt = st==='red' ? (Math.abs(dr)+'d vencido')
+                : st==='amber' ? (dr===0?'vence hoy':'en '+dr+'d')
+                : st==='resched' ? 'reagendado'
+                : st==='green' ? (dr!=null?('en '+dr+'d'):'al día')
+                : '—';
+  var lugarComuna = [r.lugar, r.comuna].filter(Boolean).join(' · ');
+  var ult = ultimoTrabajo(r);
+  var nFotos = (r.photos||[]).length + (r.historial||[]).reduce(function(a,h){return a+((h.fotos||[]).length);},0);
+
+  return '<article class="ccard st-'+st+'" tabindex="0" onclick="abrirFicha('+r.id+')"'
+    +' onkeydown="if(event.key===\'Enter\')abrirFicha('+r.id+')">'
+    +'<div class="ccard-top">'
+      +'<div class="ccard-foto">'+avatarHTML(r, 56, false)+'</div>'
+      +'<div class="ccard-id">'
+        +'<div class="ccard-nom">'+(esc(r.cliente)||'Sin nombre')+'</div>'
+        +(lugarComuna?'<div class="ccard-sub">'+esc(lugarComuna)+'</div>':'')
+        +(r.rut?'<div class="ccard-rut">'+esc(r.rut)+'</div>':'')
+      +'</div>'
+      +'<span class="ccard-estado">'+esc(estadoTxt)+'</span>'
+    +'</div>'
+
+    +'<div class="ccard-datos">'
+      +'<div class="ccard-dato"><label>Servicio</label><div class="v tenue">'+(esc(r.servicio)||'—')+'</div></div>'
+      +'<div class="ccard-dato"><label>Vence</label><div class="v">'+esc(fmtFinal(r))+'</div></div>'
+      +'<div class="ccard-dato"><label>Último trabajo</label><div class="v tenue">'+(ult?esc(fechaCorta(ult)):'sin registro')+'</div></div>'
+      +'<div class="ccard-dato"><label>Equipos</label><div class="v tenue">'+((r.equipos||[]).length||'—')+'</div></div>'
+    +'</div>'
+
+    +(r.obs?'<div class="ccard-obs">'+esc(r.obs)+'</div>':'')
+
+    +'<div class="ccard-pie">'
+      +(r.aviso?'<span class="ccard-chip">✓ avisado</span>':'')
+      +(nFotos?'<span class="ccard-chip">'+nFotos+' foto'+(nFotos>1?'s':'')+'</span>':'')
+      +((r.cotizaciones||[]).length?'<span class="ccard-chip">'+(r.cotizaciones||[]).length+' cotiz.</span>':'')
+      +'<div class="ccard-acciones" onclick="event.stopPropagation()">'
+        +(puedeWhatsapp(r)?'<button class="ccard-acc wa" onclick="waCliente('+r.id+')" title="WhatsApp">💬</button>':'')
+        +'<button class="ccard-acc" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención de hoy">✓</button>'
+        +'<button class="ccard-acc" onclick="openModal('+r.id+')" title="Editar">✎</button>'
+      +'</div>'
+    +'</div>'
+  +'</article>';
+}
+
+function renderCards(lista){
+  var el = document.getElementById('cards-grid');
+  if(!el) return;
+  if(!lista.length){
+    el.innerHTML = '<div class="cards-vacio">No hay clientes que coincidan con el filtro.</div>';
+    return;
+  }
+  el.innerHTML = lista.map(tarjetaHTML).join('');
+}
+
+function abrirFicha(id){
+  var r = data.find(function(x){return x.id===id;});
+  if(!r) return;
+  document.getElementById('ficha-titulo').textContent = r.cliente || 'Ficha del cliente';
+  document.getElementById('ficha-body').innerHTML = fichaHTML(r);
+  document.getElementById('ficha-ov').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function cerrarFicha(){
+  document.getElementById('ficha-ov').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape' && document.getElementById('ficha-ov') &&
+     document.getElementById('ficha-ov').style.display==='flex') cerrarFicha();
+});
+
 function expandRowHTML(r) {
+  return `<tr class="row-expand"><td colspan="11">${fichaHTML(r)}</td></tr>`;
+}
+
+// El contenido de la ficha, sin envoltorio: lo usa la fila expandida de la
+// tabla y tambien el detalle que se abre desde una tarjeta.
+function fichaHTML(r) {
   const st = statusOf(r);
   const stColor = st === 'red' ? 'var(--red)' : st === 'amber' ? 'var(--amber)' : st === 'green' ? 'var(--green)' : st === 'resched' ? 'var(--resched)' : 'var(--text3)';
   const lugarComuna = [r.lugar, r.comuna].filter(Boolean).join(' · ');
-  return `<tr class="row-expand"><td colspan="11"><div class="row-expand-inner">
+  return `<div class="row-expand-inner">
     <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
       <div class="avatar-wrap">
         ${avatarHTML(r, 76, false)}
@@ -2035,7 +2244,7 @@ function expandRowHTML(r) {
         <button class="card-btn" onclick="openModal(${r.id})">Editar</button>
       </div>
     </div>
-  </div></td></tr>`;
+  </div>`;
 }
 
 function render() {
@@ -2059,6 +2268,17 @@ function render() {
 
   renderStats();
   const rows = getFiltered();
+
+  // ── Vista de tarjetas o tabla ──
+  var esTarjetas = (VISTA === 'cards');
+  var gridEl = document.getElementById('cards-grid');
+  var tablaEl = document.querySelector('.table-container');
+  if (gridEl) gridEl.style.display = esTarjetas ? 'grid' : 'none';
+  if (tablaEl) tablaEl.style.display = esTarjetas ? 'none' : '';
+  var vtC = document.getElementById('vt-cards'), vtT = document.getElementById('vt-tabla');
+  if (vtC) vtC.className = esTarjetas ? 'act' : '';
+  if (vtT) vtT.className = esTarjetas ? '' : 'act';
+  if (esTarjetas) renderCards(rows);
 
   // ── Desktop ──
   const tb = document.getElementById('tbody');
@@ -3333,8 +3553,10 @@ function toggleTheme() {
   localStorage.setItem('leon-theme', next);
 }
 // Aplicar tema guardado al cargar
-localStorage.removeItem('leon-theme');
-applyTheme('dark');
+// Antes se forzaba el tema oscuro borrando la preferencia en cada carga. En
+// terreno, con sol, el claro se lee bastante mejor, asi que ahora es el
+// predeterminado -- y la eleccion del usuario manda si ya eligio uno.
+applyTheme(localStorage.getItem('leon-theme') || 'light');
 
 // ═══════════════════════════════════════
 // SESIÓN — cada persona entra con su propio correo
