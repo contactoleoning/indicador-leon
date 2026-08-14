@@ -1,6 +1,6 @@
 # Estado del sistema — León Ingeniería
 
-Última actualización: 13 de agosto de 2026 (tarde).
+Última actualización: 14 de agosto de 2026.
 
 Este archivo existe porque ya no es una app: son tres, comparten una base de
 datos, y hay trabajo publicado y trabajo esperando prueba. Sin esto, retomar
@@ -59,6 +59,7 @@ corte el Apps Script para ese dato.
 - Respaldo diario automático de datos y reglas, sin borrado a los 30 días.
 - Copia de prueba en `/beta` para las tres.
 - Proveedor **Anónimo inhabilitado** en Authentication (13 de agosto).
+- Registro de cotizaciones en Firebase, ya **fuera** del Apps Script.
 
 Lo de la Fase 2 ya está publicado:
 
@@ -73,16 +74,17 @@ Lo de la Fase 2 ya está publicado:
 - Métricas de cierre: ticket, demora, motivos de pérdida, efecto del seguimiento.
 - El folio del comprobante se reserva al guardar o imprimir, no al abrir.
 - El registro de cotizaciones se guarda en `leon_cotizaciones`, con migración
-  automática y relleno de teléfonos desde el Indicador.
-
-## En rama, esperando prueba
-
-Rama `fase4-canal-origen` en el cotizador, también en la beta.
-
-- Selector "¿Cómo llegó?" en los datos del cliente (Instagram, referido,
-  WhatsApp, llamada, cliente que vuelve).
-- Tabla de rendimiento por canal: cuántas cotizaciones, qué porcentaje cerró y
-  cuánta plata dejó cada uno.
+  automática y relleno de teléfonos y RUT desde el historial.
+- Canal de origen al cotizar, y tabla de rendimiento por canal.
+- Tendencia mes a mes, clientes que vuelven, motivos de pérdida, ticket y
+  demora en cerrar.
+- Las cotizaciones que esperan respuesta aparecen dentro de Recordatorios del
+  Indicador, que era la "pantalla diaria única" del plan original.
+- **Vista de tarjetas** en el Indicador, con relieve por urgencia (la altura
+  dice cuánto urge), reverso con lo técnico, y paleta acero y cobre. La tabla
+  sigue disponible desde el selector Tarjetas / Tabla.
+- Tema claro por defecto: en terreno, con sol, se lee mejor que el oscuro.
+- Correo del cliente en el traspaso y en la ficha.
 
 ## Pendiente
 
@@ -91,6 +93,12 @@ Rama `fase4-canal-origen` en el cotizador, también en la beta.
   antes.
 - **Duplicados existentes** en la base. El cliente único evita que se creen
   nuevos, no arregla los que ya están.
+- **RUT vacíos** en los clientes que nunca pasaron por una cotización. Isaac los
+  ingresa a mano.
+- **Campañas por temporada**, para armar en septiembre cuando parte la temporada.
+- **La columna de teléfono de la planilla de cotizaciones devuelve `#ERROR!`**
+  en todas las filas: una fórmula rota en la hoja. Por eso los teléfonos
+  históricos no se pudieron recuperar. El RUT y la comuna sí vienen bien.
 
 ---
 
@@ -103,11 +111,19 @@ tres registros de prueba entraron al registro real y de ahí a Firebase. Antes d
 ejecutar en la consola cualquier función que termine en `saveRegList()`, hay que
 interceptar también `saveCloudData` y `postToGAS`.
 
-**El registro de cotizaciones se guarda en dos lados a la vez.** Firebase y el
-Apps Script, a propósito, hasta confirmar que Firebase no falla. Son dos fuentes
-de verdad y en algún momento pueden discrepar: no es un estado para quedarse
-mucho tiempo. Cortar el Apps Script para el registro es el siguiente paso; los
-catálogos seguirían ahí.
+**Publicar copiando un archivo desde otra rama pisa lo que se haya commiteado
+en `main` por fuera de esa rama.** Pasó: el arreglo de pérdida de datos al
+editar y el campo de correo se commitearon en `main`, y la publicación
+siguiente los borró copiando el `index.html` de una rama que no los tenía.
+Estuvieron 19 horas fuera de producción mientras se los daba por publicados.
+**Verificar siempre el contenido del archivo publicado, no que el push haya
+salido bien.** Son cosas distintas.
+
+**Las fechas de las cotizaciones se guardan como `DD-MM-YYYY`**, no en ISO, y
+el Indicador trabaja en ISO. Hay conversores en las dos apps (`fechaISO` /
+`cotFechaISO`). Cualquier cálculo nuevo con fechas del Cotizador tiene que
+pasar por ahí: mezclarlas hacía que los días transcurridos dieran `null` y que
+agrupar por mes agrupara por día.
 
 **La clave del Apps Script está en el HTML público.** Cualquiera que abra el
 código fuente la tiene. Mientras siga así, el registro de cotizaciones queda
