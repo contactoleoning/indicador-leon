@@ -76,6 +76,16 @@ Lo de la Fase 2 ya está publicado:
 - El registro de cotizaciones se guarda en `leon_cotizaciones`, con migración
   automática y relleno de teléfonos y RUT desde el historial.
 - Canal de origen al cotizar, y tabla de rendimiento por canal.
+- **Alternativas del mismo trabajo.** Varias cotizaciones a un mismo cliente en
+  días cercanos cuentan como **una** oportunidad, no como varias: en "plata en
+  juego" pesa la más alta, y al cerrar una las otras quedan `Descartada`, que no
+  es venta ni derrota. Detecta también las **ya cerradas** —el caso de Ana Moya:
+  se cotizó, apareció trabajo adicional, se hizo una nueva por más plata y la
+  primera quedó sin efecto; si alcanzaba a marcarse como perdida antes de
+  agrupar, esa plata quedaba para siempre como venta perdida—. Agrupa por
+  cercanía en el tiempo, **corte en 30 días**: un cliente que vuelve a los tres
+  meses es un cliente que vuelve, no una alternativa. Detecta y sugiere; agrupa
+  Isaac.
 - Botón **Revisar contra la planilla** en Seguimiento. La planilla es la que
   Isaac cura a mano, así que manda ella: el botón corrige monto, cliente,
   servicio, comuna y RUT, y **elimina del registro lo que la planilla no tiene**
