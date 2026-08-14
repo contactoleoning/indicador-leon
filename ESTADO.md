@@ -93,6 +93,20 @@ Lo de la Fase 2 ya está publicado:
   Agrupa por cercanía en el tiempo, **corte en 30 días**: un cliente que vuelve
   a los tres meses es un cliente que vuelve, no una alternativa. Detecta y
   sugiere; agrupa Isaac.
+- **Perder un grupo cuenta como una derrota, no como varias** (Paola: dos
+  alternativas y no contestó por ninguna).
+- **La pregunta se hace al generar**, no sólo después: si el cliente ya tiene
+  una cotización viva de estos días, pregunta ahí mismo si es del mismo trabajo
+  y de qué tipo. Es con el trabajo fresco en la cabeza cuando Isaac sabe la
+  respuesta.
+- **Segunda dimensión: "Al bolsillo".** Lo facturado no es lo ganado. En
+  Seguimiento hay **Trabajos por liquidar** —cerrados sin gastos anotados— donde
+  se anota equipos, materiales, ayudante y otros; el costo de los equipos viene
+  pre-llenado desde el catálogo, que es el único de los cuatro que el sistema
+  sabe solo. En Estadísticas el bloque **Al bolsillo** muestra entró / gastaste
+  / te quedó. **Todo sin IVA**: ese 19% se cobra por el fisco y nunca fue plata
+  de Isaac. El bloque sólo afirma sobre los trabajos ya liquidados y dice
+  cuántos faltan, en vez de mezclarlos y dar un margen que no significa nada.
 - Botón **Revisar contra la planilla** en Seguimiento. La planilla es la que
   Isaac cura a mano, así que manda ella: el botón corrige monto, cliente,
   servicio, comuna y RUT, y **elimina del registro lo que la planilla no tiene**
