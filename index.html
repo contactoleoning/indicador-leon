@@ -33,17 +33,17 @@ button{cursor:pointer}
 :root{
   color-scheme:dark;
   /* Palette — unificada con el Cotizador (colores corporativos León) */
-  --bg:#0b0b0d;
-  --surface:#161619;
-  --surface2:#0b0b0d;
-  --surface3:#212126;
-  --border:#2a2a30;
-  --border2:#3a3a42;
-  --text:#f6f6f8;
-  --text2:#bdbdc7;
-  --text3:#82828d;
-  /* Brand */
-  --gold:#d6d9de;--gold2:#eceef1;
+  --bg:#14171c;
+  --surface:#1c2128;
+  --surface2:#171b21;
+  --surface3:#262c35;
+  --border:#333b45;
+  --border2:#4a545f;
+  --text:#e9edf2;
+  --text2:#a8b3c0;
+  --text3:#7a8794;
+  /* Brand — el mismo cobre, encendido para fondo oscuro */
+  --gold:#d97706;--gold2:#f59e0b;
   /* Status */
   --green:#3fb950;--green-bg:rgba(63,185,80,0.12);--green-border:rgba(63,185,80,0.35);
   --amber:#d29922;--amber-bg:rgba(210,153,34,0.12);--amber-border:rgba(210,153,34,0.35);
@@ -518,56 +518,72 @@ button{cursor:pointer}
   padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:background .15s,color .15s}
 .vista-tabs button.act{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:18px;
-  padding:20px 16px 44px;perspective:1400px;perspective-origin:50% 30%}
-.ccard{position:relative;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
-  padding:16px 16px 14px;cursor:pointer;display:flex;flex-direction:column;gap:12px;overflow:hidden;
-  transform-style:preserve-3d;will-change:transform;
-  transform:perspective(1400px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateZ(0);
-  transition:transform .25s cubic-bezier(.2,.7,.3,1), box-shadow .25s ease, border-color .18s;
-  /* Sombra en capas: una pegada al borde que da el canto, y dos separadas
-     que dan la altura. Una sola sombra difusa se ve plana. */
-  box-shadow:0 1px 2px rgba(16,32,56,.10),
-             0 6px 14px -6px rgba(16,32,56,.16),
-             0 18px 34px -22px rgba(16,32,56,.22)}
-/* El brillo que recorre la tarjeta al inclinarla: es lo que hace que la
-   superficie se lea como un objeto y no como un rectangulo. */
-.ccard::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
-  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),
-    rgba(255,255,255,.55), rgba(255,255,255,0) 60%);
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px;
+  padding:26px 16px 56px;perspective:1500px;perspective-origin:50% 25%}
+
+.ccard{position:relative;cursor:pointer;display:block;border:none;background:none;padding:0;
+  transform-style:preserve-3d;text-align:left;font:inherit;width:100%}
+.ccard:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:var(--radius)}
+
+/* ── RELIEVE POR URGENCIA ──────────────────────────────────────────────
+   La altura no decora: dice cuanto urge. Lo vencido flota sobre la pagina
+   con sombra larga, lo que esta al dia se apoya plano. Al abrir la app no
+   hay que leer nada -- lo que sobresale es lo que hay que atender hoy.   */
+.ccard{--lift:0px;--sombra:rgba(22,27,34,.20)}
+.ccard.st-green  {--lift:0px}
+.ccard.st-resched{--lift:8px}
+.ccard.st-amber  {--lift:16px}
+.ccard.st-red    {--lift:28px}
+[data-theme="dark"] .ccard{--sombra:rgba(0,0,0,.72)}
+
+.ccard-inner{position:relative;transform-style:preserve-3d;
+  transform:translateZ(var(--lift))
+            rotateX(var(--rx,0deg))
+            rotateY(calc(var(--ry,0deg) + var(--flip,0deg)));
+  transition:transform .55s cubic-bezier(.2,.75,.25,1)}
+/* Ojo: la sombra NO puede ir como filter en .ccard-inner. Un filtro aplana el
+   contexto 3D del elemento, y con eso backface-visibility deja de funcionar --
+   al girar se veia el frente espejado en vez del dorso. Va como box-shadow en
+   cada cara, que no aplana nada. */
+.ccard.girada .ccard-inner{--flip:180deg}
+
+/* Las dos caras ocupan la misma celda: el alto lo manda la mas larga y no
+   hay que fijarlo a mano. */
+/* preserve-3d es obligatorio aca: sin el, el navegador aplana el contexto
+   3D en este nivel y backface-visibility deja de funcionar -- se veia el
+   frente espejado en vez del dorso. */
+.ccard-caras{display:grid;transform-style:preserve-3d}
+.ccard-cara{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  transform:translateZ(0.01px);
+  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:16px 16px 14px;display:flex;flex-direction:column;gap:12px;overflow:hidden;position:relative;
+  transition:box-shadow .3s ease,border-color .18s;
+  box-shadow:0 calc(1px + var(--lift) * 0.10) calc(2px + var(--lift) * 0.18) rgba(22,27,34,.10),
+             0 calc(4px + var(--lift) * 0.55) calc(10px + var(--lift) * 1.15) calc(-4px - var(--lift) * 0.15) var(--sombra)}
+.ccard-cara.dorso{transform:rotateY(180deg) translateZ(0.01px)}
+.ccard:hover .ccard-cara{border-color:var(--border2)}
+
+.ccard-cara::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;
+  border-radius:var(--radius) 0 0 var(--radius);background:var(--text3)}
+.st-green .ccard-cara::before{background:var(--green)}
+.st-amber .ccard-cara::before{background:var(--amber)}
+.st-red .ccard-cara::before{background:var(--red)}
+.st-resched .ccard-cara::before{background:var(--resched)}
+
+.ccard-cara::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:radial-gradient(440px circle at var(--mx,50%) var(--my,0%),
+    rgba(255,255,255,.5), rgba(255,255,255,0) 62%);
   opacity:0;transition:opacity .25s ease}
-.ccard:hover::after{opacity:1}
-[data-theme="dark"] .ccard::after{background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),
-  rgba(255,255,255,.10), rgba(255,255,255,0) 60%)}
-.ccard-top,.ccard-datos,.ccard-obs,.ccard-pie{transform:translateZ(24px)}
-.ccard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--text3);
-  border-radius:var(--radius) 0 0 var(--radius)}
-.ccard.st-green::before{background:var(--green)}
-.ccard.st-amber::before{background:var(--amber)}
-.ccard.st-red::before{background:var(--red)}
-.ccard.st-resched::before{background:var(--resched)}
-.ccard:hover{border-color:var(--border2);
-  box-shadow:0 2px 4px rgba(16,32,56,.12),
-             0 14px 26px -10px rgba(16,32,56,.22),
-             0 36px 60px -34px rgba(16,32,56,.30)}
-.ccard:active{transition-duration:.08s;transform:perspective(1400px) scale(.985)}
-[data-theme="dark"] .ccard{box-shadow:0 1px 2px rgba(0,0,0,.5),
-  0 8px 18px -8px rgba(0,0,0,.55), 0 22px 40px -26px rgba(0,0,0,.7)}
-/* Quien pidio menos movimiento no recibe inclinacion ni brillo. */
-@media (prefers-reduced-motion: reduce){
-  .ccard{transform:none !important;transition:box-shadow .2s ease,border-color .2s}
-  .ccard::after{display:none}
-  .ccard-top,.ccard-datos,.ccard-obs,.ccard-pie{transform:none}
-}
-.ccard:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.ccard:hover .ccard-cara.frente::after{opacity:1}
+[data-theme="dark"] .ccard-cara::after{background:radial-gradient(440px circle at var(--mx,50%) var(--my,0%),
+  rgba(255,255,255,.09), rgba(255,255,255,0) 62%)}
 
 .ccard-top{display:flex;gap:13px;align-items:flex-start}
 .ccard-foto{width:56px;height:56px;border-radius:14px;flex:none;overflow:hidden;background:var(--surface3);
   display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:var(--text2)}
 .ccard-foto img{width:100%;height:100%;object-fit:cover}
 .ccard-id{flex:1;min-width:0}
-.ccard-nom{font-size:16.5px;font-weight:750;color:var(--text);line-height:1.22;
-  overflow-wrap:anywhere}
+.ccard-nom{font-size:16.5px;font-weight:750;color:var(--text);line-height:1.22;overflow-wrap:anywhere}
 .ccard-sub{font-size:12.5px;color:var(--text3);margin-top:3px}
 .ccard-rut{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:1px}
 
@@ -590,7 +606,7 @@ button{cursor:pointer}
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 
 .ccard-pie{display:flex;gap:7px;align-items:center;flex-wrap:wrap;
-  border-top:1px solid var(--border);padding-top:11px}
+  border-top:1px solid var(--border);padding-top:11px;margin-top:auto}
 .ccard-chip{font-size:11px;color:var(--text3);background:var(--surface3);
   border-radius:20px;padding:3px 9px;font-weight:600}
 .ccard-acciones{display:flex;gap:6px;margin-left:auto}
@@ -598,9 +614,27 @@ button{cursor:pointer}
   width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
   cursor:pointer;font-size:15px;transition:border-color .15s,color .15s,background .15s}
 .ccard-acc:hover{border-color:var(--gold);color:var(--gold)}
-.ccard-acc.wa:hover{border-color:#25d366;color:#25d366;background:rgba(37,211,102,.1)}
+.ccard-acc.wa:hover{border-color:#25d366;color:#25d366;background:rgba(37,211,102,.12)}
+
+/* ── DORSO ── */
+.dorso-tit{font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--text3)}
+.dorso-lista{display:flex;flex-direction:column;gap:6px}
+.dorso-eq{font-size:12.5px;color:var(--text2);line-height:1.45}
+.dorso-eq b{color:var(--text)}
+.dorso-obs{font-size:12.5px;color:var(--text2);line-height:1.55;white-space:pre-wrap}
+.dorso-vacio{font-size:12px;color:var(--text3)}
+.dorso-ficha{width:100%;border:1px solid var(--gold);background:transparent;color:var(--gold);
+  border-radius:10px;padding:9px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;
+  transition:background .15s,color .15s}
+.dorso-ficha:hover{background:var(--gold);color:#fff}
+.girar-pista{font-size:10.5px;color:var(--text3);text-align:center}
 
 .cards-vacio{grid-column:1/-1;text-align:center;padding:50px 20px;color:var(--text3);font-size:14px}
+
+@media (prefers-reduced-motion: reduce){
+  .ccard-inner{transform:translateZ(var(--lift)) rotateY(var(--flip,0deg));transition:transform .2s}
+  .ccard-cara::after{display:none}
+}
 
 /* detalle de una tarjeta */
 #ficha-ov{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:9000;display:none;
@@ -622,27 +656,26 @@ button{cursor:pointer}
 }
 
 [data-theme="light"]{
-  --bg:#eef2f7;
+  /* ACERO Y COBRE — grises frios de taller con un cobre calido de acento.
+     Se aleja del azul corporativo y se acerca a la sensacion de empresa de
+     ingenieria: material, herramienta, plano. */
+  --bg:#f2f4f7;
   --surface:#ffffff;
-  --surface2:#f4f7fb;
-  --surface3:#e6ecf4;
-  /* Bordes bastante mas marcados: los anteriores casi no se veian sobre
-     blanco, y una tarjeta sin borde visible se lee como una mancha. */
-  --border:#c3d1e2;
-  --border2:#93a8c2;
-  --text:#0a1524;
-  /* El texto secundario y el terciario estaban demasiado claros para leerse
-     con sol. Ahora los dos pasan holgados el contraste AA sobre blanco. */
-  --text2:#334963;
-  --text3:#5b7189;
-  --gold:#c88800;--gold2:#a06800;
-  --green:#15803d;--green-bg:rgba(21,128,61,0.09);--green-border:rgba(21,128,61,0.3);
-  --amber:#b45309;--amber-bg:rgba(180,83,9,0.09);--amber-border:rgba(180,83,9,0.3);
-  --red:#dc2626;--red-bg:rgba(220,38,38,0.08);--red-border:rgba(220,38,38,0.25);
-  --resched:#6d28d9;--resched-bg:rgba(109,40,217,0.08);--resched-border:rgba(109,40,217,0.28);
-  --aviso:#2563eb;--aviso-bg:rgba(37,99,235,0.08);--aviso-border:rgba(37,99,235,0.28);
-  --shadow:0 2px 8px rgba(0,0,0,0.08);
-  --shadow-md:0 6px 20px rgba(0,0,0,0.12);
+  --surface2:#f7f9fb;
+  --surface3:#e8ecf1;
+  --border:#c4ccd6;
+  --border2:#98a3b2;
+  --text:#161b22;
+  --text2:#3a4552;
+  --text3:#5e6a78;
+  --gold:#b45309;--gold2:#92400e;
+  --green:#15803d;--green-bg:rgba(21,128,61,0.10);--green-border:rgba(21,128,61,0.34);
+  --amber:#a16207;--amber-bg:rgba(161,98,7,0.10);--amber-border:rgba(161,98,7,0.34);
+  --red:#b91c1c;--red-bg:rgba(185,28,28,0.09);--red-border:rgba(185,28,28,0.30);
+  --resched:#5b21b6;--resched-bg:rgba(91,33,182,0.09);--resched-border:rgba(91,33,182,0.30);
+  --aviso:#0e7490;--aviso-bg:rgba(14,116,144,0.09);--aviso-border:rgba(14,116,144,0.30);
+  --shadow:0 2px 8px rgba(22,27,34,0.10);
+  --shadow-md:0 6px 20px rgba(22,27,34,0.14);
 }
 [data-theme="light"] body{background:#f0f4f8;color:#0f1a2a}
 /* header keeps dark brand */
@@ -2152,58 +2185,107 @@ function tarjetaHTML(r){
                 : '—';
   var lugarComuna = [r.lugar, r.comuna].filter(Boolean).join(' · ');
   var ult = ultimoTrabajo(r);
+  var eq = r.equipos||[];
   var nFotos = (r.photos||[]).length + (r.historial||[]).reduce(function(a,h){return a+((h.fotos||[]).length);},0);
+  var cots = r.cotizaciones||[];
 
-  return '<article class="ccard st-'+st+'" tabindex="0" onclick="abrirFicha('+r.id+')"'
-    +' onkeydown="if(event.key===\'Enter\')abrirFicha('+r.id+')">'
-    +'<div class="ccard-top">'
-      +'<div class="ccard-foto">'+avatarHTML(r, 56, false)+'</div>'
-      +'<div class="ccard-id">'
-        +'<div class="ccard-nom">'+(esc(r.cliente)||'Sin nombre')+'</div>'
-        +(lugarComuna?'<div class="ccard-sub">'+esc(lugarComuna)+'</div>':'')
-        +(r.rut?'<div class="ccard-rut">'+esc(r.rut)+'</div>':'')
+  var frente =
+    '<div class="ccard-cara frente">'
+      +'<div class="ccard-top">'
+        +'<div class="ccard-foto">'+avatarHTML(r, 56, false)+'</div>'
+        +'<div class="ccard-id">'
+          +'<div class="ccard-nom">'+(esc(r.cliente)||'Sin nombre')+'</div>'
+          +(lugarComuna?'<div class="ccard-sub">'+esc(lugarComuna)+'</div>':'')
+          +(r.rut?'<div class="ccard-rut">'+esc(r.rut)+'</div>':'')
+        +'</div>'
+        +'<span class="ccard-estado">'+esc(estadoTxt)+'</span>'
       +'</div>'
-      +'<span class="ccard-estado">'+esc(estadoTxt)+'</span>'
-    +'</div>'
-
-    +'<div class="ccard-datos">'
-      +'<div class="ccard-dato"><label>Servicio</label><div class="v tenue">'+(esc(r.servicio)||'—')+'</div></div>'
-      +'<div class="ccard-dato"><label>Vence</label><div class="v">'+esc(fmtFinal(r))+'</div></div>'
-      +'<div class="ccard-dato"><label>Último trabajo</label><div class="v tenue">'+(ult?esc(fechaCorta(ult)):'sin registro')+'</div></div>'
-      +'<div class="ccard-dato"><label>Equipos</label><div class="v tenue">'+((r.equipos||[]).length||'—')+'</div></div>'
-    +'</div>'
-
-    +(r.obs?'<div class="ccard-obs">'+esc(r.obs)+'</div>':'')
-
-    +'<div class="ccard-pie">'
-      +(r.aviso?'<span class="ccard-chip">✓ avisado</span>':'')
-      +(nFotos?'<span class="ccard-chip">'+nFotos+' foto'+(nFotos>1?'s':'')+'</span>':'')
-      +((r.cotizaciones||[]).length?'<span class="ccard-chip">'+(r.cotizaciones||[]).length+' cotiz.</span>':'')
-      +'<div class="ccard-acciones" onclick="event.stopPropagation()">'
-        +(puedeWhatsapp(r)?'<button class="ccard-acc wa" onclick="waCliente('+r.id+')" title="WhatsApp">💬</button>':'')
-        +'<button class="ccard-acc" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención de hoy">✓</button>'
-        +'<button class="ccard-acc" onclick="openModal('+r.id+')" title="Editar">✎</button>'
+      +'<div class="ccard-datos">'
+        +'<div class="ccard-dato"><label>Servicio</label><div class="v tenue">'+(esc(r.servicio)||'—')+'</div></div>'
+        +'<div class="ccard-dato"><label>Vence</label><div class="v">'+esc(fmtFinal(r))+'</div></div>'
+        +'<div class="ccard-dato"><label>Último trabajo</label><div class="v tenue">'+(ult?esc(fechaCorta(ult)):'sin registro')+'</div></div>'
+        +'<div class="ccard-dato"><label>Equipos</label><div class="v tenue">'+(eq.length||'—')+'</div></div>'
       +'</div>'
-    +'</div>'
-  +'</article>';
+      +(r.obs?'<div class="ccard-obs">'+esc(r.obs)+'</div>':'')
+      +'<div class="ccard-pie">'
+        +(r.aviso?'<span class="ccard-chip">✓ avisado</span>':'')
+        +(nFotos?'<span class="ccard-chip">'+nFotos+' foto'+(nFotos>1?'s':'')+'</span>':'')
+        +(cots.length?'<span class="ccard-chip">'+cots.length+' cotiz.</span>':'')
+        +'<div class="ccard-acciones" onclick="event.stopPropagation()">'
+          +(puedeWhatsapp(r)?'<button class="ccard-acc wa" onclick="waCliente('+r.id+')" title="WhatsApp">💬</button>':'')
+          +'<button class="ccard-acc" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención de hoy">✓</button>'
+          +'<button class="ccard-acc" onclick="openModal('+r.id+')" title="Editar">✎</button>'
+        +'</div>'
+      +'</div>'
+    +'</div>';
+
+  var listaEq = eq.length
+    ? '<div class="dorso-lista">'+eq.slice(0,6).map(function(e){
+        var nom=[e.marca,e.modelo].filter(Boolean).join(' ');
+        return '<div class="dorso-eq">• <b>'+(esc(nom)||'Equipo')+'</b>'
+          +(e.btu?' '+esc(e.btu)+' BTU':'')
+          +(e.ubicacion?' — '+esc(e.ubicacion):'')+'</div>';
+      }).join('')+(eq.length>6?'<div class="dorso-vacio">y '+(eq.length-6)+' más…</div>':'')+'</div>'
+    : '<div class="dorso-vacio">Sin equipos registrados.</div>';
+
+  // El dorso lleva lo tecnico: lo que hace falta antes de subir a la
+  // instalacion, sin abrir nada mas.
+  var dorso =
+    '<div class="ccard-cara dorso">'
+      +'<div class="ccard-top">'
+        +'<div class="ccard-id">'
+          +'<div class="ccard-nom">'+(esc(r.cliente)||'Sin nombre')+'</div>'
+          +(r.direccion?'<div class="ccard-sub">'+esc([r.direccion,r.detalle].filter(Boolean).join(' — '))+'</div>':'')
+        +'</div>'
+      +'</div>'
+      +'<div><div class="dorso-tit">Equipos ('+eq.length+')</div>'+listaEq+'</div>'
+      +'<div><div class="dorso-tit">Observación</div>'
+        +(r.obs?'<div class="dorso-obs">'+esc(r.obs)+'</div>':'<div class="dorso-vacio">Sin observaciones.</div>')+'</div>'
+      +(cots.length?'<div><div class="dorso-tit">Historial comercial</div>'
+        +'<div class="dorso-eq">'+cots.length+' cotización'+(cots.length>1?'es':'')+' · '
+        +fmtPesos(cots.reduce(function(a,c){return a+(Number(c.monto)||0);},0))+'</div></div>':'')
+      +'<div class="ccard-pie" onclick="event.stopPropagation()">'
+        +'<button class="dorso-ficha" onclick="abrirFicha('+r.id+')">Ver ficha completa con fotos</button>'
+      +'</div>'
+      +'<div class="girar-pista">toca para volver</div>'
+    +'</div>';
+
+  // Va como div con rol de boton, no como <button>: adentro hay botones
+  // (WhatsApp, editar, ver ficha) y un boton dentro de otro es HTML invalido
+  // -- el navegador corta la estructura y el dorso desaparecia.
+  return '<div class="ccard st-'+st+'" role="button" tabindex="0"'
+    +' onclick="girarTarjeta(this)"'
+    +' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();girarTarjeta(this);}"'
+    +' aria-label="Ficha de '+escAttr(r.cliente||'cliente')+'">'
+    +'<div class="ccard-inner"><div class="ccard-caras">'+frente+dorso+'</div></div>'
+    +'</div>';
+}
+
+// Girar en vez de abrir un panel: en terreno, con una mano, dar vuelta la
+// tarjeta y volver es mas rapido que abrir y cerrar. La ficha completa con
+// fotos sigue estando, a un toque desde el dorso.
+function girarTarjeta(el){
+  el.classList.toggle('girada');
+  el.style.removeProperty('--rx');   // si no, el dorso queda torcido
+  el.style.removeProperty('--ry');
 }
 
 // La inclinacion se calcula con la posicion del puntero sobre la tarjeta.
 // Va delegada en el contenedor -- un solo listener para todas -- porque las
-// tarjetas se vuelven a dibujar en cada render y enganchar uno por tarjeta
+// tarjetas se vuelven a dibujar en cada render y enganchar una por una
 // dejaria listeners sueltos cada vez.
-var TILT_MAX = 6;   // grados; mas que esto marea y molesta para leer
+var TILT_MAX = 6;   // grados; mas que esto marea y estorba para leer
 var _sinMovimiento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function inclinarTarjeta(e){
   if(_sinMovimiento) return;
   var card = e.target.closest && e.target.closest('.ccard');
-  if(!card) return;
+  if(!card || card.classList.contains('girada')) return;   // el dorso no se inclina
   var b = card.getBoundingClientRect();
-  var px = (e.clientX - b.left) / b.width;      // 0 a 1
+  var px = (e.clientX - b.left) / b.width;
   var py = (e.clientY - b.top) / b.height;
-  card.style.setProperty('--ry', ((px - .5) *  TILT_MAX * 2).toFixed(2) + 'deg');
-  card.style.setProperty('--rx', ((.5 - py) *  TILT_MAX * 2).toFixed(2) + 'deg');
+  card.style.setProperty('--ry', ((px - .5) * TILT_MAX * 2).toFixed(2) + 'deg');
+  card.style.setProperty('--rx', ((.5 - py) * TILT_MAX * 2).toFixed(2) + 'deg');
   card.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
   card.style.setProperty('--my', (py * 100).toFixed(1) + '%');
 }
@@ -2216,8 +2298,8 @@ function enderezarTarjeta(e){
 (function engancharTilt(){
   var g = document.getElementById('cards-grid');
   if(!g) return;
-  // pointermove cubre mouse y lapiz; en tactil no se inclina, ahi manda el
-  // :active, que da el hundido al tocar.
+  // pointermove cubre mouse y lapiz; en tactil no se inclina -- no hay
+  // puntero que seguir -- y manda el giro al tocar.
   g.addEventListener('pointermove', function(e){ if(e.pointerType!=='touch') inclinarTarjeta(e); });
   g.addEventListener('pointerleave', enderezarTarjeta, true);
   g.addEventListener('pointerout', function(e){
