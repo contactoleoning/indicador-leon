@@ -15,7 +15,7 @@ de su repositorio, y comparten el proyecto Firebase `leon-clientes`.
 
 | App | Repositorio | Para qué |
 |---|---|---|
-| **Cotizador** | `cotizador-leon` | Catálogo por BTU, presupuesto, PDF, guion de llamada, seguimiento de cotizaciones y estadísticas |
+| **Cotizador** | `cotizador-leon` | Catálogo por BTU, presupuesto, PDF, guion de llamada, seguimiento de cotizaciones y finanzas |
 | **Indicador de Vencimiento** | `indicador-leon` | Clientes, vencimientos de mantención, equipos, fotos, ruteo, recordatorios por WhatsApp |
 | **Comprobante de Servicio** | `comprobante-leon` | Comprobante que se emite en terreno, con folio correlativo |
 
@@ -107,7 +107,13 @@ Lo de la Fase 2 ya está publicado:
   / te quedó. **Todo sin IVA**: ese 19% se cobra por el fisco y nunca fue plata
   de Isaac. El bloque sólo afirma sobre los trabajos ya liquidados y dice
   cuántos faltan, en vez de mezclarlos y dar un margen que no significa nada.
-- **Ventas por mes y por año**, en Estadísticas, con barras horizontales
+- **Pestaña FINANZAS**, entre INFORMACIÓN y ADMINISTRADOR. El corte:
+  Administrador es catálogo y costos —configuración—; Finanzas es la plata
+  —ventas por mes y año, trabajos por liquidar, al bolsillo, detalle del mes—.
+  Se esconde del vendedor igual que Administrador. El formulario de liquidación
+  vive aquí; en Seguimiento queda sólo el recordatorio con un botón para llegar,
+  porque esa pantalla es para perseguir respuestas, no para hacer números.
+- **Ventas por mes y por año**, en Finanzas, con barras horizontales
   (verticales no se leen en el teléfono). Neto, sin IVA, igual que "Al bolsillo".
   La línea de tiempo se rellena mes a mes aunque no haya ventas: un mes en cero
   es información. Con un solo año muestra el total y avisa; con dos o más dibuja
