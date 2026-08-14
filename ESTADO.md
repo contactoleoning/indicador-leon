@@ -45,9 +45,9 @@ Las reglas están en `reglas-firebase.json`, en este mismo repositorio.
 Exigen sesión con correo **y** ficha en `/usuarios`. La raíz está cerrada por
 defecto, así que **un nodo nuevo no funciona hasta que se agregue a las reglas**.
 
-El Cotizador además usa un **Google Apps Script** aparte para catálogos y PDFs.
-El registro de cotizaciones va por ahí *y* por Firebase a la vez, hasta que se
-corte el Apps Script para ese dato.
+El Cotizador además usa un **Google Apps Script** aparte para catálogos, el
+historial de PDFs y el respaldo descargable. El registro de cotizaciones ya
+**no** pasa por ahí: vive solo en `leon_cotizaciones`.
 
 ---
 
