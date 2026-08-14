@@ -133,6 +133,13 @@ Lo de la Fase 2 ya está publicado:
   nuevos, no arregla los que ya están.
 - **RUT vacíos** en los clientes que nunca pasaron por una cotización. Isaac los
   ingresa a mano.
+- **Ventas por mes y por año.** Isaac lo pidió el 14 de agosto y decidió
+  dejarlo para más adelante. Cuánto se vende cada mes y cada año, para comparar
+  temporadas. Parte del terreno ya está: `mesDe()` agrupa bien por mes, hay
+  selector de mes en Estadísticas y tendencia mes a mes. Falta la vista anual y
+  la comparación entre años. Cuando se haga, conviene que muestre las dos
+  dimensiones —facturado y al bolsillo— porque un mes de más ventas no es
+  necesariamente un mes de más ganancia.
 - **Campañas por temporada**, para armar en septiembre cuando parte la temporada.
 - **La columna de teléfono de la planilla de cotizaciones devuelve `#ERROR!`**
   en todas las filas: una fórmula rota en la hoja. Por eso los teléfonos
