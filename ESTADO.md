@@ -76,6 +76,10 @@ Lo de la Fase 2 ya está publicado:
 - El registro de cotizaciones se guarda en `leon_cotizaciones`, con migración
   automática y relleno de teléfonos y RUT desde el historial.
 - Canal de origen al cotizar, y tabla de rendimiento por canal.
+- Botón **Revisar contra la planilla** en Seguimiento: trae de vuelta monto,
+  cliente, servicio, comuna y RUT desde Sheets sin tocar el seguimiento. Existe
+  porque al sacar el registro del Apps Script quedó sin camino corregir la
+  planilla a mano y que el arreglo llegue a la app.
 - Tendencia mes a mes, clientes que vuelven, motivos de pérdida, ticket y
   demora en cerrar.
 - Las cotizaciones que esperan respuesta aparecen dentro de Recordatorios del
@@ -96,6 +100,12 @@ Lo de la Fase 2 ya está publicado:
 - **RUT vacíos** en los clientes que nunca pasaron por una cotización. Isaac los
   ingresa a mano.
 - **Campañas por temporada**, para armar en septiembre cuando parte la temporada.
+- **La N°148 apunta a dos cotizaciones distintas.** En el registro es Luis
+  Sánchez por $451.764; en la planilla es Keith Singer por $106.650. Son dos
+  cotizaciones reales que quedaron con el mismo número cuando se apilaron los
+  148. "Revisar contra la planilla" las detecta y **no** las toca a propósito:
+  pisar una borraría la otra. Hay que decidir cuál conserva el 148 y darle otro
+  número a la que sobra.
 - **La columna de teléfono de la planilla de cotizaciones devuelve `#ERROR!`**
   en todas las filas: una fórmula rota en la hoja. Por eso los teléfonos
   históricos no se pudieron recuperar. El RUT y la comuna sí vienen bien.
@@ -133,6 +143,12 @@ expuesto aunque Firebase esté perfecto.
 rol, pero el precio se calcula en el navegador a partir del costo, así que el
 costo igual se descarga. Esconderlo de verdad requiere calcular el precio en el
 servidor.
+
+**El registro de cotizaciones y la planilla ya no se hablan solos.** Firebase
+es la fuente y el Apps Script no la pisa, que es lo correcto para el día a día.
+El precio es que arreglar la planilla a mano no llega a la app: para eso está
+el botón "Revisar contra la planilla". Si un monto se ve raro en Seguimiento,
+ese es el primer lugar donde mirar.
 
 **El indicador rearma el registro completo al guardar.** Todo campo que el
 formulario no muestre se pierde al editar un cliente, salvo que se agregue a la
