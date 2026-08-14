@@ -1064,6 +1064,7 @@ button{cursor:pointer}
         </div>
         <div class="ff"><label>DEPTO / PISO / OF.</label><input id="fdet" type="text" placeholder="Ej: Depto 4B, Piso 3"/></div>
         <div class="ff"><label>RUT</label><input id="frut" type="text" placeholder="12.345.678-9" autocapitalize="off" spellcheck="false"/></div>
+        <div class="ff"><label>CORREO</label><input id="fmail" type="email" placeholder="correo@ejemplo.cl" autocapitalize="off" spellcheck="false"/></div>
         <div class="ff">
           <label>TELÉFONO</label>
           <div class="input-tel-wrap">
@@ -2373,6 +2374,7 @@ function fichaHTML(r) {
           </div>
           ${(r.equipos && r.equipos.length) ? `<div class="card-field full"><label>EQUIPOS (${r.equipos.length})</label><div class="card-equipos">${r.equipos.map(eq => `<div>• <b>${esc([eq.marca, eq.modelo].filter(Boolean).join(' ')) || 'Equipo'}</b>${eq.btu ? ' ' + esc(eq.btu) + ' BTU' : ''}${eq.ubicacion ? ' — ' + esc(eq.ubicacion) : ''}</div>`).join('')}</div></div>` : ''}
           ${r.rut ? `<div class="card-field"><label>RUT</label><div class="card-field-val">${esc(r.rut)}</div></div>` : ''}
+          ${r.email ? `<div class="card-field"><label>CORREO</label><a class="card-phone-link" href="mailto:${escAttr(r.email)}">${esc(r.email)}</a></div>` : ''}
           ${cotizacionesHTML(r)}
           ${r.obs ? `<div class="card-field full"><label>OBSERVACIÓN</label><div class="card-obs">${esc(r.obs)}</div></div>` : ''}
         </div>
@@ -2859,6 +2861,7 @@ function openModal(id) {
   document.getElementById('fdir').value = r?.direccion||'';
   document.getElementById('fdet').value = r?.detalle||'';
   document.getElementById('frut').value = r?.rut||'';
+  document.getElementById('fmail').value = r?.email||'';
   // Teléfono: guardar solo los 8 dígitos sin el +569
   document.getElementById('ftel').value = r?.telefono||'';
   document.getElementById('ftelfijo').checked = r?.telefonoFijo||false;
@@ -2910,6 +2913,7 @@ function saveModal() {
     detalle: document.getElementById('fdet').value.trim(),
     telefono: document.getElementById('ftel').value.trim().replace(/\D/g,''),
     rut: document.getElementById('frut').value.trim(),
+    email: document.getElementById('fmail').value.trim(),
     telefonoFijo: document.getElementById('ftelfijo').checked,
     aviso: document.getElementById('fav').checked,
     plan: document.getElementById('fplan').checked,
@@ -2922,19 +2926,18 @@ function saveModal() {
   if (editId) {
     const i = data.findIndex(r=>r.id===editId);
     if (i>=0) {
-      // Preservar campos que este formulario no gestiona: si no, editar
-      // desde aquí borraría el ícono elegido a mano y forzaría a recrear
-      // los eventos de Calendar en vez de actualizar los que ya existían.
-      row.avatar = data[i].avatar;
-      row.calIngresoId = data[i].calIngresoId;
-      row.calMantId = data[i].calMantId;
-      row.reagenda = data[i].reagenda;
-      // Vienen del Cotizador y este formulario no los muestra. Sin esto, la
-      // primera edicion del cliente los borraba en silencio -- y con ellos se
-      // perdia de que cotizacion salio y por cuanto.
-      row.nroCotizacion = data[i].nroCotizacion;
-      row.montoCotizado = data[i].montoCotizado;
-      data[i] = row;
+      // Se parte de la ficha que ya existe y encima se aplica lo del
+      // formulario. Antes se hacía al revés -- se armaba una ficha nueva y se
+      // iban rescatando campos uno por uno -- y cada vez que el Cotizador
+      // mandaba un dato nuevo había que acordarse de sumarlo a esa lista. Ya
+      // pasó dos veces: primero con el número de cotización y el monto, y
+      // después con el historial comercial y el canal de origen, que se
+      // borraban solos en la primera edición.
+      //
+      // Así, lo que el formulario no muestra sobrevive sin tener que
+      // enumerarlo. Los campos que el formulario sí gestiona vienen todos en
+      // 'row' con su valor actual, así que se aplican igual.
+      data[i] = Object.assign({}, data[i], row);
     }
     toast('Cliente actualizado');
   } else {
