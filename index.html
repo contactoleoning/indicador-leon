@@ -518,16 +518,47 @@ button{cursor:pointer}
   padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:background .15s,color .15s}
 .vista-tabs button.act{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px;padding:16px 14px 40px}
-.ccard{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:16px 16px 14px;cursor:pointer;transition:transform .14s ease,box-shadow .18s ease,border-color .18s;
-  display:flex;flex-direction:column;gap:12px;overflow:hidden}
-.ccard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--text3)}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:18px;
+  padding:20px 16px 44px;perspective:1400px;perspective-origin:50% 30%}
+.ccard{position:relative;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:16px 16px 14px;cursor:pointer;display:flex;flex-direction:column;gap:12px;overflow:hidden;
+  transform-style:preserve-3d;will-change:transform;
+  transform:perspective(1400px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateZ(0);
+  transition:transform .25s cubic-bezier(.2,.7,.3,1), box-shadow .25s ease, border-color .18s;
+  /* Sombra en capas: una pegada al borde que da el canto, y dos separadas
+     que dan la altura. Una sola sombra difusa se ve plana. */
+  box-shadow:0 1px 2px rgba(16,32,56,.10),
+             0 6px 14px -6px rgba(16,32,56,.16),
+             0 18px 34px -22px rgba(16,32,56,.22)}
+/* El brillo que recorre la tarjeta al inclinarla: es lo que hace que la
+   superficie se lea como un objeto y no como un rectangulo. */
+.ccard::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),
+    rgba(255,255,255,.55), rgba(255,255,255,0) 60%);
+  opacity:0;transition:opacity .25s ease}
+.ccard:hover::after{opacity:1}
+[data-theme="dark"] .ccard::after{background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),
+  rgba(255,255,255,.10), rgba(255,255,255,0) 60%)}
+.ccard-top,.ccard-datos,.ccard-obs,.ccard-pie{transform:translateZ(24px)}
+.ccard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--text3);
+  border-radius:var(--radius) 0 0 var(--radius)}
 .ccard.st-green::before{background:var(--green)}
 .ccard.st-amber::before{background:var(--amber)}
 .ccard.st-red::before{background:var(--red)}
 .ccard.st-resched::before{background:var(--resched)}
-.ccard:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--border2)}
+.ccard:hover{border-color:var(--border2);
+  box-shadow:0 2px 4px rgba(16,32,56,.12),
+             0 14px 26px -10px rgba(16,32,56,.22),
+             0 36px 60px -34px rgba(16,32,56,.30)}
+.ccard:active{transition-duration:.08s;transform:perspective(1400px) scale(.985)}
+[data-theme="dark"] .ccard{box-shadow:0 1px 2px rgba(0,0,0,.5),
+  0 8px 18px -8px rgba(0,0,0,.55), 0 22px 40px -26px rgba(0,0,0,.7)}
+/* Quien pidio menos movimiento no recibe inclinacion ni brillo. */
+@media (prefers-reduced-motion: reduce){
+  .ccard{transform:none !important;transition:box-shadow .2s ease,border-color .2s}
+  .ccard::after{display:none}
+  .ccard-top,.ccard-datos,.ccard-obs,.ccard-pie{transform:none}
+}
 .ccard:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 .ccard-top{display:flex;gap:13px;align-items:flex-start}
@@ -591,15 +622,19 @@ button{cursor:pointer}
 }
 
 [data-theme="light"]{
-  --bg:#f0f4f8;
+  --bg:#eef2f7;
   --surface:#ffffff;
-  --surface2:#f5f8fb;
-  --surface3:#eaf0f6;
-  --border:#dde5ef;
-  --border2:#c8d5e4;
-  --text:#0f1a2a;
-  --text2:#4a6080;
-  --text3:#96adc5;
+  --surface2:#f4f7fb;
+  --surface3:#e6ecf4;
+  /* Bordes bastante mas marcados: los anteriores casi no se veian sobre
+     blanco, y una tarjeta sin borde visible se lee como una mancha. */
+  --border:#c3d1e2;
+  --border2:#93a8c2;
+  --text:#0a1524;
+  /* El texto secundario y el terciario estaban demasiado claros para leerse
+     con sol. Ahora los dos pasan holgados el contraste AA sobre blanco. */
+  --text2:#334963;
+  --text3:#5b7189;
   --gold:#c88800;--gold2:#a06800;
   --green:#15803d;--green-bg:rgba(21,128,61,0.09);--green-border:rgba(21,128,61,0.3);
   --amber:#b45309;--amber-bg:rgba(180,83,9,0.09);--amber-border:rgba(180,83,9,0.3);
@@ -2152,6 +2187,43 @@ function tarjetaHTML(r){
     +'</div>'
   +'</article>';
 }
+
+// La inclinacion se calcula con la posicion del puntero sobre la tarjeta.
+// Va delegada en el contenedor -- un solo listener para todas -- porque las
+// tarjetas se vuelven a dibujar en cada render y enganchar uno por tarjeta
+// dejaria listeners sueltos cada vez.
+var TILT_MAX = 6;   // grados; mas que esto marea y molesta para leer
+var _sinMovimiento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function inclinarTarjeta(e){
+  if(_sinMovimiento) return;
+  var card = e.target.closest && e.target.closest('.ccard');
+  if(!card) return;
+  var b = card.getBoundingClientRect();
+  var px = (e.clientX - b.left) / b.width;      // 0 a 1
+  var py = (e.clientY - b.top) / b.height;
+  card.style.setProperty('--ry', ((px - .5) *  TILT_MAX * 2).toFixed(2) + 'deg');
+  card.style.setProperty('--rx', ((.5 - py) *  TILT_MAX * 2).toFixed(2) + 'deg');
+  card.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
+  card.style.setProperty('--my', (py * 100).toFixed(1) + '%');
+}
+function enderezarTarjeta(e){
+  var card = e.target.closest && e.target.closest('.ccard');
+  if(!card) return;
+  card.style.removeProperty('--rx');
+  card.style.removeProperty('--ry');
+}
+(function engancharTilt(){
+  var g = document.getElementById('cards-grid');
+  if(!g) return;
+  // pointermove cubre mouse y lapiz; en tactil no se inclina, ahi manda el
+  // :active, que da el hundido al tocar.
+  g.addEventListener('pointermove', function(e){ if(e.pointerType!=='touch') inclinarTarjeta(e); });
+  g.addEventListener('pointerleave', enderezarTarjeta, true);
+  g.addEventListener('pointerout', function(e){
+    if(!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.ccard')) enderezarTarjeta(e);
+  });
+})();
 
 function renderCards(lista){
   var el = document.getElementById('cards-grid');
