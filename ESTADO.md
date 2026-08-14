@@ -76,10 +76,13 @@ Lo de la Fase 2 ya está publicado:
 - El registro de cotizaciones se guarda en `leon_cotizaciones`, con migración
   automática y relleno de teléfonos y RUT desde el historial.
 - Canal de origen al cotizar, y tabla de rendimiento por canal.
-- Botón **Revisar contra la planilla** en Seguimiento: trae de vuelta monto,
-  cliente, servicio, comuna y RUT desde Sheets sin tocar el seguimiento. Existe
-  porque al sacar el registro del Apps Script quedó sin camino corregir la
-  planilla a mano y que el arreglo llegue a la app.
+- Botón **Revisar contra la planilla** en Seguimiento. La planilla es la que
+  Isaac cura a mano, así que manda ella: el botón corrige monto, cliente,
+  servicio, comuna y RUT, y **elimina del registro lo que la planilla no tiene**
+  —pruebas viejas, o cotizaciones que perdieron su número cuando se apilaron los
+  148—. No toca el seguimiento. Solo borra con un `No encontrada` explícito o
+  con el número tomado por otro cliente; si el fetch falla no concluye nada,
+  porque un corte de red no puede leerse como "esto no existe".
 - Tendencia mes a mes, clientes que vuelven, motivos de pérdida, ticket y
   demora en cerrar.
 - Las cotizaciones que esperan respuesta aparecen dentro de Recordatorios del
@@ -100,12 +103,6 @@ Lo de la Fase 2 ya está publicado:
 - **RUT vacíos** en los clientes que nunca pasaron por una cotización. Isaac los
   ingresa a mano.
 - **Campañas por temporada**, para armar en septiembre cuando parte la temporada.
-- **La N°148 apunta a dos cotizaciones distintas.** En el registro es Luis
-  Sánchez por $451.764; en la planilla es Keith Singer por $106.650. Son dos
-  cotizaciones reales que quedaron con el mismo número cuando se apilaron los
-  148. "Revisar contra la planilla" las detecta y **no** las toca a propósito:
-  pisar una borraría la otra. Hay que decidir cuál conserva el 148 y darle otro
-  número a la que sobra.
 - **La columna de teléfono de la planilla de cotizaciones devuelve `#ERROR!`**
   en todas las filas: una fórmula rota en la hoja. Por eso los teléfonos
   históricos no se pudieron recuperar. El RUT y la comuna sí vienen bien.
@@ -143,6 +140,11 @@ expuesto aunque Firebase esté perfecto.
 rol, pero el precio se calcula en el navegador a partir del costo, así que el
 costo igual se descarga. Esconderlo de verdad requiere calcular el precio en el
 servidor.
+
+**La planilla de cotizaciones es la fuente de la verdad para los datos
+descriptivos** —número, cliente, monto, ítems—. Firebase manda para el
+seguimiento —estado, contactos, agrupación—, que no existe en la planilla.
+Cuando las dos discrepan, gana la planilla.
 
 **El registro de cotizaciones y la planilla ya no se hablan solos.** Firebase
 es la fuente y el Apps Script no la pisa, que es lo correcto para el día a día.
