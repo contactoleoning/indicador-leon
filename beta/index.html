@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="color-scheme" content="dark"/>
-<title>BETA · Indicador de Vencimiento</title>
+<title>León — Indicador de Vencimiento</title>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0b0b0d"/>
 <meta name="apple-mobile-web-app-title" content="Indicador"/>
@@ -338,7 +338,7 @@ button{cursor:pointer}
 .fab:hover{transform:scale(1.06);box-shadow:0 6px 24px rgba(214,217,222,0.5)}
 
 /* ── MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(1,4,9,0.85);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-overlay{position:fixed;inset:0;background:rgba(1,4,9,0.85);z-index:9500;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:520px){.modal-overlay{align-items:center;padding:16px}}
 .modal{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:640px;max-height:94dvh;display:flex;flex-direction:column;animation:slideUp .2s ease;border:1px solid var(--border)}
 @media(min-width:520px){.modal{border-radius:var(--radius);max-height:90dvh}}
@@ -422,9 +422,33 @@ button{cursor:pointer}
 /* ── PHONE PREFIX INPUT ── */
 .input-tel-wrap{display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface2);overflow:hidden;transition:border-color .15s,box-shadow .15s}
 .input-tel-wrap:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(214,217,222,0.1)}
-.tel-prefix{padding:10px 11px;font-size:14px;color:var(--text2);font-weight:600;white-space:nowrap;border-right:1px solid var(--border);background:rgba(255,255,255,0.03);flex-shrink:0;letter-spacing:0.3px}
-.input-tel-wrap input{border:none;background:transparent;color:var(--text);font-size:14px;font-family:inherit;outline:none;padding:10px 10px;flex:1;min-width:0;width:100%}
-.input-tel-wrap input::placeholder{color:var(--text3)}
+.tel-prefix{padding:10px 11px;font-size:14px;color:var(--text2);font-weight:600;white-space:nowrap;border-right:1px solid var(--border);background:var(--surface3);flex-shrink:0;letter-spacing:0.3px}
+.input-tel-wrap input{border:none;background:transparent;color:var(--text);font-weight:600;font-size:14px;font-family:inherit;outline:none;padding:10px 10px;flex:1;min-width:0;width:100%}
+.input-tel-wrap input::placeholder{color:var(--text3);opacity:1}
+
+/* El numero va con el color de texto mas fuerte del tema y en semibold. Es el
+   dato que se lee de reojo para marcar un telefono, asi que aca conviene el
+   maximo contraste y no la elegancia: paso por gris claro y no se leia.
+   El prefijo +569 se queda un tono mas suave a proposito -- es una etiqueta
+   fija, no un dato -- y esa diferencia ayuda a separar uno del otro.
+
+   El telefono NO puede tener colores propios. Era el unico campo con un blanco
+   literal (#ffffff) mientras todos los demas salen de las variables del tema, y
+   por eso quedaba blanco cuando el resto estaba oscuro -- con el numero, que si
+   seguia al tema, pintado del mismo color que el fondo. Se veia vacio y lo
+   unico visible era el subrayado rojo del corrector.
+
+   Ahora se pinta con las mismas variables que .ff input. Sea cual sea el tema,
+   o lo que haga el navegador con el modo oscuro automatico, este campo se ve
+   igual que el de al lado. */
+.input-tel-wrap input{-webkit-text-fill-color:var(--text)}
+.input-tel-wrap input::placeholder{-webkit-text-fill-color:var(--text3)}
+.input-tel-wrap input:-webkit-autofill,
+.input-tel-wrap input:-webkit-autofill:hover,
+.input-tel-wrap input:-webkit-autofill:focus{
+  -webkit-text-fill-color:var(--text);
+  -webkit-box-shadow:0 0 0 1000px var(--surface2) inset;
+  caret-color:var(--text)}
 /* card phone & address */
 .card-phone-link{display:inline-flex;align-items:center;gap:5px;color:var(--aviso);font-size:13px;font-weight:500;text-decoration:none;padding:2px 0}
 .card-phone-link:hover{text-decoration:underline}
@@ -529,18 +553,17 @@ button{cursor:pointer}
    La altura no decora: dice cuanto urge. Lo vencido flota sobre la pagina
    con sombra larga, lo que esta al dia se apoya plano. Al abrir la app no
    hay que leer nada -- lo que sobresale es lo que hay que atender hoy.   */
-.ccard{--lift:0px;--sombra:rgba(22,27,34,.20)}
+.ccard{--lift:0px;--sombra:rgba(22,27,34,.26)}
 .ccard.st-green  {--lift:0px}
-.ccard.st-resched{--lift:8px}
-.ccard.st-amber  {--lift:16px}
-.ccard.st-red    {--lift:28px}
+.ccard.st-resched{--lift:15px}
+.ccard.st-amber  {--lift:28px}
+.ccard.st-red    {--lift:46px}
 [data-theme="dark"] .ccard{--sombra:rgba(0,0,0,.72)}
 
 .ccard-inner{position:relative;transform-style:preserve-3d;
-  transform:translateZ(var(--lift))
-            rotateX(var(--rx,0deg))
-            rotateY(calc(var(--ry,0deg) + var(--flip,0deg)));
+  transform:translateZ(var(--lift)) rotateY(var(--flip,0deg));
   transition:transform .55s cubic-bezier(.2,.75,.25,1)}
+
 /* Ojo: la sombra NO puede ir como filter en .ccard-inner. Un filtro aplana el
    contexto 3D del elemento, y con eso backface-visibility deja de funcionar --
    al girar se veia el frente espejado en vez del dorso. Va como box-shadow en
@@ -558,8 +581,8 @@ button{cursor:pointer}
   background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
   padding:16px 16px 14px;display:flex;flex-direction:column;gap:12px;overflow:hidden;position:relative;
   transition:box-shadow .3s ease,border-color .18s;
-  box-shadow:0 calc(1px + var(--lift) * 0.10) calc(2px + var(--lift) * 0.18) rgba(22,27,34,.10),
-             0 calc(4px + var(--lift) * 0.55) calc(10px + var(--lift) * 1.15) calc(-4px - var(--lift) * 0.15) var(--sombra)}
+  box-shadow:0 calc(1px + var(--lift) * 0.12) calc(2px + var(--lift) * 0.22) rgba(22,27,34,.13),
+             0 calc(4px + var(--lift) * 0.72) calc(10px + var(--lift) * 1.45) calc(-4px - var(--lift) * 0.12) var(--sombra)}
 .ccard-cara.dorso{transform:rotateY(180deg) translateZ(0.01px)}
 .ccard:hover .ccard-cara{border-color:var(--border2)}
 
@@ -586,6 +609,9 @@ button{cursor:pointer}
 .ccard-nom{font-size:16.5px;font-weight:750;color:var(--text);line-height:1.22;overflow-wrap:anywhere}
 .ccard-sub{font-size:12.5px;color:var(--text3);margin-top:3px}
 .ccard-rut{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:1px}
+.ccard-empresa{font-size:12px;color:var(--text2);margin-top:4px;font-weight:600;
+  overflow-wrap:anywhere;line-height:1.3}
+.ccard-empresa-ic{margin-right:5px;opacity:.75;font-size:11px}
 
 .ccard-estado{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;
   letter-spacing:.03em;padding:4px 9px;border-radius:20px;white-space:nowrap;border:1px solid}
@@ -706,8 +732,6 @@ button{cursor:pointer}
 [data-theme="light"] .toast{background:#1a2540;color:#f0f6ff}
 /* search & selects */
 [data-theme="light"] .search-input,[data-theme="light"] .filter-sel,[data-theme="light"] .sort-sel{background:#ffffff;color:#0f1a2a}
-[data-theme="light"] .input-tel-wrap{background:#ffffff}
-[data-theme="light"] .tel-prefix{background:#f5f8fb;color:#4a6080}
 /* red counter */
 [data-theme="light"] .red-counter{background:rgba(220,38,38,0.07)}
 /* lightbox stays dark */
@@ -759,18 +783,21 @@ button{cursor:pointer}
 #lock-overlay .lock-btn:hover{transform:translateY(-1px);box-shadow:0 9px 24px rgba(214,217,222,.35)}
 #lock-overlay .lock-btn:active{transform:translateY(0)}
 #lock-overlay .lock-err{color:#e74c3c;font-size:13px;font-weight:600;min-height:18px}
-</style>
-<style>
-/* Aviso de version de prueba. position:fixed + pointer-events:none para que
-   no tape ni bloquee ningun control de la app. */
-#beta-flag{position:fixed;left:0;right:0;bottom:0;z-index:100000;pointer-events:none;
-  background:repeating-linear-gradient(45deg,#8a5a00,#8a5a00 12px,#6d4700 12px,#6d4700 24px);
-  color:#fff;font:700 11px/1 -apple-system,system-ui,sans-serif;letter-spacing:.18em;
-  text-transform:uppercase;text-align:center;padding:6px 8px 8px;
-  box-shadow:0 -2px 12px rgba(0,0,0,.45)}
-@media print{#beta-flag{display:none}}
-@media (max-width:430px){#beta-flag{letter-spacing:.04em;font-size:10px;padding:5px 6px 7px}}
-body{padding-bottom:30px}
+
+/* ── EL TELEFONO SE VE IGUAL QUE LOS DEMAS CAMPOS ───────────────────────────
+   Va al final del CSS y con selector de dos clases a proposito. En el equipo
+   de Isaac el campo de telefono aparecia claro mientras RUT EMPRESA -- al lado,
+   en la misma pantalla y en el mismo instante -- aparecia oscuro, y el numero
+   quedaba blanco sobre blanco. No se pudo reproducir ni encontrar la regla que
+   lo aclaraba.
+   Asi que en vez de seguir buscandola, aca se afirma la unica condicion que
+   importa: este campo se pinta con las mismas variables que .ff input. Al ir
+   ultimo y pesar mas, gana sobre cualquier regla anterior que intente
+   aclararlo. Si algun dia aparece la causa, esto sigue siendo correcto. */
+.ff .input-tel-wrap{background:var(--surface2)!important;border-color:var(--border)!important}
+.ff .input-tel-wrap input{color:var(--text);-webkit-text-fill-color:var(--text);font-weight:600}
+.ff .input-tel-wrap input::placeholder{color:var(--text3);-webkit-text-fill-color:var(--text3);font-weight:400}
+.ff .tel-prefix{background:transparent!important;color:var(--text2)}
 </style>
 </head>
 <body>
@@ -982,6 +1009,9 @@ body{padding-bottom:30px}
 
 <div class="app-footer">
   <button class="btn-reset-cfg" onclick="resetConfig()">⚙ Cambiar configuración de sincronización</button>
+  <!-- Sirve para zanjar discusiones: si algo "no se arreglo", lo primero es
+       mirar aca si la version que corre es la que tiene el arreglo. -->
+  <span id="app-version" style="font-size:11px;color:var(--text3);margin-left:10px"></span>
 </div>
 
 <!-- FAB -->
@@ -1075,7 +1105,17 @@ body{padding-bottom:30px}
           </div>
         </div>
         <div class="ff"><label>DEPTO / PISO / OF.</label><input id="fdet" type="text" placeholder="Ej: Depto 4B, Piso 3"/></div>
-        <div class="ff"><label>RUT</label><input id="frut" type="text" placeholder="12.345.678-9" autocapitalize="off" spellcheck="false"/></div>
+        <div class="ff"><label>RUT</label><input id="frut" type="text" placeholder="12.345.678-9" autocapitalize="off" spellcheck="false" inputmode="text" oninput="onRutInput(this,'frut-aviso')" onblur="onRutBlur(this,'frut-aviso')"/>
+          <div id="frut-aviso" style="font-size:11.5px;color:var(--red);margin-top:4px"></div></div>
+        <div class="ff"><label>CORREO</label><input id="fmail" type="email" placeholder="correo@ejemplo.cl" autocapitalize="off" spellcheck="false"/></div>
+        <!-- La ficha se llama como la persona con la que uno habla; la boleta va
+             a nombre de la empresa. Antes habia que elegir uno de los dos: con
+             la razon social en el titulo no se sabia a quien llamar, y con la
+             persona no habia a quien facturar. -->
+        <div class="ff"><label>EMPRESA / RAZÓN SOCIAL <span style="font-weight:500;text-transform:none;opacity:.7">(si factura a nombre de empresa)</span></label>
+          <input id="femp" type="text" placeholder="Ej: Inversiones Punta de Águilas Ltda."/></div>
+        <div class="ff"><label>RUT EMPRESA</label><input id="frutemp" type="text" placeholder="76.349.670-8" autocapitalize="off" spellcheck="false" inputmode="text" oninput="onRutInput(this,'frutemp-aviso')" onblur="onRutBlur(this,'frutemp-aviso')"/>
+          <div id="frutemp-aviso" style="font-size:11.5px;color:var(--red);margin-top:4px"></div></div>
         <div class="ff">
           <label>TELÉFONO</label>
           <div class="input-tel-wrap">
@@ -2015,7 +2055,10 @@ function getFiltered() {
     if (st==='red' && statusOf(r)!=='red') return false;
     if (st==='resched' && statusOf(r)!=='resched') return false;
     if (st==='aviso' && !r.aviso) return false;
-    if (q) return (r.cliente+r.comuna+r.servicio+r.lugar+r.obs).toLowerCase().includes(q);
+    // Buscar por la empresa tambien: si llaman de la administracion uno tiene
+    // la razon social y no el nombre de la persona.
+    if (q) return ((r.cliente||'')+(r.empresa||'')+(r.rut||'')+(r.rutEmpresa||'')
+                  +(r.comuna||'')+(r.servicio||'')+(r.lugar||'')+(r.obs||'')).toLowerCase().includes(q);
     return true;
   });
   if (srt==='fin-asc') rows.sort((a,b)=>(diasRestantes(a)??99999)-(diasRestantes(b)??99999));
@@ -2208,7 +2251,8 @@ function tarjetaHTML(r){
         +'<div class="ccard-id">'
           +'<div class="ccard-nom">'+(esc(r.cliente)||'Sin nombre')+'</div>'
           +(lugarComuna?'<div class="ccard-sub">'+esc(lugarComuna)+'</div>':'')
-          +(r.rut?'<div class="ccard-rut">'+esc(r.rut)+'</div>':'')
+          +(r.empresa?'<div class="ccard-empresa" title="Se factura a nombre de esta empresa"><span class="ccard-empresa-ic">🏢</span>'+esc(r.empresa)+'</div>':'')
+          +((r.rut||r.rutEmpresa)?'<div class="ccard-rut">'+esc(r.rut||r.rutEmpresa)+'</div>':'')
         +'</div>'
         +'<span class="ccard-estado">'+esc(estadoTxt)+'</span>'
       +'</div>'
@@ -2278,45 +2322,33 @@ function tarjetaHTML(r){
 // fotos sigue estando, a un toque desde el dorso.
 function girarTarjeta(el){
   el.classList.toggle('girada');
-  el.style.removeProperty('--rx');   // si no, el dorso queda torcido
-  el.style.removeProperty('--ry');
 }
 
-// La inclinacion se calcula con la posicion del puntero sobre la tarjeta.
-// Va delegada en el contenedor -- un solo listener para todas -- porque las
-// tarjetas se vuelven a dibujar en cada render y enganchar una por una
-// dejaria listeners sueltos cada vez.
-var TILT_MAX = 6;   // grados; mas que esto marea y estorba para leer
+// La tarjeta NO se mueve con el puntero. Se probo la inclinacion y el costo era
+// concreto: con la tarjeta acomodandose debajo del cursor, apretar un boton de
+// 34px fallaba, y al fallar la tarjeta se daba vuelta -- se perdia el clic y
+// habia que empezar de nuevo. Un adorno no vale eso.
+//
+// El relieve se mantiene, pero quieto: la altura de cada tarjeta y el largo de
+// su sombra dicen cuanto urge. Lo vencido flota sobre la pagina, lo que esta al
+// dia se apoya plano. Se lee igual de rapido y no se mueve nada.
+//
+// El brillo si sigue al puntero: es un degradado pintado encima, no cambia la
+// geometria y por lo tanto no puede robarse un clic.
 var _sinMovimiento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function inclinarTarjeta(e){
+function brilloTarjeta(e){
   if(_sinMovimiento) return;
   var card = e.target.closest && e.target.closest('.ccard');
-  if(!card || card.classList.contains('girada')) return;   // el dorso no se inclina
-  var b = card.getBoundingClientRect();
-  var px = (e.clientX - b.left) / b.width;
-  var py = (e.clientY - b.top) / b.height;
-  card.style.setProperty('--ry', ((px - .5) * TILT_MAX * 2).toFixed(2) + 'deg');
-  card.style.setProperty('--rx', ((.5 - py) * TILT_MAX * 2).toFixed(2) + 'deg');
-  card.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
-  card.style.setProperty('--my', (py * 100).toFixed(1) + '%');
-}
-function enderezarTarjeta(e){
-  var card = e.target.closest && e.target.closest('.ccard');
   if(!card) return;
-  card.style.removeProperty('--rx');
-  card.style.removeProperty('--ry');
+  var b = card.getBoundingClientRect();
+  card.style.setProperty('--mx', (((e.clientX - b.left) / b.width) * 100).toFixed(1) + '%');
+  card.style.setProperty('--my', (((e.clientY - b.top) / b.height) * 100).toFixed(1) + '%');
 }
-(function engancharTilt(){
+(function engancharBrillo(){
   var g = document.getElementById('cards-grid');
   if(!g) return;
-  // pointermove cubre mouse y lapiz; en tactil no se inclina -- no hay
-  // puntero que seguir -- y manda el giro al tocar.
-  g.addEventListener('pointermove', function(e){ if(e.pointerType!=='touch') inclinarTarjeta(e); });
-  g.addEventListener('pointerleave', enderezarTarjeta, true);
-  g.addEventListener('pointerout', function(e){
-    if(!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.ccard')) enderezarTarjeta(e);
-  });
+  g.addEventListener('pointermove', function(e){ if(e.pointerType!=='touch') brilloTarjeta(e); });
 })();
 
 function renderCards(lista){
@@ -2385,6 +2417,8 @@ function fichaHTML(r) {
           </div>
           ${(r.equipos && r.equipos.length) ? `<div class="card-field full"><label>EQUIPOS (${r.equipos.length})</label><div class="card-equipos">${r.equipos.map(eq => `<div>• <b>${esc([eq.marca, eq.modelo].filter(Boolean).join(' ')) || 'Equipo'}</b>${eq.btu ? ' ' + esc(eq.btu) + ' BTU' : ''}${eq.ubicacion ? ' — ' + esc(eq.ubicacion) : ''}</div>`).join('')}</div></div>` : ''}
           ${r.rut ? `<div class="card-field"><label>RUT</label><div class="card-field-val">${esc(r.rut)}</div></div>` : ''}
+          ${r.empresa || r.rutEmpresa ? `<div class="card-field full"><label>FACTURAR A</label><div class="card-field-val">${esc(r.empresa||'—')}${r.rutEmpresa ? ` <span style="color:var(--text3)">· ${esc(r.rutEmpresa)}</span>` : ''}</div></div>` : ''}
+          ${r.email ? `<div class="card-field"><label>CORREO</label><a class="card-phone-link" href="mailto:${escAttr(r.email)}">${esc(r.email)}</a></div>` : ''}
           ${cotizacionesHTML(r)}
           ${r.obs ? `<div class="card-field full"><label>OBSERVACIÓN</label><div class="card-obs">${esc(r.obs)}</div></div>` : ''}
         </div>
@@ -2858,7 +2892,88 @@ function toggleTelFijoStyle() {
   inp.maxLength = fijo ? 15 : 8;
   inp.placeholder = fijo ? 'Número completo' : 'XXXX XXXX';
 }
+// El RUT chileno trae digito verificador: un RUT mal escrito se detecta solo.
+// No es teoria -- cargando a Carolina se tecleo 73.394.670-8 en vez de
+// 76.349.670-8, dos digitos cambiados de lugar. A ojo son identicos, y con ese
+// RUT el Cotizador no habria encontrado nunca su ficha.
+function rutLimpio(v){ return String(v||'').toUpperCase().replace(/[^0-9K]/g,''); }
+
+function rutFormateado(v){
+  var t=rutLimpio(v);
+  if(!t) return '';
+  if(t.length===1) return t;
+  return t.slice(0,-1).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+'-'+t.slice(-1);
+}
+
+function rutDV(cuerpo){
+  var s=0, m=2;
+  for(var i=cuerpo.length-1;i>=0;i--){ s+=parseInt(cuerpo.charAt(i),10)*m; m=(m===7)?2:m+1; }
+  var r=11-(s%11);
+  return r===11?'0':r===10?'K':String(r);
+}
+
+// null = todavia lo esta escribiendo, no molestar todavia.
+function rutValido(v){
+  var t=rutLimpio(v);
+  if(t.length<8) return null;
+  return rutDV(t.slice(0,-1))===t.slice(-1);
+}
+
+// Mientras escribe solo se formatea. Avisar en cada tecla seria peor que no
+// avisar: un RUT de empresa pasa por un largo intermedio que casi siempre da
+// invalido, asi que el rojo aparece y desaparece mientras uno teclea y termina
+// ignorandose. El chequeo va al salir del campo, cuando ya termino.
+function onRutInput(el, idAviso){
+  var antes=el.value.length, pos=el.selectionStart;
+  el.value=rutFormateado(el.value);
+  // El cursor se corre solo cuando aparece un punto; si no, escribir en medio
+  // del RUT tira el cursor al final en cada tecla.
+  var d=el.value.length-antes;
+  try{ el.setSelectionRange(pos+d, pos+d); }catch(e){}
+  var av=document.getElementById(idAviso);
+  if(av) av.textContent='';
+  el.style.borderColor='';
+}
+
+function onRutBlur(el, idAviso){
+  var av=document.getElementById(idAviso);
+  var ok=rutValido(el.value);
+  if(av) av.textContent = (ok===false) ? 'Ese RUT no cuadra: revisa los dígitos.' : '';
+  el.style.borderColor = (ok===false) ? 'var(--red)' : '';
+}
+
+// Seis intentos por CSS y el campo de telefono seguia saliendo claro en el
+// equipo de Isaac mientras los de al lado salian oscuros. No se encontro la
+// regla culpable: no hay estilos en linea, no hay data-theme en ningun padre,
+// no hay prefers-color-scheme, y el blanco literal se saco hace rato.
+//
+// Asi que esto ya no discute con el CSS: mide en pantalla el fondo que TIENE el
+// campo de al lado -- el resultado, no la regla -- y se lo copia al telefono.
+// Gane la regla que gane, los dos terminan del mismo color.
+function igualarFondoTelefono(){
+  var ref = document.getElementById('frutemp') || document.getElementById('fmail')
+         || document.getElementById('frut');
+  var wrap = document.querySelector('#modal-ov .input-tel-wrap');
+  if(!ref || !wrap) return;
+  var cs = getComputedStyle(ref);
+  wrap.style.setProperty('background', cs.backgroundColor, 'important');
+  wrap.style.setProperty('border-color', cs.borderColor, 'important');
+  var inp = wrap.querySelector('input');
+  if(inp){
+    inp.style.setProperty('color', cs.color, 'important');
+    inp.style.setProperty('-webkit-text-fill-color', cs.color, 'important');
+  }
+  var pre = wrap.querySelector('.tel-prefix');
+  if(pre) pre.style.setProperty('background', 'transparent', 'important');
+}
+
 function openModal(id) {
+  // La ficha vive en z-index 9000 y este modal en 200: si la ficha queda
+  // abierta, el editor se abre por detras y ademas la ficha se come los clics.
+  // Se veia como que la app se trabo. Cerrar antes de abrir resuelve los cinco
+  // botones de "Editar" que hay repartidos -- tarjeta, ficha, tabla, lista y
+  // calendario -- en vez de parchar cada uno.
+  cerrarTodoLoQueTape();
   editId = id;
   const r = id ? data.find(x=>x.id===id) : null;
   document.getElementById('modal-ttl').textContent = r ? 'EDITAR CLIENTE' : 'NUEVO CLIENTE';
@@ -2870,7 +2985,17 @@ function openModal(id) {
   document.getElementById('fco').value = r?.comuna||'';
   document.getElementById('fdir').value = r?.direccion||'';
   document.getElementById('fdet').value = r?.detalle||'';
-  document.getElementById('frut').value = r?.rut||'';
+  document.getElementById('frut').value = rutFormateado(r?.rut||'');
+  document.getElementById('fmail').value = r?.email||'';
+  document.getElementById('femp').value = r?.empresa||'';
+  document.getElementById('frutemp').value = rutFormateado(r?.rutEmpresa||'');
+  ['frut-aviso','frutemp-aviso'].forEach(function(id){
+    var a=document.getElementById(id); if(a)a.textContent='';
+  });
+  ['frut','frutemp'].forEach(function(id){
+    var c=document.getElementById(id); if(c)c.style.borderColor='';
+  });
+  igualarFondoTelefono();
   // Teléfono: guardar solo los 8 dígitos sin el +569
   document.getElementById('ftel').value = r?.telefono||'';
   document.getElementById('ftelfijo').checked = r?.telefonoFijo||false;
@@ -2899,6 +3024,15 @@ function openModal(id) {
   ta.style.height = 'auto'; ta.style.height = Math.max(72, ta.scrollHeight)+'px';
   setTimeout(()=>document.getElementById('fc').focus(), 250);
 }
+// Un solo lugar que sepa que hay abierto. Si manana aparece otra ventana, se
+// agrega aca y no hay que acordarse de los botones que la abren.
+function cerrarTodoLoQueTape(){
+  ['ficha-ov','perfil-ov','gallery-ov'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el && el.style.display && el.style.display!=='none') el.style.display='none';
+  });
+}
+
 function closeModal() {
   document.getElementById('modal-ov').style.display = 'none';
   document.body.style.overflow = '';
@@ -2921,7 +3055,10 @@ function saveModal() {
     direccion: document.getElementById('fdir').value.trim(),
     detalle: document.getElementById('fdet').value.trim(),
     telefono: document.getElementById('ftel').value.trim().replace(/\D/g,''),
-    rut: document.getElementById('frut').value.trim(),
+    rut: rutFormateado(document.getElementById('frut').value),
+    email: document.getElementById('fmail').value.trim(),
+    empresa: document.getElementById('femp').value.trim(),
+    rutEmpresa: rutFormateado(document.getElementById('frutemp').value),
     telefonoFijo: document.getElementById('ftelfijo').checked,
     aviso: document.getElementById('fav').checked,
     plan: document.getElementById('fplan').checked,
@@ -2934,19 +3071,18 @@ function saveModal() {
   if (editId) {
     const i = data.findIndex(r=>r.id===editId);
     if (i>=0) {
-      // Preservar campos que este formulario no gestiona: si no, editar
-      // desde aquí borraría el ícono elegido a mano y forzaría a recrear
-      // los eventos de Calendar en vez de actualizar los que ya existían.
-      row.avatar = data[i].avatar;
-      row.calIngresoId = data[i].calIngresoId;
-      row.calMantId = data[i].calMantId;
-      row.reagenda = data[i].reagenda;
-      // Vienen del Cotizador y este formulario no los muestra. Sin esto, la
-      // primera edicion del cliente los borraba en silencio -- y con ellos se
-      // perdia de que cotizacion salio y por cuanto.
-      row.nroCotizacion = data[i].nroCotizacion;
-      row.montoCotizado = data[i].montoCotizado;
-      data[i] = row;
+      // Se parte de la ficha que ya existe y encima se aplica lo del
+      // formulario. Antes se hacía al revés -- se armaba una ficha nueva y se
+      // iban rescatando campos uno por uno -- y cada vez que el Cotizador
+      // mandaba un dato nuevo había que acordarse de sumarlo a esa lista. Ya
+      // pasó dos veces: primero con el número de cotización y el monto, y
+      // después con el historial comercial y el canal de origen, que se
+      // borraban solos en la primera edición.
+      //
+      // Así, lo que el formulario no muestra sobrevive sin tener que
+      // enumerarlo. Los campos que el formulario sí gestiona vienen todos en
+      // 'row' con su valor actual, así que se aplican igual.
+      data[i] = Object.assign({}, data[i], row);
     }
     toast('Cliente actualizado');
   } else {
@@ -3702,6 +3838,7 @@ const MOON_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" s
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
+  try{ igualarFondoTelefono(); }catch(e){}
   const btn = document.getElementById('theme-btn');
   if (!btn) return; // el boton de tema fue eliminado; solo fijamos el atributo
   if (theme === 'light') {
@@ -4144,10 +4281,23 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
+var APP_VERSION = "v17-beta";
+(function mostrarVersion(){
+  function pintar(){
+    var el=document.getElementById('app-version');
+    if(el) el.textContent = APP_VERSION;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', pintar);
+  else pintar();
+  console.log('Indicador León ' + APP_VERSION);
+})();
+
 function renderAvisoRut(){
   var el=document.getElementById('rut-faltante');
   if(!el) return;
-  var sinRut=data.filter(function(r){return !r.rut;}).length;
+  // Quien factura a nombre de su empresa no esta "sin RUT": tiene el de la
+  // empresa, que es el que va en la boleta.
+  var sinRut=data.filter(function(r){return !r.rut && !r.rutEmpresa;}).length;
   el.innerHTML = sinRut
     ? '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--text3);padding:9px 12px;border-bottom:1px solid var(--border)">'
       +'<span>'+sinRut+' cliente'+(sinRut>1?'s':'')+' sin RUT.</span>'
@@ -4180,7 +4330,7 @@ function completarRutDesdeCotizaciones(){
 
       var puestos=0, chocaron=0, sinDato=0, cambios=[];
       data.forEach(function(r){
-        if(r.rut) return;
+        if(r.rut || r.rutEmpresa) return;
         var nk=nombreClaveInd(r.cliente);
         if(!nk){ sinDato++; return; }
         if(ambiguos[nk]){ chocaron++; return; }
@@ -4524,6 +4674,5 @@ const _m = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','D
 document.getElementById('hoy').textContent =
   `${String(TODAY.getDate()).padStart(2,'0')} ${_m[TODAY.getMonth()]} ${TODAY.getFullYear()}`;
 </script>
-<div id="beta-flag">Versión de prueba — no usar para trabajo real</div>
 </body>
 </html>
