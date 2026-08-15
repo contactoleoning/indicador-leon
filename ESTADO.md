@@ -198,6 +198,18 @@ El precio es que arreglar la planilla a mano no llega a la app: para eso está
 el botón "Revisar contra la planilla". Si un monto se ve raro en Seguimiento,
 ese es el primer lugar donde mirar.
 
+**Las ventanas del indicador se apilan por z-index y hay que respetarlo.** La
+ficha está en 9000, el editor en 9500, el lightbox en 800, la galería en 650.
+Cuando el editor estaba en 200 se abría *por detrás* de la ficha y la ficha se
+comía los clics: parecía que la app se trabó. `openModal()` llama a
+`cerrarTodoLoQueTape()` antes de abrir — ahí se agrega cualquier ventana nueva,
+en vez de parchar los cinco botones de "Editar" que hay repartidos (tarjeta,
+ficha, tabla, lista y calendario).
+
+**Todo cambio en el indicador necesita subir `CACHE` en `sw.js`.** Si no, el
+service worker sigue sirviendo el archivo viejo y el arreglo no llega nunca.
+Va en v7.
+
 **El indicador rearma el registro completo al guardar.** Todo campo que el
 formulario no muestre se pierde al editar un cliente, salvo que se agregue a la
 lista de campos preservados en `saveModal()`. Ya pasó una vez.
