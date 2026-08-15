@@ -1065,7 +1065,8 @@ button{cursor:pointer}
           </div>
         </div>
         <div class="ff"><label>DEPTO / PISO / OF.</label><input id="fdet" type="text" placeholder="Ej: Depto 4B, Piso 3"/></div>
-        <div class="ff"><label>RUT</label><input id="frut" type="text" placeholder="12.345.678-9" autocapitalize="off" spellcheck="false"/></div>
+        <div class="ff"><label>RUT</label><input id="frut" type="text" placeholder="12.345.678-9" autocapitalize="off" spellcheck="false" inputmode="text" oninput="onRutInput(this,'frut-aviso')" onblur="onRutBlur(this,'frut-aviso')"/>
+          <div id="frut-aviso" style="font-size:11.5px;color:var(--red);margin-top:4px"></div></div>
         <div class="ff"><label>CORREO</label><input id="fmail" type="email" placeholder="correo@ejemplo.cl" autocapitalize="off" spellcheck="false"/></div>
         <!-- La ficha se llama como la persona con la que uno habla; la boleta va
              a nombre de la empresa. Antes habia que elegir uno de los dos: con
@@ -1073,7 +1074,8 @@ button{cursor:pointer}
              persona no habia a quien facturar. -->
         <div class="ff"><label>EMPRESA / RAZÓN SOCIAL <span style="font-weight:500;text-transform:none;opacity:.7">(si factura a nombre de empresa)</span></label>
           <input id="femp" type="text" placeholder="Ej: Inversiones Punta de Águilas Ltda."/></div>
-        <div class="ff"><label>RUT EMPRESA</label><input id="frutemp" type="text" placeholder="76.349.670-8" autocapitalize="off" spellcheck="false"/></div>
+        <div class="ff"><label>RUT EMPRESA</label><input id="frutemp" type="text" placeholder="76.349.670-8" autocapitalize="off" spellcheck="false" inputmode="text" oninput="onRutInput(this,'frutemp-aviso')" onblur="onRutBlur(this,'frutemp-aviso')"/>
+          <div id="frutemp-aviso" style="font-size:11.5px;color:var(--red);margin-top:4px"></div></div>
         <div class="ff">
           <label>TELÉFONO</label>
           <div class="input-tel-wrap">
@@ -2850,6 +2852,56 @@ function toggleTelFijoStyle() {
   inp.maxLength = fijo ? 15 : 8;
   inp.placeholder = fijo ? 'Número completo' : 'XXXX XXXX';
 }
+// El RUT chileno trae digito verificador: un RUT mal escrito se detecta solo.
+// No es teoria -- cargando a Carolina se tecleo 73.394.670-8 en vez de
+// 76.349.670-8, dos digitos cambiados de lugar. A ojo son identicos, y con ese
+// RUT el Cotizador no habria encontrado nunca su ficha.
+function rutLimpio(v){ return String(v||'').toUpperCase().replace(/[^0-9K]/g,''); }
+
+function rutFormateado(v){
+  var t=rutLimpio(v);
+  if(!t) return '';
+  if(t.length===1) return t;
+  return t.slice(0,-1).replace(/\B(?=(\d{3})+(?!\d))/g,'.')+'-'+t.slice(-1);
+}
+
+function rutDV(cuerpo){
+  var s=0, m=2;
+  for(var i=cuerpo.length-1;i>=0;i--){ s+=parseInt(cuerpo.charAt(i),10)*m; m=(m===7)?2:m+1; }
+  var r=11-(s%11);
+  return r===11?'0':r===10?'K':String(r);
+}
+
+// null = todavia lo esta escribiendo, no molestar todavia.
+function rutValido(v){
+  var t=rutLimpio(v);
+  if(t.length<8) return null;
+  return rutDV(t.slice(0,-1))===t.slice(-1);
+}
+
+// Mientras escribe solo se formatea. Avisar en cada tecla seria peor que no
+// avisar: un RUT de empresa pasa por un largo intermedio que casi siempre da
+// invalido, asi que el rojo aparece y desaparece mientras uno teclea y termina
+// ignorandose. El chequeo va al salir del campo, cuando ya termino.
+function onRutInput(el, idAviso){
+  var antes=el.value.length, pos=el.selectionStart;
+  el.value=rutFormateado(el.value);
+  // El cursor se corre solo cuando aparece un punto; si no, escribir en medio
+  // del RUT tira el cursor al final en cada tecla.
+  var d=el.value.length-antes;
+  try{ el.setSelectionRange(pos+d, pos+d); }catch(e){}
+  var av=document.getElementById(idAviso);
+  if(av) av.textContent='';
+  el.style.borderColor='';
+}
+
+function onRutBlur(el, idAviso){
+  var av=document.getElementById(idAviso);
+  var ok=rutValido(el.value);
+  if(av) av.textContent = (ok===false) ? 'Ese RUT no cuadra: revisa los dígitos.' : '';
+  el.style.borderColor = (ok===false) ? 'var(--red)' : '';
+}
+
 function openModal(id) {
   // La ficha vive en z-index 9000 y este modal en 200: si la ficha queda
   // abierta, el editor se abre por detras y ademas la ficha se come los clics.
@@ -2868,10 +2920,16 @@ function openModal(id) {
   document.getElementById('fco').value = r?.comuna||'';
   document.getElementById('fdir').value = r?.direccion||'';
   document.getElementById('fdet').value = r?.detalle||'';
-  document.getElementById('frut').value = r?.rut||'';
+  document.getElementById('frut').value = rutFormateado(r?.rut||'');
   document.getElementById('fmail').value = r?.email||'';
   document.getElementById('femp').value = r?.empresa||'';
-  document.getElementById('frutemp').value = r?.rutEmpresa||'';
+  document.getElementById('frutemp').value = rutFormateado(r?.rutEmpresa||'');
+  ['frut-aviso','frutemp-aviso'].forEach(function(id){
+    var a=document.getElementById(id); if(a)a.textContent='';
+  });
+  ['frut','frutemp'].forEach(function(id){
+    var c=document.getElementById(id); if(c)c.style.borderColor='';
+  });
   // Teléfono: guardar solo los 8 dígitos sin el +569
   document.getElementById('ftel').value = r?.telefono||'';
   document.getElementById('ftelfijo').checked = r?.telefonoFijo||false;
@@ -2931,10 +2989,10 @@ function saveModal() {
     direccion: document.getElementById('fdir').value.trim(),
     detalle: document.getElementById('fdet').value.trim(),
     telefono: document.getElementById('ftel').value.trim().replace(/\D/g,''),
-    rut: document.getElementById('frut').value.trim(),
+    rut: rutFormateado(document.getElementById('frut').value),
     email: document.getElementById('fmail').value.trim(),
     empresa: document.getElementById('femp').value.trim(),
-    rutEmpresa: document.getElementById('frutemp').value.trim(),
+    rutEmpresa: rutFormateado(document.getElementById('frutemp').value),
     telefonoFijo: document.getElementById('ftelfijo').checked,
     aviso: document.getElementById('fav').checked,
     plan: document.getElementById('fplan').checked,
