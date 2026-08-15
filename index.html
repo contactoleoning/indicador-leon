@@ -1440,6 +1440,34 @@ button{cursor:pointer}
   </div>
 </div>
 
+<!-- AGENDAR VISITA TÉCNICA (desde tarjeta del cliente) -->
+<div class="gallery-overlay" id="agendar-ov" style="display:none" onclick="if(event.target===this)closeAgendarModal()">
+  <div class="gallery-box" style="max-width:600px">
+    <div class="gallery-head">
+      <span class="gallery-ttl" id="agendar-ttl">📅 AGENDAR VISITA TÉCNICA</span>
+      <button class="gallery-x" onclick="closeAgendarModal()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="gallery-body">
+      <div class="form-grid">
+        <div class="ff"><label>📅 FECHA</label><input id="agendar-fecha" type="date"/></div>
+        <div class="ff"><label>🕐 HORA (opcional)</label><input id="agendar-hora" type="time"/></div>
+        <div class="ff full"><label>📝 DETALLES (qué revisar)</label><textarea id="agendar-detalles" rows="3" placeholder="Ej: Revisar compresor, limpiar filtros, verificar drenaje..."></textarea></div>
+        <div class="ff"><label>📍 DIRECCIÓN</label><input id="agendar-direccion" type="text"/></div>
+        <div class="ff"><label>🏘️ COMUNA</label><input id="agendar-comuna" type="text"/></div>
+      </div>
+    </div>
+    <div class="gallery-foot">
+      <button class="gallery-close-btn" onclick="closeAgendarModal()">Cancelar</button>
+      <button class="gallery-upload-btn" onclick="confirmarAgendarVisita()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Agendar visita
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- HIDDEN FILE INPUTS -->
 <input type="file" id="modal-file" accept="image/*" multiple style="display:none" onchange="handleModalPhotoUpload(this)"/>
 <input type="file" id="card-file" accept="image/*" multiple style="display:none" onchange="handleCardPhotoUpload(this)"/>
@@ -1695,15 +1723,50 @@ function deleteCalendarioCliente(row) {
   if (row.calMantId) calPost({ action: 'eliminar', eventId: row.calMantId });
 }
 
+var agendarModalRecId = null;
+
 function abrirAgendarModal(recId) {
   const rec = data.find(r => r.id === recId);
   if (!rec) return;
-  const fecha = prompt('Fecha de visita técnica (YYYY-MM-DD):', ymd(new Date()));
-  if (!fecha) return;
+  agendarModalRecId = recId;
+  document.getElementById('agendar-ttl').textContent = '📅 AGENDAR VISITA TÉCNICA — ' + (rec.cliente||'CLIENTE').toUpperCase();
+  document.getElementById('agendar-fecha').value = ymd(new Date());
+  document.getElementById('agendar-hora').value = '';
+  document.getElementById('agendar-detalles').value = '';
+  document.getElementById('agendar-direccion').value = rec.direccion || '';
+  document.getElementById('agendar-comuna').value = rec.comuna || '';
+  document.getElementById('agendar-ov').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAgendarModal() {
+  document.getElementById('agendar-ov').style.display = 'none';
+  document.body.style.overflow = '';
+  agendarModalRecId = null;
+}
+
+function confirmarAgendarVisita() {
+  if (!agendarModalRecId) return;
+  const rec = data.find(r => r.id === agendarModalRecId);
+  if (!rec) return;
+
+  const fecha = document.getElementById('agendar-fecha').value;
+  const hora = document.getElementById('agendar-hora').value;
+  const detalles = document.getElementById('agendar-detalles').value;
+  const direccion = document.getElementById('agendar-direccion').value;
+  const comuna = document.getElementById('agendar-comuna').value;
+
+  if (!fecha) { toast('Selecciona una fecha para la visita'); return; }
+
   rec.inicia = fecha;
+  if (direccion) rec.direccion = direccion;
+  if (comuna) rec.comuna = comuna;
+  if (detalles) rec.obs = (rec.obs ? rec.obs + '\n' : '') + '📌 Visita técnica: ' + detalles + (hora ? ' a las ' + hora : '');
+
   saveRecord(rec);
   render();
-  toast('✓ Visita técnica agendada para ' + fecha + '. Se sincronizará con Google Calendar…');
+  closeAgendarModal();
+  toast('✓ Visita técnica agendada para ' + fecha + (hora ? ' a las ' + hora : '') + '. Se sincronizará con Google Calendar…');
 }
 
 function agendarVisitaTecnica(recId) {
