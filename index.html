@@ -1721,6 +1721,7 @@ function deleteCalendarioCliente(row) {
   if (!CAL_GAS_URL || !row) return;
   if (row.calIngresoId) calPost({ action: 'eliminar', eventId: row.calIngresoId });
   if (row.calMantId) calPost({ action: 'eliminar', eventId: row.calMantId });
+  if (row.calVisitaId) calPost({ action: 'eliminar', eventId: row.calVisitaId });
 }
 
 var agendarModalRecId = null;
@@ -1772,9 +1773,35 @@ function confirmarAgendarVisita() {
   if (detalles) rec.obs = (rec.obs ? rec.obs + '\n' : '') + '📌 Visita técnica agendada: ' + detalles + (hora ? ' a las ' + hora : '');
 
   saveRecord(rec);
+  sincronizarVisitaAgendada(rec);
   render();
   closeAgendarModal();
   toast('✓ Visita técnica agendada para ' + fecha + (hora ? ' a las ' + hora : '') + '. El estado se actualizará cuando registres la mantención realizada.');
+}
+
+function sincronizarVisitaAgendada(rec) {
+  if (!CAL_GAS_URL || !rec.visitaAgendada) return;
+  const v = rec.visitaAgendada;
+  const desc = [
+    'Cliente: ' + (rec.cliente || '—'),
+    'Servicio: ' + (rec.servicio || '—'),
+    v.detalles ? 'Qué revisar: ' + v.detalles : '',
+    rec.direccion ? 'Dirección: ' + rec.direccion : '',
+    rec.comuna ? 'Comuna: ' + rec.comuna : '',
+    rec.telefono ? 'Teléfono: ' + rec.telefono : ''
+  ].filter(Boolean).join('\n');
+
+  calPost({
+    action: 'actualizar',
+    eventId: rec.calVisitaId || '',
+    titulo: '📅 Visita técnica: ' + (rec.cliente || 'Sin nombre'),
+    fecha: v.fecha,
+    hora: v.hora || '09:00',
+    descripcion: desc,
+    recordatorioDias: 1
+  }).then(res => {
+    if (res && res.eventId && res.eventId !== rec.calVisitaId) patchRecordFields(rec, { calVisitaId: res.eventId });
+  });
 }
 
 function agendarVisitaTecnica(recId) {
