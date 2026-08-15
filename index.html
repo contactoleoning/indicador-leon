@@ -529,23 +529,17 @@ button{cursor:pointer}
    La altura no decora: dice cuanto urge. Lo vencido flota sobre la pagina
    con sombra larga, lo que esta al dia se apoya plano. Al abrir la app no
    hay que leer nada -- lo que sobresale es lo que hay que atender hoy.   */
-.ccard{--lift:0px;--sombra:rgba(22,27,34,.20)}
+.ccard{--lift:0px;--sombra:rgba(22,27,34,.26)}
 .ccard.st-green  {--lift:0px}
-.ccard.st-resched{--lift:8px}
-.ccard.st-amber  {--lift:16px}
-.ccard.st-red    {--lift:28px}
+.ccard.st-resched{--lift:15px}
+.ccard.st-amber  {--lift:28px}
+.ccard.st-red    {--lift:46px}
 [data-theme="dark"] .ccard{--sombra:rgba(0,0,0,.72)}
 
 .ccard-inner{position:relative;transform-style:preserve-3d;
-  transform:translateZ(var(--lift))
-            rotateX(var(--rx,0deg))
-            rotateY(calc(var(--ry,0deg) + var(--flip,0deg)));
+  transform:translateZ(var(--lift)) rotateY(var(--flip,0deg));
   transition:transform .55s cubic-bezier(.2,.75,.25,1)}
-/* Siguiendo al puntero la tarjeta tiene que estar DONDE se la ve. Con los
-   .55s del giro quedaba acomodandose medio segundo despues de que el cursor
-   se detuvo: uno apuntaba al lapiz de 34px, la tarjeta se seguia moviendo
-   debajo, y el clic caia en la tarjeta y la daba vuelta. */
-.ccard.siguiendo .ccard-inner{transition:transform .12s linear}
+
 /* Ojo: la sombra NO puede ir como filter en .ccard-inner. Un filtro aplana el
    contexto 3D del elemento, y con eso backface-visibility deja de funcionar --
    al girar se veia el frente espejado en vez del dorso. Va como box-shadow en
@@ -563,8 +557,8 @@ button{cursor:pointer}
   background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
   padding:16px 16px 14px;display:flex;flex-direction:column;gap:12px;overflow:hidden;position:relative;
   transition:box-shadow .3s ease,border-color .18s;
-  box-shadow:0 calc(1px + var(--lift) * 0.10) calc(2px + var(--lift) * 0.18) rgba(22,27,34,.10),
-             0 calc(4px + var(--lift) * 0.55) calc(10px + var(--lift) * 1.15) calc(-4px - var(--lift) * 0.15) var(--sombra)}
+  box-shadow:0 calc(1px + var(--lift) * 0.12) calc(2px + var(--lift) * 0.22) rgba(22,27,34,.13),
+             0 calc(4px + var(--lift) * 0.72) calc(10px + var(--lift) * 1.45) calc(-4px - var(--lift) * 0.12) var(--sombra)}
 .ccard-cara.dorso{transform:rotateY(180deg) translateZ(0.01px)}
 .ccard:hover .ccard-cara{border-color:var(--border2)}
 
@@ -2271,60 +2265,34 @@ function tarjetaHTML(r){
 // tarjeta y volver es mas rapido que abrir y cerrar. La ficha completa con
 // fotos sigue estando, a un toque desde el dorso.
 function girarTarjeta(el){
-  el.classList.remove('siguiendo');   // el giro usa la transicion larga
   el.classList.toggle('girada');
-  el.style.removeProperty('--rx');   // si no, el dorso queda torcido
-  el.style.removeProperty('--ry');
 }
 
-// La inclinacion se calcula con la posicion del puntero sobre la tarjeta.
-// Va delegada en el contenedor -- un solo listener para todas -- porque las
-// tarjetas se vuelven a dibujar en cada render y enganchar una por una
-// dejaria listeners sueltos cada vez.
-var TILT_MAX = 6;   // grados; mas que esto marea y estorba para leer
+// La tarjeta NO se mueve con el puntero. Se probo la inclinacion y el costo era
+// concreto: con la tarjeta acomodandose debajo del cursor, apretar un boton de
+// 34px fallaba, y al fallar la tarjeta se daba vuelta -- se perdia el clic y
+// habia que empezar de nuevo. Un adorno no vale eso.
+//
+// El relieve se mantiene, pero quieto: la altura de cada tarjeta y el largo de
+// su sombra dicen cuanto urge. Lo vencido flota sobre la pagina, lo que esta al
+// dia se apoya plano. Se lee igual de rapido y no se mueve nada.
+//
+// El brillo si sigue al puntero: es un degradado pintado encima, no cambia la
+// geometria y por lo tanto no puede robarse un clic.
 var _sinMovimiento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function inclinarTarjeta(e){
+function brilloTarjeta(e){
   if(_sinMovimiento) return;
   var card = e.target.closest && e.target.closest('.ccard');
-  if(!card || card.classList.contains('girada')) return;   // el dorso no se inclina
-
-  // Sobre los botones la tarjeta se endereza y se queda quieta. Son blancos de
-  // 34px: con la tarjeta moviendose debajo del cursor, apuntarles es cuestion
-  // de suerte -- y cuando se falla no pasa nada malo, pasa algo peor, que la
-  // tarjeta se da vuelta y hay que empezar de nuevo.
-  card.classList.add('siguiendo');
-  if(e.target.closest('.ccard-acciones')){
-    card.style.setProperty('--rx','0deg');
-    card.style.setProperty('--ry','0deg');
-    return;
-  }
-
-  var b = card.getBoundingClientRect();
-  var px = (e.clientX - b.left) / b.width;
-  var py = (e.clientY - b.top) / b.height;
-  card.style.setProperty('--ry', ((px - .5) * TILT_MAX * 2).toFixed(2) + 'deg');
-  card.style.setProperty('--rx', ((.5 - py) * TILT_MAX * 2).toFixed(2) + 'deg');
-  card.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
-  card.style.setProperty('--my', (py * 100).toFixed(1) + '%');
-}
-function enderezarTarjeta(e){
-  var card = e.target.closest && e.target.closest('.ccard');
   if(!card) return;
-  card.classList.remove('siguiendo');
-  card.style.removeProperty('--rx');
-  card.style.removeProperty('--ry');
+  var b = card.getBoundingClientRect();
+  card.style.setProperty('--mx', (((e.clientX - b.left) / b.width) * 100).toFixed(1) + '%');
+  card.style.setProperty('--my', (((e.clientY - b.top) / b.height) * 100).toFixed(1) + '%');
 }
-(function engancharTilt(){
+(function engancharBrillo(){
   var g = document.getElementById('cards-grid');
   if(!g) return;
-  // pointermove cubre mouse y lapiz; en tactil no se inclina -- no hay
-  // puntero que seguir -- y manda el giro al tocar.
-  g.addEventListener('pointermove', function(e){ if(e.pointerType!=='touch') inclinarTarjeta(e); });
-  g.addEventListener('pointerleave', enderezarTarjeta, true);
-  g.addEventListener('pointerout', function(e){
-    if(!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.ccard')) enderezarTarjeta(e);
-  });
+  g.addEventListener('pointermove', function(e){ if(e.pointerType!=='touch') brilloTarjeta(e); });
 })();
 
 function renderCards(lista){
