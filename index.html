@@ -783,6 +783,21 @@ button{cursor:pointer}
 #lock-overlay .lock-btn:hover{transform:translateY(-1px);box-shadow:0 9px 24px rgba(214,217,222,.35)}
 #lock-overlay .lock-btn:active{transform:translateY(0)}
 #lock-overlay .lock-err{color:#e74c3c;font-size:13px;font-weight:600;min-height:18px}
+
+/* ── EL TELEFONO SE VE IGUAL QUE LOS DEMAS CAMPOS ───────────────────────────
+   Va al final del CSS y con selector de dos clases a proposito. En el equipo
+   de Isaac el campo de telefono aparecia claro mientras RUT EMPRESA -- al lado,
+   en la misma pantalla y en el mismo instante -- aparecia oscuro, y el numero
+   quedaba blanco sobre blanco. No se pudo reproducir ni encontrar la regla que
+   lo aclaraba.
+   Asi que en vez de seguir buscandola, aca se afirma la unica condicion que
+   importa: este campo se pinta con las mismas variables que .ff input. Al ir
+   ultimo y pesar mas, gana sobre cualquier regla anterior que intente
+   aclararlo. Si algun dia aparece la causa, esto sigue siendo correcto. */
+.ff .input-tel-wrap{background:var(--surface2);border-color:var(--border)}
+.ff .input-tel-wrap input{color:var(--text);-webkit-text-fill-color:var(--text);font-weight:600}
+.ff .input-tel-wrap input::placeholder{color:var(--text3);-webkit-text-fill-color:var(--text3);font-weight:400}
+.ff .tel-prefix{background:var(--surface3);color:var(--text2)}
 </style>
 </head>
 <body>
@@ -4239,7 +4254,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v15";
+var APP_VERSION = "v16";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
