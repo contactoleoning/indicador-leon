@@ -3479,10 +3479,14 @@ function renderModalPhotos() {
 }
 
 async function handleModalPhotoUpload(input) {
+  console.log('DEBUG: handleModalPhotoUpload', { useFirebase, fbStorage: !!fbStorage, userAuth: firebase.auth().currentUser?.email });
   for (const file of Array.from(input.files)) {
     try {
-      modalPhotos.push(await compressImage(file));
+      const result = await compressImage(file);
+      console.log('DEBUG: compressImage result', { hasUrl: !!result.url, hasData: !!result.data, id: result.id });
+      modalPhotos.push(result);
     } catch (e) {
+      console.error('DEBUG: compressImage error', e);
       toast(e.message || 'No se pudo subir '+file.name);
     }
   }
