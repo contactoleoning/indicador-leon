@@ -198,6 +198,14 @@ El precio es que arreglar la planilla a mano no llega a la app: para eso está
 el botón "Revisar contra la planilla". Si un monto se ve raro en Seguimiento,
 ese es el primer lugar donde mirar.
 
+**La inclinación de las tarjetas puede comerse los clics.** El relieve 3D sigue
+al puntero, y con la transición larga del giro (.55s) la tarjeta quedaba
+moviéndose medio segundo después de que el cursor se detuvo: apuntar a un botón
+de 34px era cuestión de suerte, y al fallar la tarjeta se daba vuelta. Ahora
+siguiendo al puntero la transición baja a .12s (clase `siguiendo`) y **sobre
+`.ccard-acciones` no se inclina**. Si mañana se agregan más botones a la
+tarjeta, tienen que ir dentro de ese contenedor.
+
 **Las ventanas del indicador se apilan por z-index y hay que respetarlo.** La
 ficha está en 9000, el editor en 9500, el lightbox en 800, la galería en 650.
 Cuando el editor estaba en 200 se abría *por detrás* de la ficha y la ficha se
