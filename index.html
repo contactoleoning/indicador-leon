@@ -3378,7 +3378,7 @@ function eliminarHistorialEntry(i) {
 }
 
 async function compressImage(file) {
-  const MAX = 900;
+  const MAX = 600;
   let source, w, h;
 
   // Fotos HEIC/HEIF (formato por defecto de camara en iPhone) no se pueden
@@ -3441,7 +3441,7 @@ async function compressImage(file) {
   // cada foto quedaba embebida en base64 dentro de Realtime Database, y
   // cada carga de la app descargaba TODAS las fotos de TODOS los clientes.
   if (useFirebase && fbStorage) {
-    const blob = await new Promise(resolve => c.toBlob(resolve, 'image/jpeg', 0.72));
+    const blob = await new Promise(resolve => c.toBlob(resolve, 'image/jpeg', 0.65));
     const ref = fbStorage.ref('clientes/' + id + '.jpg');
     await ref.put(blob, { contentType: 'image/jpeg' });
     const url = await ref.getDownloadURL();
