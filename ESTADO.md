@@ -112,7 +112,12 @@ Lo de la Fase 2 ya está publicado:
   `empresa` y `rutEmpresa` en el cliente: la tarjeta muestra la razón social en
   chico bajo el nombre y la ficha suma un bloque **FACTURAR A**. El buscador
   encuentra por nombre, razón social, RUT de la persona y RUT de la empresa.
-  Quien tiene `rutEmpresa` **no** cuenta como "sin RUT". En el Cotizador,
+  Quien tiene `rutEmpresa` **no** cuenta como "sin RUT". Los dos campos
+  formatean el RUT mientras se escribe y **validan el dígito verificador al
+  salir del campo** — no en cada tecla, porque un RUT de empresa pasa por un
+  largo intermedio que casi siempre da inválido y el rojo intermitente se acaba
+  ignorando. El Cotizador ya validaba (`checkRut`); el Indicador no, y ahí se
+  coló 73.394.670-8 en vez de 76.349.670-8. En el Cotizador,
   `fichasDeLaPersona()` cruza contra los dos RUT: si sólo mirara `c.rut`,
   cotizar a nombre de la empresa crearía una ficha duplicada con la razón social.
 - **Pestaña FINANZAS**, entre INFORMACIÓN y ADMINISTRADOR. El corte:
