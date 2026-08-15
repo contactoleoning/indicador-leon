@@ -424,7 +424,30 @@ button{cursor:pointer}
 .input-tel-wrap:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(214,217,222,0.1)}
 .tel-prefix{padding:10px 11px;font-size:14px;color:var(--text2);font-weight:600;white-space:nowrap;border-right:1px solid var(--border);background:rgba(255,255,255,0.03);flex-shrink:0;letter-spacing:0.3px}
 .input-tel-wrap input{border:none;background:transparent;color:var(--text);font-size:14px;font-family:inherit;outline:none;padding:10px 10px;flex:1;min-width:0;width:100%}
-.input-tel-wrap input::placeholder{color:var(--text3)}
+.input-tel-wrap input::placeholder{color:var(--text3);opacity:1}
+
+/* El telefono es el unico campo con su fondo aparte -- va dentro de un
+   contenedor con el prefijo +569 -- y por eso es el unico donde el color del
+   texto puede quedar descolgado del resto. Se fija explicito en los dos temas
+   en vez de heredarlo.
+
+   El -webkit-text-fill-color es el que manda cuando el navegador autocompleta:
+   Chrome pinta el campo con sus propios colores y puede dejar el numero
+   ilegible sobre el fondo blanco. Sin esta linea, el campo se ve vacio aunque
+   tenga el numero adentro. */
+[data-theme="light"] .input-tel-wrap input{color:#161b22;-webkit-text-fill-color:#161b22}
+[data-theme="light"] .input-tel-wrap input::placeholder{color:var(--text3);-webkit-text-fill-color:var(--text3)}
+[data-theme="dark"] .input-tel-wrap input{color:#e9edf2;-webkit-text-fill-color:#e9edf2}
+[data-theme="dark"] .input-tel-wrap input::placeholder{color:var(--text3);-webkit-text-fill-color:var(--text3)}
+
+.input-tel-wrap input:-webkit-autofill,
+.input-tel-wrap input:-webkit-autofill:hover,
+.input-tel-wrap input:-webkit-autofill:focus{
+  -webkit-text-fill-color:var(--text);
+  -webkit-box-shadow:0 0 0 1000px var(--surface2) inset;
+  caret-color:var(--text)}
+[data-theme="light"] .input-tel-wrap input:-webkit-autofill{
+  -webkit-text-fill-color:#161b22;-webkit-box-shadow:0 0 0 1000px #ffffff inset}
 /* card phone & address */
 .card-phone-link{display:inline-flex;align-items:center;gap:5px;color:var(--aviso);font-size:13px;font-weight:500;text-decoration:none;padding:2px 0}
 .card-phone-link:hover{text-decoration:underline}
