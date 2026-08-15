@@ -107,6 +107,14 @@ Lo de la Fase 2 ya está publicado:
   / te quedó. **Todo sin IVA**: ese 19% se cobra por el fisco y nunca fue plata
   de Isaac. El bloque sólo afirma sobre los trabajos ya liquidados y dice
   cuántos faltan, en vez de mezclarlos y dar un margen que no significa nada.
+- **Persona y empresa separadas en la ficha.** La tarjeta se llama como la
+  persona con la que uno habla; la boleta va a nombre de la empresa. Campos
+  `empresa` y `rutEmpresa` en el cliente: la tarjeta muestra la razón social en
+  chico bajo el nombre y la ficha suma un bloque **FACTURAR A**. El buscador
+  encuentra por nombre, razón social, RUT de la persona y RUT de la empresa.
+  Quien tiene `rutEmpresa` **no** cuenta como "sin RUT". En el Cotizador,
+  `fichasDeLaPersona()` cruza contra los dos RUT: si sólo mirara `c.rut`,
+  cotizar a nombre de la empresa crearía una ficha duplicada con la razón social.
 - **Pestaña FINANZAS**, entre INFORMACIÓN y ADMINISTRADOR. El corte:
   Administrador es catálogo y costos —configuración—; Finanzas es la plata
   —ventas por mes y año, trabajos por liquidar, al bolsillo, detalle del mes—.
