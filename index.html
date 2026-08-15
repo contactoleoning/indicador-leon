@@ -1758,15 +1758,23 @@ function confirmarAgendarVisita() {
 
   if (!fecha) { toast('Selecciona una fecha para la visita'); return; }
 
-  rec.inicia = fecha;
   if (direccion) rec.direccion = direccion;
   if (comuna) rec.comuna = comuna;
-  if (detalles) rec.obs = (rec.obs ? rec.obs + '\n' : '') + '📌 Visita técnica: ' + detalles + (hora ? ' a las ' + hora : '');
+
+  // Guardar visita agendada sin cambiar la fecha de vencimiento
+  rec.visitaAgendada = {
+    fecha: fecha,
+    hora: hora || '',
+    detalles: detalles || '',
+    timestamp: new Date().toISOString()
+  };
+
+  if (detalles) rec.obs = (rec.obs ? rec.obs + '\n' : '') + '📌 Visita técnica agendada: ' + detalles + (hora ? ' a las ' + hora : '');
 
   saveRecord(rec);
   render();
   closeAgendarModal();
-  toast('✓ Visita técnica agendada para ' + fecha + (hora ? ' a las ' + hora : '') + '. Se sincronizará con Google Calendar…');
+  toast('✓ Visita técnica agendada para ' + fecha + (hora ? ' a las ' + hora : '') + '. El estado se actualizará cuando registres la mantención realizada.');
 }
 
 function agendarVisitaTecnica(recId) {
