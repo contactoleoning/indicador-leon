@@ -211,6 +211,13 @@ El precio es que arreglar la planilla a mano no llega a la app: para eso está
 el botón "Revisar contra la planilla". Si un monto se ve raro en Seguimiento,
 ese es el primer lugar donde mirar.
 
+**Ningún campo puede tener colores literales: todo sale de las variables del
+tema.** El teléfono los tenía —un `#ffffff` fijo mientras el resto usaba
+`var(--surface2)`— y por eso quedaba blanco cuando el resto estaba oscuro, con
+el número pintado del mismo color que el fondo. Se veía vacío; lo único visible
+era el subrayado rojo del corrector. Si un campo se ve distinto a los de al
+lado, buscar primero un color escrito a mano.
+
 **Las tarjetas no se mueven con el puntero, y es a propósito.** Hubo una
 inclinación 3D que seguía al mouse y se probó que costaba caro: con la tarjeta
 acomodándose debajo del cursor, apretar un botón de 34px fallaba, y al fallar la
