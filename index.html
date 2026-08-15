@@ -1783,6 +1783,7 @@ function sincronizarVisitaAgendada(rec) {
   if (!CAL_GAS_URL || !rec.visitaAgendada) return;
   const v = rec.visitaAgendada;
   const desc = [
+    'Hora: ' + (v.hora || '09:00'),
     'Cliente: ' + (rec.cliente || '—'),
     'Servicio: ' + (rec.servicio || '—'),
     v.detalles ? 'Qué revisar: ' + v.detalles : '',
@@ -1796,7 +1797,6 @@ function sincronizarVisitaAgendada(rec) {
     eventId: rec.calVisitaId || '',
     titulo: '📅 Visita técnica: ' + (rec.cliente || 'Sin nombre'),
     fecha: v.fecha,
-    hora: v.hora || '09:00',
     descripcion: desc,
     recordatorioDias: 1
   }).then(res => {
