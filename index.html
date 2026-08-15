@@ -1454,43 +1454,6 @@ button{cursor:pointer}
   </div>
 </div>
 
-<div class="modal-overlay" id="agendar-ov" style="display:none" onclick="if(event.target===this)closeAgendarModal()">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;max-width:420px;width:90vw;max-height:80vh;overflow-y:auto">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h2 style="font-size:18px;font-weight:700;color:var(--text);margin:0">📅 AGENDAR VISITA TÉCNICA</h2>
-      <button onclick="closeAgendarModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text2)">×</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-      <div>
-        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Fecha</label>
-        <input type="date" id="agendar-modal-fecha" value="" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:14px;box-sizing:border-box"/>
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Hora (opcional)</label>
-        <input type="time" id="agendar-modal-hora" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:14px;box-sizing:border-box"/>
-      </div>
-    </div>
-    <div style="margin-bottom:12px">
-      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Detalles — ¿Qué se hizo?</label>
-      <textarea id="agendar-modal-detalles" placeholder="Ej: Limpieza de filtros, recarga de gas R32, revisión de drenaje..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit;resize:vertical;min-height:70px;box-sizing:border-box"/>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div>
-        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Dirección</label>
-        <input type="text" id="agendar-modal-direccion" placeholder="" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:14px;box-sizing:border-box"/>
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:6px">Comuna</label>
-        <input type="text" id="agendar-modal-comuna" placeholder="" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:14px;box-sizing:border-box"/>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px">
-      <button onclick="closeAgendarModal()" style="flex:1;padding:12px;border:1px solid var(--border);background:transparent;color:var(--text2);border-radius:6px;font-weight:600;cursor:pointer;font-size:14px">Cancelar</button>
-      <button onclick="guardarAgendarVisita()" style="flex:1;padding:12px;background:var(--gold);color:#1a1a1a;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px">✓ Agendar</button>
-    </div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1727,37 +1690,14 @@ function deleteCalendarioCliente(row) {
   if (row.calMantId) calPost({ action: 'eliminar', eventId: row.calMantId });
 }
 
-let agendarRecId = null;
-
-function abrirAgendarModal(recId) {
+function agendarVisitaTecnica(recId) {
   const rec = data.find(r => r.id === recId);
   if (!rec) return;
-  agendarRecId = recId;
-  document.getElementById('agendar-modal-fecha').value = ymd(new Date());
-  document.getElementById('agendar-modal-hora').value = '';
-  document.getElementById('agendar-modal-detalles').value = '';
-  document.getElementById('agendar-modal-direccion').value = rec.direccion || '';
-  document.getElementById('agendar-modal-comuna').value = rec.comuna || '';
-  document.getElementById('agendar-ov').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-}
-
-function closeAgendarModal() {
-  document.getElementById('agendar-ov').style.display = 'none';
-  document.body.style.overflow = '';
-  agendarRecId = null;
-}
-
-function guardarAgendarVisita() {
-  if (!agendarRecId) return;
-  const rec = data.find(r => r.id === agendarRecId);
-  if (!rec) return;
-
-  const fecha = document.getElementById('agendar-modal-fecha')?.value;
-  const hora = document.getElementById('agendar-modal-hora')?.value;
-  const detalles = document.getElementById('agendar-modal-detalles')?.value;
-  const direccion = document.getElementById('agendar-modal-direccion')?.value;
-  const comuna = document.getElementById('agendar-modal-comuna')?.value;
+  const fecha = document.getElementById('agendar-fecha-' + recId)?.value;
+  const hora = document.getElementById('agendar-hora-' + recId)?.value;
+  const detalles = document.getElementById('agendar-detalles-' + recId)?.value;
+  const direccion = document.getElementById('agendar-direccion-' + recId)?.value;
+  const comuna = document.getElementById('agendar-comuna-' + recId)?.value;
 
   if (!fecha) { toast('Selecciona una fecha para la visita'); return; }
 
@@ -1769,7 +1709,6 @@ function guardarAgendarVisita() {
 
   saveRecord(rec);
   render();
-  closeAgendarModal();
   toast('✓ Visita técnica agendada para ' + fecha + (hora ? ' a las ' + hora : '') + '. Sincronizando con Google Calendar…');
 }
 
@@ -2517,6 +2456,19 @@ function fichaHTML(r) {
       </div>
     </div>
     ${(r.historial && r.historial.length) ? `<div class="card-field full" style="margin-top:14px"><label>HISTORIAL DE MANTENCIONES (${r.historial.length})</label>${historialListHTML(r)}</div>` : ''}
+    <div class="card-field full" style="margin-top:14px;padding:14px;background:rgba(56,139,253,0.08);border:1px solid var(--aviso);border-radius:8px">
+      <label style="margin-bottom:10px;display:block">AGENDAR VISITA TÉCNICA</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <input type="date" id="agendar-fecha-${r.id}" value="${ymd(new Date())}" style="padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:14px"/>
+        <input type="time" id="agendar-hora-${r.id}" style="padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:14px"/>
+      </div>
+      <textarea id="agendar-detalles-${r.id}" placeholder="Detalles de la visita (qué revisar, problemas reportados, etc.)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:14px;resize:vertical;min-height:60px;font-family:inherit;margin-bottom:10px"></textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <input type="text" id="agendar-direccion-${r.id}" value="${esc(r.direccion||'')}" placeholder="Dirección" style="padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:14px"/>
+        <input type="text" id="agendar-comuna-${r.id}" value="${esc(r.comuna||'')}" placeholder="Comuna" style="padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:14px"/>
+      </div>
+      <button onclick="agendarVisitaTecnica(${r.id})" style="width:100%;padding:10px;background:var(--aviso);color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px">📅 Agendar Visita</button>
+    </div>
     <div class="card-foot" style="padding-top:14px;border-top:1px solid var(--border);margin-top:14px;flex-wrap:wrap">
       <label class="card-aviso-label${r.aviso ? ' avisado' : ''}">
         <input type="checkbox" class="card-aviso-cb" ${r.aviso ? 'checked' : ''} data-id="${r.id}" onchange="ta(this)"/>
@@ -2524,7 +2476,6 @@ function fichaHTML(r) {
       </label>
       <div class="card-btns" style="flex-wrap:wrap">
         <button class="card-btn mant" onclick="marcarMantencionHoy(${r.id})">✓ Mantención hoy</button>
-        <button class="card-btn" onclick="abrirAgendarModal(${r.id})">📅 Agendar</button>
         ${puedeWhatsapp(r) ? `<button class="card-btn wa" onclick="waCliente(${r.id})">WhatsApp</button>` : ''}
         ${puedeWhatsapp(r) ? `<button class="card-btn resena" onclick="pedirResena(${r.id})">⭐ Reseña</button>` : ''}
         <button class="card-btn" onclick="openModal(${r.id})">Editar</button>
