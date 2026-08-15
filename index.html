@@ -423,10 +423,15 @@ button{cursor:pointer}
 .input-tel-wrap{display:flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface2);overflow:hidden;transition:border-color .15s,box-shadow .15s}
 .input-tel-wrap:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(214,217,222,0.1)}
 .tel-prefix{padding:10px 11px;font-size:14px;color:var(--text2);font-weight:600;white-space:nowrap;border-right:1px solid var(--border);background:var(--surface3);flex-shrink:0;letter-spacing:0.3px}
-.input-tel-wrap input{border:none;background:transparent;color:var(--text);font-size:14px;font-family:inherit;outline:none;padding:10px 10px;flex:1;min-width:0;width:100%}
+.input-tel-wrap input{border:none;background:transparent;color:var(--text2);font-size:14px;font-family:inherit;outline:none;padding:10px 10px;flex:1;min-width:0;width:100%}
 .input-tel-wrap input::placeholder{color:var(--text3);opacity:1}
 
-/* El telefono NO puede tener colores propios. Era el unico campo con un blanco
+/* El numero va del MISMO color que el prefijo +569, no del color de los otros
+   campos. Es a proposito y es empirico: en la pantalla de Isaac el +569 se leia
+   siempre y el numero no, los dos sobre el mismo fondo. Sea cual sea el estado
+   raro en que quede el tema en ese equipo, si el prefijo se ve el numero se ve.
+
+   El telefono NO puede tener colores propios. Era el unico campo con un blanco
    literal (#ffffff) mientras todos los demas salen de las variables del tema, y
    por eso quedaba blanco cuando el resto estaba oscuro -- con el numero, que si
    seguia al tema, pintado del mismo color que el fondo. Se veia vacio y lo
@@ -435,14 +440,14 @@ button{cursor:pointer}
    Ahora se pinta con las mismas variables que .ff input. Sea cual sea el tema,
    o lo que haga el navegador con el modo oscuro automatico, este campo se ve
    igual que el de al lado. */
-.input-tel-wrap input{-webkit-text-fill-color:var(--text)}
+.input-tel-wrap input{-webkit-text-fill-color:var(--text2)}
 .input-tel-wrap input::placeholder{-webkit-text-fill-color:var(--text3)}
 .input-tel-wrap input:-webkit-autofill,
 .input-tel-wrap input:-webkit-autofill:hover,
 .input-tel-wrap input:-webkit-autofill:focus{
-  -webkit-text-fill-color:var(--text);
+  -webkit-text-fill-color:var(--text2);
   -webkit-box-shadow:0 0 0 1000px var(--surface2) inset;
-  caret-color:var(--text)}
+  caret-color:var(--text2)}
 /* card phone & address */
 .card-phone-link{display:inline-flex;align-items:center;gap:5px;color:var(--aviso);font-size:13px;font-weight:500;text-decoration:none;padding:2px 0}
 .card-phone-link:hover{text-decoration:underline}
@@ -988,6 +993,9 @@ button{cursor:pointer}
 
 <div class="app-footer">
   <button class="btn-reset-cfg" onclick="resetConfig()">⚙ Cambiar configuración de sincronización</button>
+  <!-- Sirve para zanjar discusiones: si algo "no se arreglo", lo primero es
+       mirar aca si la version que corre es la que tiene el arreglo. -->
+  <span id="app-version" style="font-size:11px;color:var(--text3);margin-left:10px"></span>
 </div>
 
 <!-- FAB -->
@@ -4229,6 +4237,17 @@ function nombreClaveInd(n){
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
+
+var APP_VERSION = "v14";
+(function mostrarVersion(){
+  function pintar(){
+    var el=document.getElementById('app-version');
+    if(el) el.textContent = APP_VERSION;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', pintar);
+  else pintar();
+  console.log('Indicador León ' + APP_VERSION);
+})();
 
 function renderAvisoRut(){
   var el=document.getElementById('rut-faltante');
