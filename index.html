@@ -794,10 +794,10 @@ button{cursor:pointer}
    importa: este campo se pinta con las mismas variables que .ff input. Al ir
    ultimo y pesar mas, gana sobre cualquier regla anterior que intente
    aclararlo. Si algun dia aparece la causa, esto sigue siendo correcto. */
-.ff .input-tel-wrap{background:var(--surface2);border-color:var(--border)}
+.ff .input-tel-wrap{background:var(--surface2)!important;border-color:var(--border)!important}
 .ff .input-tel-wrap input{color:var(--text);-webkit-text-fill-color:var(--text);font-weight:600}
 .ff .input-tel-wrap input::placeholder{color:var(--text3);-webkit-text-fill-color:var(--text3);font-weight:400}
-.ff .tel-prefix{background:var(--surface3);color:var(--text2)}
+.ff .tel-prefix{background:transparent!important;color:var(--text2)}
 </style>
 </head>
 <body>
@@ -2942,6 +2942,31 @@ function onRutBlur(el, idAviso){
   el.style.borderColor = (ok===false) ? 'var(--red)' : '';
 }
 
+// Seis intentos por CSS y el campo de telefono seguia saliendo claro en el
+// equipo de Isaac mientras los de al lado salian oscuros. No se encontro la
+// regla culpable: no hay estilos en linea, no hay data-theme en ningun padre,
+// no hay prefers-color-scheme, y el blanco literal se saco hace rato.
+//
+// Asi que esto ya no discute con el CSS: mide en pantalla el fondo que TIENE el
+// campo de al lado -- el resultado, no la regla -- y se lo copia al telefono.
+// Gane la regla que gane, los dos terminan del mismo color.
+function igualarFondoTelefono(){
+  var ref = document.getElementById('frutemp') || document.getElementById('fmail')
+         || document.getElementById('frut');
+  var wrap = document.querySelector('#modal-ov .input-tel-wrap');
+  if(!ref || !wrap) return;
+  var cs = getComputedStyle(ref);
+  wrap.style.setProperty('background', cs.backgroundColor, 'important');
+  wrap.style.setProperty('border-color', cs.borderColor, 'important');
+  var inp = wrap.querySelector('input');
+  if(inp){
+    inp.style.setProperty('color', cs.color, 'important');
+    inp.style.setProperty('-webkit-text-fill-color', cs.color, 'important');
+  }
+  var pre = wrap.querySelector('.tel-prefix');
+  if(pre) pre.style.setProperty('background', 'transparent', 'important');
+}
+
 function openModal(id) {
   // La ficha vive en z-index 9000 y este modal en 200: si la ficha queda
   // abierta, el editor se abre por detras y ademas la ficha se come los clics.
@@ -2970,6 +2995,7 @@ function openModal(id) {
   ['frut','frutemp'].forEach(function(id){
     var c=document.getElementById(id); if(c)c.style.borderColor='';
   });
+  igualarFondoTelefono();
   // Teléfono: guardar solo los 8 dígitos sin el +569
   document.getElementById('ftel').value = r?.telefono||'';
   document.getElementById('ftelfijo').checked = r?.telefonoFijo||false;
@@ -3812,6 +3838,7 @@ const MOON_ICON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" s
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
+  try{ igualarFondoTelefono(); }catch(e){}
   const btn = document.getElementById('theme-btn');
   if (!btn) return; // el boton de tema fue eliminado; solo fijamos el atributo
   if (theme === 'light') {
@@ -4254,7 +4281,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v16";
+var APP_VERSION = "v17";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
