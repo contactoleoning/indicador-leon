@@ -585,6 +585,9 @@ button{cursor:pointer}
 .ccard-nom{font-size:16.5px;font-weight:750;color:var(--text);line-height:1.22;overflow-wrap:anywhere}
 .ccard-sub{font-size:12.5px;color:var(--text3);margin-top:3px}
 .ccard-rut{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:1px}
+.ccard-empresa{font-size:12px;color:var(--text2);margin-top:4px;font-weight:600;
+  overflow-wrap:anywhere;line-height:1.3}
+.ccard-empresa-ic{margin-right:5px;opacity:.75;font-size:11px}
 
 .ccard-estado{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;
   letter-spacing:.03em;padding:4px 9px;border-radius:20px;white-space:nowrap;border:1px solid}
@@ -1064,6 +1067,13 @@ button{cursor:pointer}
         <div class="ff"><label>DEPTO / PISO / OF.</label><input id="fdet" type="text" placeholder="Ej: Depto 4B, Piso 3"/></div>
         <div class="ff"><label>RUT</label><input id="frut" type="text" placeholder="12.345.678-9" autocapitalize="off" spellcheck="false"/></div>
         <div class="ff"><label>CORREO</label><input id="fmail" type="email" placeholder="correo@ejemplo.cl" autocapitalize="off" spellcheck="false"/></div>
+        <!-- La ficha se llama como la persona con la que uno habla; la boleta va
+             a nombre de la empresa. Antes habia que elegir uno de los dos: con
+             la razon social en el titulo no se sabia a quien llamar, y con la
+             persona no habia a quien facturar. -->
+        <div class="ff"><label>EMPRESA / RAZÓN SOCIAL <span style="font-weight:500;text-transform:none;opacity:.7">(si factura a nombre de empresa)</span></label>
+          <input id="femp" type="text" placeholder="Ej: Inversiones Punta de Águilas Ltda."/></div>
+        <div class="ff"><label>RUT EMPRESA</label><input id="frutemp" type="text" placeholder="76.349.670-8" autocapitalize="off" spellcheck="false"/></div>
         <div class="ff">
           <label>TELÉFONO</label>
           <div class="input-tel-wrap">
@@ -2003,7 +2013,10 @@ function getFiltered() {
     if (st==='red' && statusOf(r)!=='red') return false;
     if (st==='resched' && statusOf(r)!=='resched') return false;
     if (st==='aviso' && !r.aviso) return false;
-    if (q) return (r.cliente+r.comuna+r.servicio+r.lugar+r.obs).toLowerCase().includes(q);
+    // Buscar por la empresa tambien: si llaman de la administracion uno tiene
+    // la razon social y no el nombre de la persona.
+    if (q) return ((r.cliente||'')+(r.empresa||'')+(r.rut||'')+(r.rutEmpresa||'')
+                  +(r.comuna||'')+(r.servicio||'')+(r.lugar||'')+(r.obs||'')).toLowerCase().includes(q);
     return true;
   });
   if (srt==='fin-asc') rows.sort((a,b)=>(diasRestantes(a)??99999)-(diasRestantes(b)??99999));
@@ -2196,7 +2209,8 @@ function tarjetaHTML(r){
         +'<div class="ccard-id">'
           +'<div class="ccard-nom">'+(esc(r.cliente)||'Sin nombre')+'</div>'
           +(lugarComuna?'<div class="ccard-sub">'+esc(lugarComuna)+'</div>':'')
-          +(r.rut?'<div class="ccard-rut">'+esc(r.rut)+'</div>':'')
+          +(r.empresa?'<div class="ccard-empresa" title="Se factura a nombre de esta empresa"><span class="ccard-empresa-ic">🏢</span>'+esc(r.empresa)+'</div>':'')
+          +((r.rut||r.rutEmpresa)?'<div class="ccard-rut">'+esc(r.rut||r.rutEmpresa)+'</div>':'')
         +'</div>'
         +'<span class="ccard-estado">'+esc(estadoTxt)+'</span>'
       +'</div>'
@@ -2361,6 +2375,7 @@ function fichaHTML(r) {
           </div>
           ${(r.equipos && r.equipos.length) ? `<div class="card-field full"><label>EQUIPOS (${r.equipos.length})</label><div class="card-equipos">${r.equipos.map(eq => `<div>• <b>${esc([eq.marca, eq.modelo].filter(Boolean).join(' ')) || 'Equipo'}</b>${eq.btu ? ' ' + esc(eq.btu) + ' BTU' : ''}${eq.ubicacion ? ' — ' + esc(eq.ubicacion) : ''}</div>`).join('')}</div></div>` : ''}
           ${r.rut ? `<div class="card-field"><label>RUT</label><div class="card-field-val">${esc(r.rut)}</div></div>` : ''}
+          ${r.empresa || r.rutEmpresa ? `<div class="card-field full"><label>FACTURAR A</label><div class="card-field-val">${esc(r.empresa||'—')}${r.rutEmpresa ? ` <span style="color:var(--text3)">· ${esc(r.rutEmpresa)}</span>` : ''}</div></div>` : ''}
           ${r.email ? `<div class="card-field"><label>CORREO</label><a class="card-phone-link" href="mailto:${escAttr(r.email)}">${esc(r.email)}</a></div>` : ''}
           ${cotizacionesHTML(r)}
           ${r.obs ? `<div class="card-field full"><label>OBSERVACIÓN</label><div class="card-obs">${esc(r.obs)}</div></div>` : ''}
@@ -2855,6 +2870,8 @@ function openModal(id) {
   document.getElementById('fdet').value = r?.detalle||'';
   document.getElementById('frut').value = r?.rut||'';
   document.getElementById('fmail').value = r?.email||'';
+  document.getElementById('femp').value = r?.empresa||'';
+  document.getElementById('frutemp').value = r?.rutEmpresa||'';
   // Teléfono: guardar solo los 8 dígitos sin el +569
   document.getElementById('ftel').value = r?.telefono||'';
   document.getElementById('ftelfijo').checked = r?.telefonoFijo||false;
@@ -2916,6 +2933,8 @@ function saveModal() {
     telefono: document.getElementById('ftel').value.trim().replace(/\D/g,''),
     rut: document.getElementById('frut').value.trim(),
     email: document.getElementById('fmail').value.trim(),
+    empresa: document.getElementById('femp').value.trim(),
+    rutEmpresa: document.getElementById('frutemp').value.trim(),
     telefonoFijo: document.getElementById('ftelfijo').checked,
     aviso: document.getElementById('fav').checked,
     plan: document.getElementById('fplan').checked,
@@ -4140,7 +4159,9 @@ function nombreClaveInd(n){
 function renderAvisoRut(){
   var el=document.getElementById('rut-faltante');
   if(!el) return;
-  var sinRut=data.filter(function(r){return !r.rut;}).length;
+  // Quien factura a nombre de su empresa no esta "sin RUT": tiene el de la
+  // empresa, que es el que va en la boleta.
+  var sinRut=data.filter(function(r){return !r.rut && !r.rutEmpresa;}).length;
   el.innerHTML = sinRut
     ? '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--text3);padding:9px 12px;border-bottom:1px solid var(--border)">'
       +'<span>'+sinRut+' cliente'+(sinRut>1?'s':'')+' sin RUT.</span>'
@@ -4173,7 +4194,7 @@ function completarRutDesdeCotizaciones(){
 
       var puestos=0, chocaron=0, sinDato=0, cambios=[];
       data.forEach(function(r){
-        if(r.rut) return;
+        if(r.rut || r.rutEmpresa) return;
         var nk=nombreClaveInd(r.cliente);
         if(!nk){ sinDato++; return; }
         if(ambiguos[nk]){ chocaron++; return; }
