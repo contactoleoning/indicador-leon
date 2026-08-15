@@ -541,6 +541,11 @@ button{cursor:pointer}
             rotateX(var(--rx,0deg))
             rotateY(calc(var(--ry,0deg) + var(--flip,0deg)));
   transition:transform .55s cubic-bezier(.2,.75,.25,1)}
+/* Siguiendo al puntero la tarjeta tiene que estar DONDE se la ve. Con los
+   .55s del giro quedaba acomodandose medio segundo despues de que el cursor
+   se detuvo: uno apuntaba al lapiz de 34px, la tarjeta se seguia moviendo
+   debajo, y el clic caia en la tarjeta y la daba vuelta. */
+.ccard.siguiendo .ccard-inner{transition:transform .12s linear}
 /* Ojo: la sombra NO puede ir como filter en .ccard-inner. Un filtro aplana el
    contexto 3D del elemento, y con eso backface-visibility deja de funcionar --
    al girar se veia el frente espejado en vez del dorso. Va como box-shadow en
@@ -2266,6 +2271,7 @@ function tarjetaHTML(r){
 // tarjeta y volver es mas rapido que abrir y cerrar. La ficha completa con
 // fotos sigue estando, a un toque desde el dorso.
 function girarTarjeta(el){
+  el.classList.remove('siguiendo');   // el giro usa la transicion larga
   el.classList.toggle('girada');
   el.style.removeProperty('--rx');   // si no, el dorso queda torcido
   el.style.removeProperty('--ry');
@@ -2282,6 +2288,18 @@ function inclinarTarjeta(e){
   if(_sinMovimiento) return;
   var card = e.target.closest && e.target.closest('.ccard');
   if(!card || card.classList.contains('girada')) return;   // el dorso no se inclina
+
+  // Sobre los botones la tarjeta se endereza y se queda quieta. Son blancos de
+  // 34px: con la tarjeta moviendose debajo del cursor, apuntarles es cuestion
+  // de suerte -- y cuando se falla no pasa nada malo, pasa algo peor, que la
+  // tarjeta se da vuelta y hay que empezar de nuevo.
+  card.classList.add('siguiendo');
+  if(e.target.closest('.ccard-acciones')){
+    card.style.setProperty('--rx','0deg');
+    card.style.setProperty('--ry','0deg');
+    return;
+  }
+
   var b = card.getBoundingClientRect();
   var px = (e.clientX - b.left) / b.width;
   var py = (e.clientY - b.top) / b.height;
@@ -2293,6 +2311,7 @@ function inclinarTarjeta(e){
 function enderezarTarjeta(e){
   var card = e.target.closest && e.target.closest('.ccard');
   if(!card) return;
+  card.classList.remove('siguiendo');
   card.style.removeProperty('--rx');
   card.style.removeProperty('--ry');
 }
