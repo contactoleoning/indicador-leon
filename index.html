@@ -545,6 +545,8 @@ button{cursor:pointer}
   padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:background .15s,color .15s}
 .vista-tabs button.act{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 
+#rut-faltante{position:sticky;top:0;z-index:100;background:var(--bg)}
+
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px;
   padding:26px 40px 56px;
   max-width:1420px;margin:0 auto;width:100%}
@@ -678,6 +680,7 @@ button{cursor:pointer}
   width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:16px;line-height:1}
 #ficha-ov .ficha-body{padding:18px}
 @media (max-width:600px){
+  #rut-faltante{position:static}
   .cards-grid{grid-template-columns:1fr;padding:12px 10px 40px;gap:12px}
   .ccard-datos{grid-template-columns:1fr 1fr}
   #ficha-ov{padding:0}
