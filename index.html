@@ -2426,7 +2426,7 @@ function tarjetaHTML(r){
           +(puedeWhatsapp(r)?'<button class="ccard-acc wa" onclick="waCliente('+r.id+')" title="WhatsApp"><span class="acc-ic">💬</span><span class="lbl">WhatsApp</span></button>':'')
           +'<button class="ccard-acc" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención de hoy"><span class="acc-ic">✓</span><span class="lbl">Hoy</span></button>'
           +'<button class="ccard-acc" onclick="abrirAgendarModal('+r.id+')" title="Agendar visita técnica"><span class="acc-ic">📅</span><span class="lbl">Agendar</span></button>'
-          +'<button class="ccard-acc" style="cursor:default" title="'+(r.aviso?'Aviso enviado':'Sin aviso')+'"><span class="acc-ic">'+(r.aviso?'✓':'○')+'</span><span class="lbl">Aviso</span></button>'
+          +'<button class="ccard-acc" onclick="toggleAviso('+r.id+')" title="'+(r.aviso?'Aviso enviado (tocar para quitar)':'Marcar aviso enviado')+'"><span class="acc-ic">'+(r.aviso?'✓':'○')+'</span><span class="lbl">Aviso</span></button>'
           +'<button class="ccard-acc" onclick="openModal('+r.id+')" title="Editar"><span class="acc-ic">✎</span><span class="lbl">Editar</span></button>'
         +'</div>'
       +'</div>'
@@ -2899,6 +2899,14 @@ function ta(el) {
   const row = data.find(r=>r.id===+el.dataset.id);
   if (!row) return;
   row.aviso = el.checked;
+  saveRecord(row);
+  render();
+}
+
+function toggleAviso(id) {
+  const row = data.find(r=>r.id===id);
+  if (!row) return;
+  row.aviso = !row.aviso;
   saveRecord(row);
   render();
 }
