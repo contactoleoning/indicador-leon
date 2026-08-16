@@ -4133,7 +4133,49 @@ showLockOverlay();
 // abierto de un dia para otro. Ademas hay un boton para cerrar sesion
 // manualmente cuando se quiera bloquear antes de eso.
 var lastHiddenAt = 0;
-var RELOCK_MS = 4*60*60*1000;
+var RELOCK_MS = 4*60*60*1000;  // 4 horas
+var lastActivityAt = Date.now();
+var inactivityTimeout = null;
+var warningTimeout = null;
+var INACTIVITY_WARNING_MS = 5*60*1000;  // 5 minutos antes
+function resetInactivityTimer(){
+  if (!useFirebase || !LEON_USUARIO) return;
+  lastActivityAt = Date.now();
+  if (warningTimeout) clearTimeout(warningTimeout);
+  if (inactivityTimeout) clearTimeout(inactivityTimeout);
+
+  const timeUntilWarning = RELOCK_MS - INACTIVITY_WARNING_MS;
+  warningTimeout = setTimeout(() => {
+    if (LEON_USUARIO) showInactivityWarning();
+  }, timeUntilWarning);
+
+  inactivityTimeout = setTimeout(() => {
+    if (LEON_USUARIO) {
+      toast('Sesión cerrada por inactividad');
+      cerrarSesion();
+    }
+  }, RELOCK_MS);
+}
+
+function showInactivityWarning(){
+  if (document.getElementById('inactivity-warning')) return;
+  const warning = document.createElement('div');
+  warning.id = 'inactivity-warning';
+  warning.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1c2128;border:2px solid var(--amber);border-radius:12px;padding:24px;z-index:10000;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.7);font-family:system-ui,sans-serif;text-align:center;';
+  warning.innerHTML = `
+    <div style="font-size:18px;font-weight:600;color:#f0f6fc;margin-bottom:12px;">⏰ Sesión expirando</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.5;">Tu sesión se cerrará por inactividad en 5 minutos. ¿Quieres continuar?</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="resetInactivityTimer();document.getElementById('inactivity-warning').remove();" style="flex:1;background:var(--green);color:white;border:none;padding:10px 16px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px;">Continuar</button>
+      <button onclick="cerrarSesion()" style="flex:1;background:var(--red);color:white;border:none;padding:10px 16px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px;">Cerrar sesión</button>
+    </div>
+  `;
+  document.body.appendChild(warning);
+}
+
+document.addEventListener('click', resetInactivityTimer);
+document.addEventListener('keydown', resetInactivityTimer);
+
 document.addEventListener('visibilitychange',function(){
   if (document.visibilityState==='hidden') {
     lastHiddenAt = Date.now();
