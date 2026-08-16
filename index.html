@@ -2405,10 +2405,10 @@ function tarjetaHTML(r){
         +(cots.length?'<span class="ccard-chip">'+cots.length+' cotiz.</span>':'')
         +'<div class="ccard-acciones" onclick="event.stopPropagation()">'
           +(puedeWhatsapp(r)?'<button class="ccard-acc wa" onclick="waCliente('+r.id+')" title="WhatsApp"><span class="acc-ic">💬</span><span class="lbl">WhatsApp</span></button>':'')
-          +'<button class="ccard-acc" style="min-width:62px" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención"><span class="acc-ic">✓</span><span class="lbl">Registrar mantención</span></button>'
           +'<button class="ccard-acc" onclick="abrirAgendarModal('+r.id+')" title="Agendar visita técnica"><span class="acc-ic">📅</span><span class="lbl">Agendar</span></button>'
           +'<button class="ccard-acc" onclick="toggleAviso('+r.id+')" title="'+(r.aviso?'Aviso enviado (tocar para quitar)':'Marcar aviso enviado')+'"><span class="acc-ic">'+(r.aviso?'✓':'○')+'</span><span class="lbl">Aviso</span></button>'
           +'<button class="ccard-acc" onclick="openModal('+r.id+')" title="Editar"><span class="acc-ic">✎</span><span class="lbl">Editar</span></button>'
+          +'<button class="ccard-acc" style="min-width:62px" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención"><span class="acc-ic">✓</span><span class="lbl">Registrar mantención</span></button>'
         +'</div>'
       +'</div>'
     +'</div>';
