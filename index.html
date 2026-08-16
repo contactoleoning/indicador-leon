@@ -2415,7 +2415,7 @@ function tarjetaHTML(r){
           +(puedeWhatsapp(r)?'<button class="ccard-acc wa" onclick="waCliente('+r.id+')" title="WhatsApp">💬</button>':'')
           +'<button class="ccard-acc" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención de hoy">✓</button>'
           +'<button class="ccard-acc" onclick="abrirAgendarModal('+r.id+')" title="Agendar visita técnica">📅</button>'
-          +(r.aviso?'<button class="ccard-acc" style="opacity:0.6;cursor:default" title="Aviso enviado al cliente">📨</button>':'')
+          +'<button class="ccard-acc" style="cursor:default;opacity:'+(r.aviso?'1':'0.35')+';color:'+(r.aviso?'var(--gold)':'var(--text3)')+';transition:all .2s" title="'+(r.aviso?'Aviso enviado':'Sin aviso')+'">'+(r.aviso?'✓':'○')+'</button>'
           +'<button class="ccard-acc" onclick="openModal('+r.id+')" title="Editar">✎</button>'
         +'</div>'
       +'</div>'
