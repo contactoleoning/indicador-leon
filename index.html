@@ -1612,6 +1612,7 @@ function initFirebaseDb(app) {
         data = INIT.map(r=>({...r}));
         pushAllToFirebase();
       }
+      revisarAvisosVencidos();
       render();
       setSyncStatus('ok', 'sincronizado');
       checkRecordatoriosDiarios();
@@ -2875,10 +2876,18 @@ function ie(el) {
   // como fuente de verdad mientras tanto.
   render();
 }
+// Marca/desmarca el aviso guardando también la fecha en que se activó, para
+// poder detectar automáticamente cuando ya pasó un mes desde que se avisó
+// (ver revisarAvisosVencidos) y así recordar volver a insistir.
+function setAviso(row, val) {
+  row.aviso = val;
+  row.avisoFecha = val ? ymd(new Date()) : null;
+}
+
 function ta(el) {
   const row = data.find(r=>r.id===+el.dataset.id);
   if (!row) return;
-  row.aviso = el.checked;
+  setAviso(row, el.checked);
   saveRecord(row);
   render();
 }
@@ -2886,9 +2895,24 @@ function ta(el) {
 function toggleAviso(id) {
   const row = data.find(r=>r.id===id);
   if (!row) return;
-  row.aviso = !row.aviso;
+  setAviso(row, !row.aviso);
   saveRecord(row);
   render();
+}
+
+// Un mes exacto después de marcar "aviso enviado", se desactiva solo para
+// que vuelva a destacarse como pendiente y el usuario sepa que debe
+// insistir de nuevo con el cliente.
+function revisarAvisosVencidos() {
+  const hoy = ymd(new Date());
+  data.forEach(row => {
+    if (row.aviso && row.avisoFecha) {
+      const vence = addMonths(row.avisoFecha, 1);
+      if (vence && ymd(vence) <= hoy) {
+        patchRecordFields(row, { aviso: false, avisoFecha: null });
+      }
+    }
+  });
 }
 
 // Fecha de "próxima mantención" acordada con el cliente al recontactarlo
@@ -2923,7 +2947,7 @@ function abrirReagendar(id) {
 function taRec(el) {
   const row = data.find(r=>r.id===+el.dataset.id);
   if (!row) return;
-  row.aviso = el.checked;
+  setAviso(row, el.checked);
   saveRecord(row);
   render();
   renderRecordatorios();
@@ -3003,7 +3027,7 @@ function confirmMantModal() {
   if (!row.historial) row.historial = [];
   row.historial.push({ fecha, hora, detalle, fotos: mantModalPhotos, inicioPrevio: row.inicia||null });
   row.inicia = fecha;
-  row.aviso = false;
+  setAviso(row, false);
   // Ciclo nuevo -- la secuencia de contacto del ciclo anterior ya no aplica,
   // y la fecha reagendada ya se cumplió (o se registró antes de llegar a
   // ella), así que se limpia para que el próximo ciclo se calcule normal.
@@ -3179,6 +3203,8 @@ function closeModal() {
 function saveModal() {
   const cliente = document.getElementById('fc').value.trim();
   if (!cliente) { document.getElementById('fc').focus(); return; }
+  const prevRow = editId ? data.find(r=>r.id===editId) : null;
+  const avisoChecked = document.getElementById('fav').checked;
   const row = {
     // Timestamp en vez de contador secuencial: dos dispositivos creando un
     // cliente casi al mismo tiempo generaban antes el mismo id (max+1) y se
@@ -3198,7 +3224,8 @@ function saveModal() {
     empresa: document.getElementById('femp').value.trim(),
     rutEmpresa: rutFormateado(document.getElementById('frutemp').value),
     telefonoFijo: document.getElementById('ftelfijo').checked,
-    aviso: document.getElementById('fav').checked,
+    aviso: avisoChecked,
+    avisoFecha: avisoChecked ? ((prevRow && prevRow.aviso) ? prevRow.avisoFecha : ymd(new Date())) : null,
     obs: document.getElementById('fo').value.trim(),
     photos: modalPhotos,
     equipos: modalEquipos.filter(eq => (eq.marca||eq.modelo||eq.btu||eq.ubicacion||'').toString().trim()),
@@ -3408,7 +3435,7 @@ function waCliente(id){
   });
   window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');
   // Enviar el mensaje ES el aviso: se marca solo, y avanza el paso de la secuencia.
-  r.aviso = true;
+  setAviso(r, true);
   r.contactoPaso = paso;
   r.contactoFecha = new Date().toISOString().slice(0,10);
   saveRecord(r);
