@@ -637,16 +637,22 @@ button{cursor:pointer}
   border:1px solid var(--border);border-radius:8px;padding:8px 10px;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 
-.ccard-pie{display:flex;gap:7px;align-items:center;flex-wrap:wrap;
-  border-top:1px solid var(--border);padding-top:11px;margin-top:auto}
+.ccard-pie{display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap;
+  border-top:1px solid var(--border);padding:11px 16px 14px;margin:auto -16px -14px;
+  border-radius:0 0 calc(var(--radius) - 2px) calc(var(--radius) - 2px)}
+.ccard-pie.avisado{background:linear-gradient(135deg,#be185d,#db2777);border-top-color:transparent}
 .ccard-chip{font-size:11px;color:var(--text3);background:var(--surface3);
   border-radius:20px;padding:3px 9px;font-weight:600}
-.ccard-acciones{display:flex;gap:6px;margin-left:auto}
+.ccard-pie.avisado .ccard-chip{background:rgba(255,255,255,.85)}
+.ccard-acciones{display:flex;gap:6px}
 .ccard-acc{border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
-  width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;font-size:15px;transition:border-color .15s,color .15s,background .15s}
+  min-width:46px;height:42px;padding:4px 5px;border-radius:10px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;font-size:14px;line-height:1;transition:border-color .15s,color .15s,background .15s}
+.ccard-acc .lbl{font-size:8px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;line-height:1}
 .ccard-acc:hover{border-color:var(--gold);color:var(--gold)}
 .ccard-acc.wa:hover{border-color:#25d366;color:#25d366;background:rgba(37,211,102,.12)}
+.ccard-pie.avisado .ccard-acc{background:rgba(255,255,255,.92);border-color:rgba(255,255,255,.5)}
 
 /* ── DORSO ── */
 .dorso-tit{font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--text3)}
@@ -2414,15 +2420,14 @@ function tarjetaHTML(r){
         +'<div class="ccard-dato"><label>Fotos</label><div class="v tenue">'+(nFotos||'—')+'</div></div>'
       +'</div>'
       +(r.obs?'<div class="ccard-obs">'+esc(r.obs)+'</div>':'')
-      +'<div class="ccard-pie">'
-        +(r.aviso?'<span class="ccard-chip">✓ avisado</span>':'')
+      +'<div class="ccard-pie'+(r.aviso?' avisado':'')+'">'
         +(cots.length?'<span class="ccard-chip">'+cots.length+' cotiz.</span>':'')
         +'<div class="ccard-acciones" onclick="event.stopPropagation()">'
-          +(puedeWhatsapp(r)?'<button class="ccard-acc wa" onclick="waCliente('+r.id+')" title="WhatsApp">💬</button>':'')
-          +'<button class="ccard-acc" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención de hoy">✓</button>'
-          +'<button class="ccard-acc" onclick="abrirAgendarModal('+r.id+')" title="Agendar visita técnica">📅</button>'
-          +'<button class="ccard-acc" style="cursor:default;opacity:'+(r.aviso?'1':'0.35')+';color:'+(r.aviso?'var(--gold)':'var(--text3)')+';transition:all .2s" title="'+(r.aviso?'Aviso enviado':'Sin aviso')+'">'+(r.aviso?'✓':'○')+'</button>'
-          +'<button class="ccard-acc" onclick="openModal('+r.id+')" title="Editar">✎</button>'
+          +(puedeWhatsapp(r)?'<button class="ccard-acc wa" onclick="waCliente('+r.id+')" title="WhatsApp"><span class="acc-ic">💬</span><span class="lbl">WhatsApp</span></button>':'')
+          +'<button class="ccard-acc" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención de hoy"><span class="acc-ic">✓</span><span class="lbl">Hoy</span></button>'
+          +'<button class="ccard-acc" onclick="abrirAgendarModal('+r.id+')" title="Agendar visita técnica"><span class="acc-ic">📅</span><span class="lbl">Agendar</span></button>'
+          +'<button class="ccard-acc" style="cursor:default" title="'+(r.aviso?'Aviso enviado':'Sin aviso')+'"><span class="acc-ic">'+(r.aviso?'✓':'○')+'</span><span class="lbl">Aviso</span></button>'
+          +'<button class="ccard-acc" onclick="openModal('+r.id+')" title="Editar"><span class="acc-ic">✎</span><span class="lbl">Editar</span></button>'
         +'</div>'
       +'</div>'
     +'</div>';
