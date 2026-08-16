@@ -590,12 +590,11 @@ button{cursor:pointer}
 .ccard-cara.dorso{transform:rotateY(180deg) translateZ(0.01px)}
 .ccard:hover .ccard-cara{border-color:var(--border2)}
 
-.ccard-cara::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;
-  border-radius:var(--radius) 0 0 var(--radius);background:var(--text3)}
-.st-green .ccard-cara::before{background:var(--green)}
-.st-amber .ccard-cara::before{background:var(--amber)}
-.st-red .ccard-cara::before{background:var(--red)}
-.st-resched .ccard-cara::before{background:var(--resched)}
+.ccard-cara{border:2px solid var(--text3) !important}
+.st-green .ccard-cara{border-color:var(--green) !important}
+.st-amber .ccard-cara{border-color:var(--amber) !important}
+.st-red .ccard-cara{border-color:var(--red) !important}
+.st-resched .ccard-cara{border-color:var(--resched) !important}
 
 .ccard-cara::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
   background:radial-gradient(440px circle at var(--mx,50%) var(--my,0%),
