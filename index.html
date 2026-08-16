@@ -2411,11 +2411,11 @@ function tarjetaHTML(r){
         +'<div class="ccard-dato"><label>Vence</label><div class="v">'+esc(fmtFinal(r))+'</div></div>'
         +'<div class="ccard-dato"><label>Último trabajo</label><div class="v tenue">'+(ult?esc(fechaCorta(ult)):'sin registro')+'</div></div>'
         +'<div class="ccard-dato"><label>Equipos</label><div class="v tenue">'+(eq.length||'—')+'</div></div>'
+        +'<div class="ccard-dato"><label>Fotos</label><div class="v tenue">'+(nFotos||'—')+'</div></div>'
       +'</div>'
       +(r.obs?'<div class="ccard-obs">'+esc(r.obs)+'</div>':'')
       +'<div class="ccard-pie">'
         +(r.aviso?'<span class="ccard-chip">✓ avisado</span>':'')
-        +(nFotos?'<span class="ccard-chip">'+nFotos+' foto'+(nFotos>1?'s':'')+'</span>':'')
         +(cots.length?'<span class="ccard-chip">'+cots.length+' cotiz.</span>':'')
         +'<div class="ccard-acciones" onclick="event.stopPropagation()">'
           +(puedeWhatsapp(r)?'<button class="ccard-acc wa" onclick="waCliente('+r.id+')" title="WhatsApp">💬</button>':'')
