@@ -255,8 +255,14 @@ button{cursor:pointer}
 .card-foot{padding:9px 14px;display:flex;align-items:center;gap:10px;border-top:1px solid var(--border)}
 .card-aviso-label{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);cursor:pointer;flex:1;padding:6px 10px;border-radius:6px;border:1px solid transparent;transition:all .15s}
 .card-aviso-label:hover{background:var(--surface3);border-color:var(--border)}
-.card-aviso-label.avisado{color:var(--gold2);font-weight:600;background:rgba(214,217,222,0.14);border-color:rgba(214,217,222,0.4)}
-.card-aviso-cb{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
+.card-aviso-label.avisado{color:var(--gold2);font-weight:600;background:rgba(218,119,86,0.14);border-color:rgba(218,119,86,0.4)}
+.card-aviso-cb{appearance:none;-webkit-appearance:none;width:34px;height:20px;border-radius:20px;
+  background:var(--border2);position:relative;flex-shrink:0;cursor:pointer;outline:none;border:none;
+  transition:background .2s}
+.card-aviso-cb::before{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;
+  border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.card-aviso-cb:checked{background:#da7756}
+.card-aviso-cb:checked::before{transform:translateX(14px)}
 .card-btns{display:flex;gap:6px}
 .card-btn{padding:6px 13px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .12s}
 .card-btn:hover{background:var(--surface3);border-color:var(--border2);color:var(--text)}
@@ -362,8 +368,15 @@ button{cursor:pointer}
 .ff textarea{resize:vertical;min-height:72px;line-height:1.5}
 .ff select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%233d4f68' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
 .aviso-label{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface2);cursor:pointer;font-size:14px;color:var(--text);transition:all .12s}
-.aviso-label.checked{background:rgba(214,217,222,0.14);border-color:rgba(214,217,222,0.4);color:var(--gold2);font-weight:600}
-.aviso-label input{width:17px;height:17px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
+.aviso-label.checked{background:rgba(218,119,86,0.14);border-color:rgba(218,119,86,0.4);color:var(--gold2);font-weight:600}
+.aviso-label input[type=checkbox]{appearance:none;-webkit-appearance:none;width:40px;height:23px;
+  border-radius:23px;background:var(--border2);position:relative;flex-shrink:0;cursor:pointer;
+  outline:none;border:none;transition:background .2s}
+.aviso-label input[type=checkbox]::before{content:'';position:absolute;top:2px;left:2px;
+  width:19px;height:19px;border-radius:50%;background:#fff;transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.aviso-label input[type=checkbox]:checked{background:#da7756}
+.aviso-label input[type=checkbox]:checked::before{transform:translateX(17px)}
 .modal-foot{padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
 .btn-cancel{flex:1;padding:12px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:14px;font-weight:500;cursor:pointer;transition:all .12s}
 .btn-cancel:hover{background:var(--surface3);border-color:var(--border2);color:var(--text)}
