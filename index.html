@@ -546,22 +546,21 @@ button{cursor:pointer}
 .vista-tabs button.act{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px;
-  padding:26px 40px 56px;perspective:1500px;perspective-origin:50% 25%;
+  padding:26px 40px 56px;
   max-width:1420px;margin:0 auto;width:100%}
 
 .ccard{position:relative;cursor:pointer;display:block;border:none;background:none;padding:0;
   transform-style:preserve-3d;text-align:left;font:inherit;width:100%}
 .ccard:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:var(--radius)}
 
-/* ── RELIEVE POR URGENCIA ──────────────────────────────────────────────
-   La altura no decora: dice cuanto urge. Lo vencido flota sobre la pagina
-   con sombra larga, lo que esta al dia se apoya plano. Al abrir la app no
-   hay que leer nada -- lo que sobresale es lo que hay que atender hoy.   */
+/* ── SOMBRA POR URGENCIA ──────────────────────────────────────────────
+   La sombra indica cuanto urge sin efecto de profundidad. Lo vencido
+   tiene sombra más marcada, lo que esta al dia sombra suave. */
 .ccard{--lift:0px;--sombra:rgba(22,27,34,.26)}
-.ccard.st-green  {--lift:0px}
-.ccard.st-resched{--lift:15px}
-.ccard.st-amber  {--lift:28px}
-.ccard.st-red    {--lift:46px}
+.ccard.st-green  {--lift:0px;--sombra:rgba(22,27,34,.12)}
+.ccard.st-resched{--lift:0px;--sombra:rgba(22,27,34,.18)}
+.ccard.st-amber  {--lift:0px;--sombra:rgba(22,27,34,.24)}
+.ccard.st-red    {--lift:0px;--sombra:rgba(22,27,34,.32)}
 [data-theme="dark"] .ccard{--sombra:rgba(0,0,0,.72)}
 
 .ccard-inner{position:relative;transform-style:preserve-3d;
