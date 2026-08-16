@@ -2395,7 +2395,10 @@ function tarjetaHTML(r){
           +(r.empresa?'<div class="ccard-empresa" title="Se factura a nombre de esta empresa"><span class="ccard-empresa-ic">🏢</span>'+esc(r.empresa)+'</div>':'')
           +((r.rut||r.rutEmpresa)?'<div class="ccard-rut">'+esc(r.rut||r.rutEmpresa)+'</div>':'')
         +'</div>'
-        +'<span class="ccard-estado">'+esc(estadoTxt)+'</span>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
+          +'<span class="ccard-estado">'+esc(estadoTxt)+'</span>'
+          +(eq.length?'<div style="font-size:12px;color:var(--text3);font-weight:500">'+eq.length+' equip'+(eq.length>1?'os':'o')+'</div>':'')
+        +'</div>'
       +'</div>'
       +'<div class="ccard-datos">'
         +'<div class="ccard-dato"><label>Servicio</label><div class="v tenue">'+(esc(r.servicio)||'—')+'</div></div>'
