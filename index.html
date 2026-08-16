@@ -658,7 +658,7 @@ button{cursor:pointer}
   min-width:46px;height:42px;padding:4px 5px;border-radius:10px;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:2px;
   cursor:pointer;font-size:14px;line-height:1;transition:border-color .15s,color .15s,background .15s}
-.ccard-acc .lbl{font-size:8px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;line-height:1}
+.ccard-acc .lbl{font-size:8px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;line-height:1.15;text-align:center}
 .ccard-acc:hover{border-color:var(--gold);color:var(--gold)}
 .ccard-acc.wa:hover{border-color:#25d366;color:#25d366;background:rgba(37,211,102,.12)}
 .ccard-pie.avisado .ccard-acc{background:rgba(255,255,255,.92);border-color:rgba(255,255,255,.5)}
@@ -2404,7 +2404,7 @@ function tarjetaHTML(r){
         +(cots.length?'<span class="ccard-chip">'+cots.length+' cotiz.</span>':'')
         +'<div class="ccard-acciones" onclick="event.stopPropagation()">'
           +(puedeWhatsapp(r)?'<button class="ccard-acc wa" onclick="waCliente('+r.id+')" title="WhatsApp"><span class="acc-ic">💬</span><span class="lbl">WhatsApp</span></button>':'')
-          +'<button class="ccard-acc" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención de hoy"><span class="acc-ic">✓</span><span class="lbl">Hoy</span></button>'
+          +'<button class="ccard-acc" style="min-width:62px" onclick="marcarMantencionHoy('+r.id+')" title="Registrar mantención"><span class="acc-ic">✓</span><span class="lbl">Registrar mantención</span></button>'
           +'<button class="ccard-acc" onclick="abrirAgendarModal('+r.id+')" title="Agendar visita técnica"><span class="acc-ic">📅</span><span class="lbl">Agendar</span></button>'
           +'<button class="ccard-acc" onclick="toggleAviso('+r.id+')" title="'+(r.aviso?'Aviso enviado (tocar para quitar)':'Marcar aviso enviado')+'"><span class="acc-ic">'+(r.aviso?'✓':'○')+'</span><span class="lbl">Aviso</span></button>'
           +'<button class="ccard-acc" onclick="openModal('+r.id+')" title="Editar"><span class="acc-ic">✎</span><span class="lbl">Editar</span></button>'
