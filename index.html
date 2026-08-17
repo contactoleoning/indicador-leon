@@ -2089,9 +2089,14 @@ function reagendaVigente(r) {
   const f = new Date(r.reagenda + 'T00:00:00');
   return (f - TODAY >= 0) ? f : null;
 }
+// El reagendamiento se mira ANTES que la fecha de inicio, igual que en
+// fmtFinal(). Al revés, un cliente con visita acordada pero sin fecha de
+// inicio cargada quedaba en 'gray': su ficha decía "FECHA FINAL (REAGENDADA)"
+// pero no salía en el filtro Reagendados ni lo contaba el indicador de
+// arriba. Pasa con los clientes ingresados a mano, que quedan a medias.
 function statusOf(r) {
-  if (!r.inicia) return 'gray';
   if (reagendaVigente(r)) return 'resched';
+  if (!r.inicia) return 'gray';
   const fin = addMonths(r.inicia, r.duracion);
   if (!fin) return 'gray';
   const ms = fin - TODAY;
@@ -2100,9 +2105,9 @@ function statusOf(r) {
   return 'green';
 }
 function diasRestantes(r) {
-  if (!r.inicia) return null;
   const reag = reagendaVigente(r);
   if (reag) return Math.round((reag - TODAY)/(24*60*60*1000));
+  if (!r.inicia) return null;
   const fin = addMonths(r.inicia, r.duracion);
   return fin ? Math.round((fin - TODAY)/(24*60*60*1000)) : null;
 }
