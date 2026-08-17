@@ -278,6 +278,31 @@ lista de campos preservados en `saveModal()`. Ya pasó una vez — por eso
 `avisoFecha` (fecha del aviso automático, ver arriba) se agregó a mano en
 `saveModal()` en vez de confiar en que sobreviviera solo.
 
+**Un solo `undefined` rompe el guardado entero, y en silencio.** Firebase
+rechaza `undefined` lanzando en el acto (no devolviendo una promesa fallida),
+así que revienta `saveRecord()` y de paso todo lo que venga después en la
+misma función: la ficha no se cierra, la tarjeta no se repinta, y no aparece
+ningún mensaje. Se ve igual que "el botón no hace nada". Pasó el 17 de agosto
+con `avisoFecha`: los clientes que ya tenían el aviso marcado de antes no
+tenían ese campo, y `prevRow.avisoFecha` salía `undefined`. Hoy `saveRecord()`
+limpia los `undefined` a `null` (`sinUndefined()`) y avisa con un toast si el
+guardado falla, pero **al agregar un campo nuevo hay que pensar qué pasa con
+las fichas viejas que no lo tienen**.
+
+Y un detalle que engaña al diagnosticar: `confirmarAgendarVisita()` llama
+`saveRecord()` **antes** de `sincronizarVisitaAgendada()`. Mientras
+`saveRecord` lanzaba, la visita nunca llegaba a Calendar aunque el texto sí
+quedara en la observación de la ficha — que es exactamente el síntoma que se
+vio con Maria Paz.
+
+**Probar con `useFirebase = false` no reproduce estos fallos.** localStorage
+guarda con `JSON.stringify`, que descarta los `undefined` sin quejarse. Un
+guardado que funciona en la prueba local puede estar roto en producción. Lo
+mismo con reemplazar `saveRecord`/`render` por funciones vacías al probar en
+consola: se salta justo el código que falla. Ojo también con que `fbRef` y
+`useFirebase` están declarados con `let`, así que **no** se pueden sustituir
+desde la consola con `window.fbRef = ...`.
+
 **El Apps Script "Calendario León" vive solo en Google, no en este
 repositorio.** Se edita a mano en `script.google.com` — no hay un archivo
 `.gs` versionado acá. Si algo del calendario se rompe, primero pedirle a Isaac
