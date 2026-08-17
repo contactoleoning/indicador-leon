@@ -623,6 +623,9 @@ button{cursor:pointer}
 .ccard-id{flex:1;min-width:0}
 .ccard-nom{font-size:16.5px;font-weight:750;color:var(--text);line-height:1.22;overflow-wrap:anywhere}
 .ccard-sub{font-size:12.5px;color:var(--text3);margin-top:3px}
+.ccard-tel{display:inline-block;font-size:13px;color:var(--gold2);font-weight:650;
+  margin-top:5px;text-decoration:none;font-variant-numeric:tabular-nums}
+.ccard-tel:hover{text-decoration:underline}
 .ccard-rut{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;margin-top:1px}
 .ccard-empresa{font-size:12px;color:var(--text2);margin-top:4px;font-weight:600;
   overflow-wrap:anywhere;line-height:1.3}
@@ -2448,6 +2451,9 @@ function tarjetaHTML(r){
         +'<div class="ccard-id">'
           +'<div class="ccard-nom">'+(esc(r.cliente)||'Sin nombre')+'</div>'
           +(r.direccion?'<div class="ccard-sub">'+esc([r.direccion,r.detalle].filter(Boolean).join(' — '))+'</div>':'')
+          // El teléfono no estaba en ninguna de las dos caras y es lo que más
+          // se busca en terreno. Va junto a la dirección, y marca al tocarlo.
+          +(r.telefono?'<a class="ccard-tel" href="'+telHref(r)+'" onclick="event.stopPropagation()">'+esc(telLabel(r))+(r.telefonoFijo?' (fijo)':'')+'</a>':'')
         +'</div>'
       +'</div>'
       +'<div><div class="dorso-tit">Equipos ('+eq.length+')</div>'+listaEq+'</div>'
