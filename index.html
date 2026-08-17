@@ -608,6 +608,24 @@ button{cursor:pointer}
 .st-red .ccard-cara{border-color:var(--red) !important}
 .st-resched .ccard-cara{border-color:var(--resched) !important}
 
+/* Marca de agua del logo en el fondo de la tarjeta. Va muy tenue a
+   propósito: la tarjeta se lee de un vistazo en terreno y con sol, así que
+   la marca no puede competir con el texto. */
+/* Centrado y no en una esquina: abajo lo tapaba el pie de la tarjeta, que
+   además se pinta de color cuando hay aviso enviado. */
+.ccard-cara::before{content:'';position:absolute;left:50%;top:46%;
+  transform:translate(-50%,-50%);
+  width:210px;height:210px;pointer-events:none;
+  background:url('icon-512.png') no-repeat center/contain;
+  opacity:.07}
+/* Un pseudo-elemento posicionado se pinta encima del contenido que va en
+   flujo normal, así que el contenido necesita su propia capa para quedar
+   sobre la marca. */
+.ccard-cara > *{position:relative;z-index:1}
+/* En oscuro el azul marino del logo se pierde contra el fondo: se aclara y
+   se baja aún más, porque sobre fondo oscuro cualquier mancha clara pesa. */
+[data-theme="dark"] .ccard-cara::before{filter:invert(1) brightness(1.6);opacity:.04}
+
 .ccard-cara::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
   background:radial-gradient(440px circle at var(--mx,50%) var(--my,0%),
     rgba(255,255,255,.5), rgba(255,255,255,0) 62%);
