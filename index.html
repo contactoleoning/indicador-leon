@@ -1615,6 +1615,7 @@ function initFirebaseDb(app) {
       render();
       setSyncStatus('ok', 'sincronizado');
       checkRecordatoriosDiarios();
+      sincronizarVisitasPendientes();
     }, err => {
       console.error('Firebase error:', err);
       setSyncStatus('err', 'error sync');
@@ -1764,8 +1765,10 @@ function confirmarAgendarVisita() {
   toast('✓ Visita técnica agendada para ' + fecha + (hora ? ' a las ' + hora : '') + '. El estado se actualizará cuando registres la mantención realizada.');
 }
 
-function sincronizarVisitaAgendada(rec) {
-  if (!CAL_GAS_URL || !rec.visitaAgendada) return;
+// `silencioso` es para el reintento en lote al cargar: ahí no tiene sentido
+// tirarle un aviso de error por cada visita que no pudo sincronizar.
+function sincronizarVisitaAgendada(rec, silencioso) {
+  if (!CAL_GAS_URL || !rec.visitaAgendada) return Promise.resolve(false);
   const v = rec.visitaAgendada;
   const desc = [
     'Hora: ' + (v.hora || '09:00'),
@@ -1777,24 +1780,73 @@ function sincronizarVisitaAgendada(rec) {
     rec.telefono ? 'Teléfono: ' + rec.telefono : ''
   ].filter(Boolean).join('\n');
 
-  calPost({
+  const enviar = (eventId) => calPost({
     action: 'actualizar',
-    eventId: rec.calVisitaId || '',
+    eventId: eventId || '',
     titulo: '📅 Visita técnica: ' + (rec.cliente || 'Sin nombre'),
     fecha: v.fecha,
     hora: v.hora || '',
     descripcion: desc,
     recordatorioDias: 1
-  }).then(res => {
-    if (res && res.eventId) {
-      if (res.eventId !== rec.calVisitaId) patchRecordFields(rec, { calVisitaId: res.eventId });
-    } else {
-      // El agendado ya quedó guardado en la ficha -- esto solo avisa que el
-      // evento de Calendar no se creó, para que no quede la sensación falsa
-      // de "listo" cuando en realidad no va a sonar ninguna alerta.
-      toast('⚠️ La visita quedó guardada, pero no se pudo avisar a Google Calendar. Revisa tu conexión.');
-    }
   });
+
+  const guardarId = (res) => {
+    if (res.eventId !== rec.calVisitaId) patchRecordFields(rec, { calVisitaId: res.eventId });
+    return true;
+  };
+
+  return enviar(rec.calVisitaId).then(res => {
+    if (res && res.eventId) return guardarId(res);
+    // Si el evento que teníamos guardado ya no está en Calendar (se borró a
+    // mano), el Apps Script no puede actualizarlo y falla. En ese caso el
+    // id guardado no sirve para nada: se reintenta creando uno nuevo, que es
+    // lo que hay que hacer igual.
+    if (rec.calVisitaId) {
+      return enviar('').then(res2 => {
+        if (res2 && res2.eventId) return guardarId(res2);
+        if (!silencioso) toast('⚠️ La visita quedó guardada, pero no se pudo avisar a Google Calendar. Revisa tu conexión.');
+        return false;
+      });
+    }
+    // El agendado ya quedó guardado en la ficha -- esto solo avisa que el
+    // evento de Calendar no se creó, para que no quede la sensación falsa
+    // de "listo" cuando en realidad no va a sonar ninguna alerta.
+    if (!silencioso) toast('⚠️ La visita quedó guardada, pero no se pudo avisar a Google Calendar. Revisa tu conexión.');
+    return false;
+  });
+}
+
+// Una visita podía quedar guardada en la ficha sin llegar nunca a Calendar
+// (se cortaba el guardado, o fallaba la llamada), y entonces no avisaba el
+// día de la visita. Al cargar los datos se reintentan todas las que siguen
+// por venir: el Apps Script actualiza la que ya existe y crea la que falta,
+// así que repetirlo no duplica eventos. Corre una sola vez por sesión --
+// `patchRecordFields` vuelve a disparar este mismo listener, y sin el
+// candado se llamaría a sí mismo sin parar.
+let visitasReintentadas = false;
+function sincronizarVisitasPendientes() {
+  if (visitasReintentadas || !CAL_GAS_URL) return;
+  visitasReintentadas = true;
+  const hoy = ymd(new Date());
+  const pendientes = data.filter(r => r.visitaAgendada && r.visitaAgendada.fecha && r.visitaAgendada.fecha >= hoy);
+  if (!pendientes.length) return;
+  let i = 0, recuperadas = 0;
+  (function siguiente() {
+    if (i >= pendientes.length) {
+      // Solo se avisa de las que no tenían evento: esas son las que el
+      // usuario daba por agendadas y en realidad no iban a sonar.
+      if (recuperadas) toast('📅 Se ' + (recuperadas > 1 ? 'recuperaron ' : 'recuperó ') + recuperadas + ' visita' + (recuperadas > 1 ? 's' : '') + ' que no estaba' + (recuperadas > 1 ? 'n' : '') + ' en el calendario');
+      return;
+    }
+    const rec = pendientes[i++];
+    // Si el id cambia es porque hubo que crear el evento: o no existía, o el
+    // que estaba guardado ya no servía. Las que ya estaban bien no cuentan.
+    const idAntes = rec.calVisitaId;
+    sincronizarVisitaAgendada(rec, true)
+      .then(exito => { if (exito && rec.calVisitaId !== idAntes) recuperadas++; })
+      .catch(() => {})
+      .then(() => setTimeout(siguiente, 350));
+  })();
 }
 
 function agendarVisitaTecnica(recId) {
