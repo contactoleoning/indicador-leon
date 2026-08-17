@@ -303,6 +303,26 @@ consola: se salta justo el código que falla. Ojo también con que `fbRef` y
 `useFirebase` están declarados con `let`, así que **no** se pueden sustituir
 desde la consola con `window.fbRef = ...`.
 
+**El reagendamiento se mira antes que la fecha de inicio, y las tres
+funciones tienen que coincidir.** `statusOf()` y `diasRestantes()` empezaban
+con `if (!r.inicia) return ...`, pero `fmtFinal()` miraba primero la
+reagenda. Resultado: un cliente con visita acordada y sin fecha de inicio
+cargada mostraba "FECHA FINAL (REAGENDADA)" en su ficha pero quedaba en
+`gray` — no salía en el filtro Reagendados ni lo contaba el indicador de
+arriba. Le pasó a Andrés Nawrath. Pasa con los clientes ingresados a mano,
+que quedan a medias. Si se toca una de las tres, hay que revisar las otras
+dos.
+
+**En el teléfono se dibujaban dos listas de clientes a la vez.**
+`#cards-container` es la lista que reemplaza a la tabla en pantallas chicas,
+y el CSS la mostraba por ancho de pantalla sin mirar el selector
+Tarjetas/Tabla — así que en el teléfono salía junto con `#cards-grid` y cada
+cliente aparecía dos veces, con dos diseños distintos (uno con dirección y
+teléfono, el otro no; de ahí la sensación de "la tarjeta no muestra lo que
+tiene adentro"). Ahora `render()` le fija el display igual que a la tabla.
+Son **tres** contenedores que se excluyen entre sí — `#cards-grid`,
+`.table-container` y `#cards-container` — y los tres se manejan juntos.
+
 **Un `eventId` que ya no existe hace fallar la llamada entera, y el error
 llega disfrazado de CORS.** Si el evento se borró a mano en Calendar, el
 Apps Script no puede actualizarlo y lanza; Google responde entonces con una
