@@ -1640,12 +1640,33 @@ function pushAllToFirebase() {
   fbRef.set(obj).catch(e => console.error('pushAll error:', e));
 }
 
+// Firebase rechaza cualquier `undefined` y lo hace lanzando en el acto, no
+// devolviendo una promesa fallida: un solo campo así cortaba el guardado
+// entero y de paso lo que viniera después (cerrar la ficha, repintar), sin
+// ningún mensaje. Pasó con `avisoFecha` en los clientes que ya tenían el
+// aviso marcado. Se limpia antes de mandar: en Firebase "sin valor" es null.
+function sinUndefined(v) {
+  if (Array.isArray(v)) return v.map(sinUndefined);
+  if (v && typeof v === 'object') {
+    var out = {};
+    Object.keys(v).forEach(function (k) { out[k] = v[k] === undefined ? null : sinUndefined(v[k]); });
+    return out;
+  }
+  return v === undefined ? null : v;
+}
+
 function saveRecord(row) {
   if (useFirebase && fbRef) {
     setSyncStatus('syncing', 'guardando…');
-    fbRef.child('c' + row.id).set(row)
-      .then(() => setSyncStatus('ok', 'sincronizado'))
-      .catch(e => { setSyncStatus('err', 'error sync'); console.error(e); });
+    try {
+      fbRef.child('c' + row.id).set(sinUndefined(row))
+        .then(() => setSyncStatus('ok', 'sincronizado'))
+        .catch(e => { setSyncStatus('err', 'error sync'); console.error(e); toast('No se pudo guardar: ' + e.message); });
+    } catch (e) {
+      setSyncStatus('err', 'error sync');
+      console.error(e);
+      toast('No se pudo guardar: ' + e.message);
+    }
   } else {
     // local only
     localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
@@ -3165,7 +3186,11 @@ function saveModal() {
     rutEmpresa: rutFormateado(document.getElementById('frutemp').value),
     telefonoFijo: document.getElementById('ftelfijo').checked,
     aviso: avisoChecked,
-    avisoFecha: avisoChecked ? ((prevRow && prevRow.aviso) ? prevRow.avisoFecha : ymd(new Date())) : null,
+    // Si ya estaba avisado se respeta la fecha original, pero los clientes que
+    // venían con aviso marcado de antes de que existiera 'avisoFecha' no la
+    // tienen: ahí hay que poner hoy. Dejarla en undefined hacía que Firebase
+    // rechazara el guardado entero y la ficha no se cerraba ni se actualizaba.
+    avisoFecha: avisoChecked ? ((prevRow && prevRow.aviso && prevRow.avisoFecha) ? prevRow.avisoFecha : ymd(new Date())) : null,
     obs: document.getElementById('fo').value.trim(),
     photos: modalPhotos,
     equipos: modalEquipos.filter(eq => (eq.marca||eq.modelo||eq.btu||eq.ubicacion||'').toString().trim()),
