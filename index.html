@@ -1765,7 +1765,14 @@ function sincronizarVisitaAgendada(rec) {
     descripcion: desc,
     recordatorioDias: 1
   }).then(res => {
-    if (res && res.eventId && res.eventId !== rec.calVisitaId) patchRecordFields(rec, { calVisitaId: res.eventId });
+    if (res && res.eventId) {
+      if (res.eventId !== rec.calVisitaId) patchRecordFields(rec, { calVisitaId: res.eventId });
+    } else {
+      // El agendado ya quedó guardado en la ficha -- esto solo avisa que el
+      // evento de Calendar no se creó, para que no quede la sensación falsa
+      // de "listo" cuando en realidad no va a sonar ninguna alerta.
+      toast('⚠️ La visita quedó guardada, pero no se pudo avisar a Google Calendar. Revisa tu conexión.');
+    }
   });
 }
 
