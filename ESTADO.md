@@ -162,8 +162,21 @@ Lo de la Fase 2 ya está publicado:
   medianoche en vez de la hora de la visita (por eso avisaba a las 11 PM para
   una visita a las 10 AM). El Apps Script ahora crea un evento con hora
   (`cal.createEvent`) cuando llega `hora`, y sigue como antes (todo el día) si
-  no llega — eso es lo que usan Ingreso de cliente y Próxima mantención, que no
-  tienen hora.
+  no llega.
+- **El calendario ya NO se sincroniza automáticamente al guardar un
+  cliente.** Antes, cada vez que se guardaba una ficha se creaban/actualizaban
+  solos dos eventos en Calendar ("🆕 Ingreso cliente" y "🔧 Mantención"), y
+  existía un botón "Sync Calendar" para regenerarlos todos de una. Isaac pidió
+  sacarlo (17 de agosto): el calendario es solo para agendar **visitas
+  técnicas puntuales**, no un espejo automático de toda la base. Se eliminaron
+  `syncCalendarioCliente()`, `sincronizarTodoCalendar()` y el botón del
+  toolbar; `deleteCalendarioCliente()` ahora solo borra la visita agendada
+  pendiente, no eventos de ingreso/mantención (ya no existen). Los campos
+  `calIngresoId` / `calMantId` quedan sueltos en los clientes que los
+  llegaron a tener — no se limpiaron de Firebase, solo dejaron de usarse.
+  Además, el 17 de agosto se borraron a mano ~101 eventos viejos de Calendar
+  (52 Ingreso + 47 Mantención + 2 Visita técnica) que se habían ido
+  duplicando por este mismo mecanismo.
 - Se eliminó **Plan Confort León** (campo, ícono, sección de Métricas):
   Isaac decidió que esa función ya no aplica. Quedan campos `plan` /
   `planhasta` sueltos en los clientes que alguna vez lo tuvieron marcado — no
