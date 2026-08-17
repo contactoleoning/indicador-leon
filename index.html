@@ -2625,8 +2625,15 @@ function render() {
   var esTarjetas = (VISTA === 'cards');
   var gridEl = document.getElementById('cards-grid');
   var tablaEl = document.querySelector('.table-container');
+  // En el teléfono la tabla no cabe, así que su lugar lo toma la lista de
+  // #cards-container. Pero esa lista la muestra el CSS por ancho de pantalla,
+  // sin mirar el selector Tarjetas/Tabla: en el teléfono salía siempre, y
+  // encima de #cards-grid -- cada cliente aparecía dos veces, con dos diseños
+  // distintos. Tiene que seguir al selector igual que la tabla.
+  var ccEl = document.getElementById('cards-container');
   if (gridEl) gridEl.style.display = esTarjetas ? 'grid' : 'none';
   if (tablaEl) tablaEl.style.display = esTarjetas ? 'none' : '';
+  if (ccEl) ccEl.style.display = esTarjetas ? 'none' : '';
   var vtC = document.getElementById('vt-cards'), vtT = document.getElementById('vt-tabla');
   if (vtC) vtC.className = esTarjetas ? 'act' : '';
   if (vtT) vtT.className = esTarjetas ? '' : 'act';
