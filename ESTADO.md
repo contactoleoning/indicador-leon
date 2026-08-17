@@ -303,6 +303,23 @@ consola: se salta justo el código que falla. Ojo también con que `fbRef` y
 `useFirebase` están declarados con `let`, así que **no** se pueden sustituir
 desde la consola con `window.fbRef = ...`.
 
+**Un `eventId` que ya no existe hace fallar la llamada entera, y el error
+llega disfrazado de CORS.** Si el evento se borró a mano en Calendar, el
+Apps Script no puede actualizarlo y lanza; Google responde entonces con una
+página de error que no trae cabeceras CORS, así que en el navegador se ve
+"blocked by CORS policy" y `calPost()` devuelve `null`. No es un problema de
+permisos ni de dominio: es el script fallando adentro. `sincronizarVisita-
+Agendada()` ya lo maneja — si la llamada con `eventId` falla, reintenta sin
+él, que crea el evento de nuevo y guarda el id nuevo.
+
+**Las visitas agendadas se reintentan solas al cargar**
+(`sincronizarVisitasPendientes()`): recorre las visitas de hoy en adelante y
+las vuelve a mandar a Calendar. Es idempotente — el Apps Script actualiza la
+que ya existe en vez de duplicarla. Corre **una sola vez por sesión** y eso
+no es opcional: `patchRecordFields()` escribe en Firebase, lo que vuelve a
+disparar el listener `on('value')` que la llamó, y sin el candado
+(`visitasReintentadas`) se llamaría a sí misma sin parar.
+
 **El Apps Script "Calendario León" vive solo en Google, no en este
 repositorio.** Se edita a mano en `script.google.com` — no hay un archivo
 `.gs` versionado acá. Si algo del calendario se rompe, primero pedirle a Isaac
