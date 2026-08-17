@@ -1806,10 +1806,9 @@ function sincronizarVisitaAgendada(rec) {
     eventId: rec.calVisitaId || '',
     titulo: '📅 Visita técnica: ' + (rec.cliente || 'Sin nombre'),
     fecha: v.fecha,
+    hora: v.hora || '',
     descripcion: desc,
-    recordatorioDias: 1,
-    recordatorioHora: 14,
-    recordatorioMinutos: 60
+    recordatorioDias: 1
   }).then(res => {
     if (res && res.eventId && res.eventId !== rec.calVisitaId) patchRecordFields(rec, { calVisitaId: res.eventId });
   });
