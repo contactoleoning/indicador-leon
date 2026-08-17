@@ -1,6 +1,6 @@
 # Estado del sistema — León Ingeniería
 
-Última actualización: 14 de agosto de 2026.
+Última actualización: 17 de agosto de 2026.
 
 Este archivo existe porque ya no es una app: son tres, comparten una base de
 datos, y hay trabajo publicado y trabajo esperando prueba. Sin esto, retomar
@@ -151,6 +151,23 @@ Lo de la Fase 2 ya está publicado:
   sigue disponible desde el selector Tarjetas / Tabla.
 - Tema claro por defecto: en terreno, con sol, se lee mejor que el oscuro.
 - Correo del cliente en el traspaso y en la ficha.
+- **Aviso enviado se desactiva solo al mes.** Al marcar "aviso enviado" (desde
+  la tarjeta, la ficha, el formulario o al mandar WhatsApp) se guarda
+  `avisoFecha`. Cada vez que la app carga datos, revisa esa fecha y si ya pasó
+  un mes exacto, apaga el aviso solo — así Isaac ve que hay que volver a
+  insistir con el cliente en vez de asumir que sigue avisado para siempre.
+- **Visita técnica agendada crea el evento en Calendar con hora real**, no
+  como "todo el día". Antes la hora solo quedaba escrita en la descripción y
+  nunca llegaba al evento, así que las alertas se calculaban desde la
+  medianoche en vez de la hora de la visita (por eso avisaba a las 11 PM para
+  una visita a las 10 AM). El Apps Script ahora crea un evento con hora
+  (`cal.createEvent`) cuando llega `hora`, y sigue como antes (todo el día) si
+  no llega — eso es lo que usan Ingreso de cliente y Próxima mantención, que no
+  tienen hora.
+- Se eliminó **Plan Confort León** (campo, ícono, sección de Métricas):
+  Isaac decidió que esa función ya no aplica. Quedan campos `plan` /
+  `planhasta` sueltos en los clientes que alguna vez lo tuvieron marcado — no
+  se limpiaron de Firebase, solo dejaron de leerse/mostrarse.
 
 ## Pendiente
 
@@ -240,11 +257,19 @@ ficha, tabla, lista y calendario).
 
 **Todo cambio en el indicador necesita subir `CACHE` en `sw.js`.** Si no, el
 service worker sigue sirviendo el archivo viejo y el arreglo no llega nunca.
-Va en v7.
+Va en v58 (17 de agosto).
 
 **El indicador rearma el registro completo al guardar.** Todo campo que el
 formulario no muestre se pierde al editar un cliente, salvo que se agregue a la
-lista de campos preservados en `saveModal()`. Ya pasó una vez.
+lista de campos preservados en `saveModal()`. Ya pasó una vez — por eso
+`avisoFecha` (fecha del aviso automático, ver arriba) se agregó a mano en
+`saveModal()` en vez de confiar en que sobreviviera solo.
+
+**El Apps Script "Calendario León" vive solo en Google, no en este
+repositorio.** Se edita a mano en `script.google.com` — no hay un archivo
+`.gs` versionado acá. Si algo del calendario se rompe, primero pedirle a Isaac
+que abra el editor y pegue el código actual, no asumir que coincide con lo
+último que se le mandó.
 
 ---
 
