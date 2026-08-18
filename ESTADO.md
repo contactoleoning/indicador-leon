@@ -222,6 +222,35 @@ Lo de la Fase 2 ya está publicado:
 
 ## Lo que hay que saber antes de tocar algo
 
+**Escribir la ficha entera desde una copia vieja borra lo que llegó mientras
+tanto.** El modal de editar cliente se quedaba con la lista de documentos de
+cuando se abrió (`modalDocs`) y al Guardar cambios la escribía encima. El
+2026-08-18 el Comprobante N° 174 se adjuntó solo, con la ficha de Jaime Coiro
+abierta, y desapareció al guardar: el PDF quedó en Storage (256 KB, sano) pero
+sin enlazar en la ficha. Arreglado en v18 — ahora se parte de
+`prevRow.documentos` (que el listener de Firebase mantiene al día) y se le
+quitan los ids que el usuario borró con la ✕ (`modalDocsBorrados`). El mismo
+riesgo existe para `photos`, `equipos` e `historial`, que siguen guardándose
+desde la foto del modal: si alguna vez otra app escribe en esos campos, hay que
+darles el mismo tratamiento.
+
+**El Comprobante no avisa de versiones nuevas.** No tiene service worker ni
+aviso de actualización (el Indicador sí tiene ambos). Una pestaña abierta sigue
+ejecutando el JavaScript viejo indefinidamente. El 2026-08-18 esto costó tres
+rondas de "sigue fallando" sobre un bug ya arreglado y publicado: confirmar con
+`curl` que el servidor tiene la versión nueva **no prueba nada** sobre lo que
+corre en la pestaña del usuario. Hay que leer el `v<N>` del pie en su navegador,
+o pedir recarga forzada explícita antes de que pruebe. Isaac decidió no agregar
+el aviso automático; queda como paso manual.
+
+**Una prueba que no reproduce la falla no valida el arreglo.** El PDF recortado
+del Comprobante se "arregló" tres veces seguidas contra un navegador de pruebas
+donde el código roto también pasaba. Lo que zanjó el diagnóstico fue medir en el
+Chrome real de Isaac (`mcp__claude-in-chrome__*`, aparece como `isLocal: true`)
+calculando la caja de tinta del canvas con `getImageData`: 17% del ancho con el
+código malo contra 100% con el bueno. Antes de usar una prueba para dar algo por
+arreglado, correr primero el código roto y exigir que la prueba lo detecte.
+
 **Probar el cotizador en local escribe en producción.** `saveRegList()` llama a
 `saveCloudData()`, que hace un `fetch` directo al Apps Script con la URL y la
 clave incrustadas: no depende del dominio ni de la sesión. Ya pasó una vez —
