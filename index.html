@@ -3251,6 +3251,7 @@ function openModal(id) {
   modalPhotos = (r?.photos||[]).map(p=>({...p}));
   renderModalPhotos();
   modalDocs = (r?.documentos||[]).map(d=>({...d}));
+  modalDocsBorrados = [];
   renderModalDocs();
   modalEquipos = (r?.equipos||[]).map(eq=>({...eq}));
   renderEquiposModal();
@@ -3308,7 +3309,14 @@ function saveModal() {
     avisoFecha: avisoChecked ? ((prevRow && prevRow.aviso && prevRow.avisoFecha) ? prevRow.avisoFecha : ymd(new Date())) : null,
     obs: document.getElementById('fo').value.trim(),
     photos: modalPhotos,
-    documentos: modalDocs,
+    // OJO -- no se guarda 'modalDocs'. Esa lista es la foto de los documentos
+    // de cuando se abrió la ficha, y escribirla encima borraba lo que hubiera
+    // llegado mientras tanto: pasó el 2026-08-18 con el Comprobante N° 174, que
+    // se adjuntó solo desde la app de Comprobante estando esta ficha abierta y
+    // desapareció al apretar Guardar cambios. Se parte de los documentos que
+    // hay AHORA (prevRow viene de 'data', que el listener de Firebase mantiene
+    // al día) y se le quitan los que el usuario borró a mano con la ✕.
+    documentos: (prevRow?.documentos || modalDocs).filter(d => !modalDocsBorrados.includes(d.id)),
     equipos: modalEquipos.filter(eq => (eq.marca||eq.modelo||eq.btu||eq.ubicacion||'').toString().trim()),
     historial: modalHistorial,
   };
@@ -3564,6 +3572,9 @@ function toast(msg) {
 // DOCUMENTOS ADJUNTOS (comprobantes, boletas, etc.)
 // ═══════════════════════════════════════
 let modalDocs = [];
+// Ids de documentos que el usuario borró con la ✕ mientras la ficha estaba
+// abierta. Ver removeModalDoc y saveModal.
+let modalDocsBorrados = [];
 
 function iconoDoc(nombre) {
   var ext = (nombre||'').split('.').pop().toLowerCase();
@@ -3589,6 +3600,12 @@ function renderModalDocs() {
 function removeModalDoc(docId) {
   const doc = modalDocs.find(d => d.id === docId);
   modalDocs = modalDocs.filter(d => d.id !== docId);
+  // Se anota el borrado explícito. Al guardar no se escribe 'modalDocs' tal
+  // cual (ver saveModal): esa lista es la foto de cuando se abrió la ficha, y
+  // un comprobante que se adjunte mientras la ficha está abierta no aparece
+  // ahí. Lo que se guarda es "los documentos que hay ahora, menos los que el
+  // usuario borró a mano", y esta lista es esa segunda parte.
+  if (!modalDocsBorrados.includes(docId)) modalDocsBorrados.push(docId);
   renderModalDocs();
   if (doc && doc.url && fbStorage) {
     try { fbStorage.refFromURL(doc.url).delete().catch(() => {}); } catch (e) {}
@@ -4632,7 +4649,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v17";
+var APP_VERSION = "v18";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
