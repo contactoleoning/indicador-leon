@@ -234,6 +234,29 @@ riesgo existe para `photos`, `equipos` e `historial`, que siguen guardándose
 desde la foto del modal: si alguna vez otra app escribe en esos campos, hay que
 darles el mismo tratamiento.
 
+**Un `::after` sobre un `<input>` rompe html2canvas.** Era la causa raíz del
+PDF recortado del Comprobante, y costó una mañana entera encontrarla. El visto
+del checkbox se dibujaba con `input[type=checkbox]:checked::after` (bordes en L
++ `transform:rotate(45deg)`). html2canvas 1.4.1 revienta al procesar ese
+pseudo-elemento con `Error parsing CSS component value, unexpected EOF`. No es
+el borde ni el `content` ni el `transform`: se probó cambiando cada uno por
+separado y sigue fallando; lo único que lo evita es que el pseudo-elemento no
+exista (`content:none`). Ahora el visto va como `background-image` (SVG en data
+URI) sobre el propio input. Da igual para el PDF —html2canvas dibuja los
+checkbox a su manera— pero mantiene el diseño en pantalla.
+
+Lo que lo hacía tan difícil de ver: ese checkbox marcado solo está en pantalla
+cuando se marca "Mantención", que es lo que muestra `#vencrow`. Entonces el PDF
+salía bien en todos los comprobantes **menos** en los de mantención. Y encima
+el código tenía un respaldo que, al fallar el método clásico, reintentaba con
+`foreignObjectRendering` — ese modo no falla pero devuelve la hoja recortada por
+la izquierda y empezando por la mitad. Resultado: se adjuntaba en silencio un
+comprobante ilegible. Ese respaldo se eliminó: si falla, que avise.
+
+Ojo con el entorno: **esto no se reproduce en cualquier Chromium.** En el
+navegador de pruebas el `::after` viejo funciona sin problema; solo falla en el
+Chrome real de Isaac. Cualquier prueba de esto hay que correrla ahí.
+
 **El Comprobante no avisa de versiones nuevas.** No tiene service worker ni
 aviso de actualización (el Indicador sí tiene ambos). Una pestaña abierta sigue
 ejecutando el JavaScript viejo indefinidamente. El 2026-08-18 esto costó tres
