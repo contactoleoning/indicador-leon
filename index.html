@@ -1239,7 +1239,6 @@ button{cursor:pointer}
             DOCUMENTOS ADJUNTOS
           </label>
           <div id="modal-doc-list"></div>
-          <button type="button" class="btn-add-equipo" onclick="document.getElementById('modal-doc-file').click()">+ Adjuntar documento (comprobante, boleta, etc.)</button>
         </div>
       </div>
     </div>
@@ -1515,9 +1514,7 @@ button{cursor:pointer}
 
 <!-- HIDDEN FILE INPUTS -->
 <input type="file" id="modal-file" accept="image/*" multiple style="display:none" onchange="handleModalPhotoUpload(this)"/>
-<input type="file" id="modal-doc-file" accept=".pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/*" multiple style="display:none" onchange="handleModalDocUpload(this)"/>
 <input type="file" id="card-file" accept="image/*" multiple style="display:none" onchange="handleCardPhotoUpload(this)"/>
-<input type="file" id="card-doc-file" accept=".pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/*" multiple style="display:none" onchange="handleCardDocUpload(this)"/>
 <input type="file" id="mant-file" accept="image/*" multiple style="display:none" onchange="handleMantPhotoUpload(this)"/>
 <input type="file" id="gallery-file" accept="image/*" multiple style="display:none" onchange="handleGalleryUpload(this)"/>
 <input type="file" id="avatar-file" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)"/>
@@ -2636,9 +2633,8 @@ function fichaHTML(r) {
         ${(r.documentos && r.documentos.length) ? r.documentos.map(d => `<div class="doc-item">
           <a href="${escAttr(d.url)}" target="_blank" rel="noopener">${iconoDoc(d.nombre)} ${esc(d.nombre)}<span class="doc-fecha">${esc(fechaCorta(d.fecha)||'')}</span></a>
           <button type="button" class="doc-del" onclick="removeCardDoc(${r.id},'${escAttr(d.id)}')" aria-label="Quitar documento">×</button>
-        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin documentos adjuntos.</div>'}
+        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin documentos. Los comprobantes se adjuntan solos al guardarlos en la app de Comprobante de Servicio.</div>'}
       </div>
-      <button type="button" class="btn-add-equipo" style="margin-top:6px" onclick="addCardDoc(${r.id})">+ Adjuntar documento</button>
     </div>
     ${(r.historial && r.historial.length) ? `<div class="card-field full" style="margin-top:14px"><label>HISTORIAL DE MANTENCIONES (${r.historial.length})</label>${historialListHTML(r)}</div>` : ''}
     <div class="card-foot" style="padding-top:14px;border-top:1px solid var(--border);margin-top:14px;flex-wrap:wrap">
@@ -3579,7 +3575,7 @@ function iconoDoc(nombre) {
 function renderModalDocs() {
   var cc = document.getElementById('modal-doc-list');
   if (!cc) return;
-  if (!modalDocs.length) { cc.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:2px 0 6px">Sin documentos adjuntos.</div>'; return; }
+  if (!modalDocs.length) { cc.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:2px 0 6px">Sin documentos. Los comprobantes se adjuntan solos al guardarlos en la app de Comprobante de Servicio.</div>'; return; }
   cc.innerHTML = modalDocs.map(function(d) {
     return '<div class="doc-item">'
       + '<a href="'+escAttr(d.url)+'" target="_blank" rel="noopener" title="'+escAttr(d.nombre)+'">'
@@ -3588,33 +3584,6 @@ function renderModalDocs() {
       + '<button type="button" class="doc-del" onclick="removeModalDoc(\''+escAttr(d.id)+'\')" aria-label="Quitar documento">×</button>'
       + '</div>';
   }).join('');
-}
-
-// Sube tal cual (sin comprimir -- son PDFs y comprobantes, no fotos de
-// cámara) a Storage, bajo 'documentos/', y guarda solo la URL en el cliente.
-async function subirDocumento(file) {
-  const id = Date.now() + '_' + Math.random().toString(36).slice(2,7);
-  const fecha = new Date().toISOString().slice(0,10);
-  if (!(useFirebase && fbStorage)) {
-    throw new Error('Necesitas sesión iniciada para adjuntar documentos.');
-  }
-  const ext = (file.name||'').split('.').pop() || 'pdf';
-  const ref = fbStorage.ref('documentos/' + id + '.' + ext);
-  await ref.put(file, { contentType: file.type || 'application/octet-stream' });
-  const url = await ref.getDownloadURL();
-  return { id, url, nombre: file.name || ('documento.'+ext), fecha };
-}
-
-async function handleModalDocUpload(input) {
-  for (const file of Array.from(input.files)) {
-    try {
-      modalDocs.push(await subirDocumento(file));
-    } catch (e) {
-      toast(e.message || 'No se pudo adjuntar '+file.name);
-    }
-  }
-  input.value = '';
-  renderModalDocs();
 }
 
 function removeModalDoc(docId) {
@@ -3832,34 +3801,6 @@ async function handleCardPhotoUpload(input) {
   }
   input.value = ''; cardPhotoTargetId = null;
   if (alMenosUna) { saveRecord(rec); render(); toast('Foto agregada'); }
-}
-
-var cardDocTargetId = null;
-function addCardDoc(recId) {
-  cardDocTargetId = recId;
-  document.getElementById('card-doc-file').click();
-}
-
-async function handleCardDocUpload(input) {
-  const rec = data.find(r => r.id === cardDocTargetId);
-  if (!rec) return;
-  let alMenosUno = false;
-  for (const file of Array.from(input.files)) {
-    try {
-      if (!rec.documentos) rec.documentos = [];
-      rec.documentos.push(await subirDocumento(file));
-      alMenosUno = true;
-    } catch (e) {
-      toast(e.message || 'No se pudo adjuntar '+file.name);
-    }
-  }
-  input.value = ''; cardDocTargetId = null;
-  if (alMenosUno) {
-    saveRecord(rec);
-    if (document.getElementById('ficha-ov').style.display === 'flex') abrirFicha(rec.id);
-    render();
-    toast('Documento adjuntado');
-  }
 }
 
 function removeCardDoc(recId, docId) {
