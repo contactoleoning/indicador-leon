@@ -183,19 +183,26 @@ Lo de la Fase 2 ya está publicado:
   se limpiaron de Firebase, solo dejaron de leerse/mostrarse.
 - **Documentos adjuntos** en la ficha del cliente (campo `documentos`, array
   de `{id, url, nombre, fecha}` en Storage bajo `documentos/`) — mismo patrón
-  que `photos`. Se puede adjuntar a mano desde el Indicador, y desde el 18 de
-  agosto el **Comprobante de Servicio también adjunta solo** el PDF al
-  guardar: `actualizarFichaCliente()` en `comprobante-leon/index.html` capta
-  `#sheet` con html2canvas, lo arma en PDF con jsPDF (ambas por CDN, recién
-  agregadas ahí) y lo sube a ese mismo Storage antes de guardar la ficha. Si
-  algo de eso falla (sin conexión, librería que no cargó), no revienta el
-  guardado — el comprobante y el historial quedan igual, simplemente no
-  llega el adjunto. **Reglas de Storage nuevas** en `storage.rules` (se le
-  entregaron a Isaac para pegar en la consola): exigen sesión real, no
-  anónima, para `clientes/` y `documentos/`. No replican el "ficha en
-  /usuarios" que sí tiene `reglas-firebase.json` — Storage no puede leer la
-  Realtime Database, así que esa mitad requeriría custom claims (Cloud
-  Function aparte).
+  que `photos`. **Es de solo lectura desde el Indicador**: se ven, se abren y
+  se comparten, pero no hay botón para subir. Se llenan solos — al guardar un
+  comprobante, `actualizarFichaCliente()` en `comprobante-leon/index.html`
+  capta `#sheet` con html2canvas, lo arma en PDF con jsPDF (ambas por CDN,
+  agregadas ahí el 18 de agosto) y lo sube a ese mismo Storage. Si algo de eso
+  falla (sin conexión, librería que no cargó), no revienta el guardado: el
+  comprobante queda guardado igual, simplemente no llega el adjunto.
+- **El historial de mantenciones es solo del botón "Registrar mantención"
+  del Indicador.** El Comprobante llegó a escribir ahí una entrada por cada
+  comprobante emitido ("Comprobante N° 166 — Reparación, Mantención."), y se
+  sacó el 18 de agosto: un comprobante puede ser una reparación, una
+  inspección o una garantía, no una mantención, y ensuciaba el historial con
+  entradas que Isaac no había ingresado. El comprobante deja su rastro en
+  `documentos`, no en `historial`. Las entradas viejas que alcanzó a crear
+  siguen ahí y se borran a mano con la ✕ de cada una.
+- **Reglas de Storage** en `storage.rules` (se le entregaron a Isaac para
+  pegar en la consola): exigen sesión real, no anónima, para `clientes/` y
+  `documentos/`. No replican el "ficha en /usuarios" que sí tiene
+  `reglas-firebase.json` — Storage no puede leer la Realtime Database, así
+  que esa mitad requeriría custom claims (Cloud Function aparte).
 
 ## Pendiente
 
