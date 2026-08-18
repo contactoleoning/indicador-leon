@@ -469,6 +469,15 @@ button{cursor:pointer}
 /* ── PHOTOS ── */
 .photo-sec-lbl{font-size:9px;font-weight:700;letter-spacing:0.8px;color:var(--text3);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:5px}
 .photo-grid{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start;min-height:72px}
+.doc-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);
+  border-radius:8px;background:var(--surface2);margin-bottom:6px}
+.doc-item a{flex:1;min-width:0;font-size:13px;color:var(--text);text-decoration:none;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-item a:hover{color:var(--gold2);text-decoration:underline}
+.doc-fecha{margin-left:8px;font-size:11px;color:var(--text3);white-space:nowrap}
+.doc-del{border:1px solid var(--border2);background:var(--surface3);color:var(--text2);
+  width:24px;height:24px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1;flex-shrink:0}
+.doc-del:hover{border-color:var(--red);color:var(--red)}
 .equipo-row{display:grid;grid-template-columns:1fr 1fr 70px 1fr auto;gap:6px;margin-bottom:6px;align-items:center}
 @media(max-width:520px){.equipo-row{grid-template-columns:1fr 1fr;grid-template-areas:"marca modelo" "btu ubic" "del del"}}
 .equipo-row input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:12.5px;color:var(--text);width:100%;box-sizing:border-box}
@@ -1224,6 +1233,14 @@ button{cursor:pointer}
           </label>
           <div class="photo-grid" id="modal-photo-grid"></div>
         </div>
+        <div class="ff full">
+          <label>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            DOCUMENTOS ADJUNTOS
+          </label>
+          <div id="modal-doc-list"></div>
+          <button type="button" class="btn-add-equipo" onclick="document.getElementById('modal-doc-file').click()">+ Adjuntar documento (comprobante, boleta, etc.)</button>
+        </div>
       </div>
     </div>
     <div class="modal-foot">
@@ -1498,7 +1515,9 @@ button{cursor:pointer}
 
 <!-- HIDDEN FILE INPUTS -->
 <input type="file" id="modal-file" accept="image/*" multiple style="display:none" onchange="handleModalPhotoUpload(this)"/>
+<input type="file" id="modal-doc-file" accept=".pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/*" multiple style="display:none" onchange="handleModalDocUpload(this)"/>
 <input type="file" id="card-file" accept="image/*" multiple style="display:none" onchange="handleCardPhotoUpload(this)"/>
+<input type="file" id="card-doc-file" accept=".pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/*" multiple style="display:none" onchange="handleCardDocUpload(this)"/>
 <input type="file" id="mant-file" accept="image/*" multiple style="display:none" onchange="handleMantPhotoUpload(this)"/>
 <input type="file" id="gallery-file" accept="image/*" multiple style="display:none" onchange="handleGalleryUpload(this)"/>
 <input type="file" id="avatar-file" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)"/>
@@ -2611,6 +2630,16 @@ function fichaHTML(r) {
         <span>FOTO</span>
       </div>
     </div>
+    <div class="card-field full" style="margin-top:12px">
+      <label>DOCUMENTOS ADJUNTOS${(r.documentos&&r.documentos.length)?' ('+r.documentos.length+')':''}</label>
+      <div id="doc-list-${r.id}">
+        ${(r.documentos && r.documentos.length) ? r.documentos.map(d => `<div class="doc-item">
+          <a href="${escAttr(d.url)}" target="_blank" rel="noopener">${iconoDoc(d.nombre)} ${esc(d.nombre)}<span class="doc-fecha">${esc(fechaCorta(d.fecha)||'')}</span></a>
+          <button type="button" class="doc-del" onclick="removeCardDoc(${r.id},'${escAttr(d.id)}')" aria-label="Quitar documento">×</button>
+        </div>`).join('') : '<div style="font-size:12px;color:var(--text3)">Sin documentos adjuntos.</div>'}
+      </div>
+      <button type="button" class="btn-add-equipo" style="margin-top:6px" onclick="addCardDoc(${r.id})">+ Adjuntar documento</button>
+    </div>
     ${(r.historial && r.historial.length) ? `<div class="card-field full" style="margin-top:14px"><label>HISTORIAL DE MANTENCIONES (${r.historial.length})</label>${historialListHTML(r)}</div>` : ''}
     <div class="card-foot" style="padding-top:14px;border-top:1px solid var(--border);margin-top:14px;flex-wrap:wrap">
       <label class="card-aviso-label${r.aviso ? ' avisado' : ''}">
@@ -3225,6 +3254,8 @@ function openModal(id) {
   toggleAvisoStyle();
   modalPhotos = (r?.photos||[]).map(p=>({...p}));
   renderModalPhotos();
+  modalDocs = (r?.documentos||[]).map(d=>({...d}));
+  renderModalDocs();
   modalEquipos = (r?.equipos||[]).map(eq=>({...eq}));
   renderEquiposModal();
   modalHistorial = (r?.historial||[]).map(h=>({...h}));
@@ -3281,6 +3312,7 @@ function saveModal() {
     avisoFecha: avisoChecked ? ((prevRow && prevRow.aviso && prevRow.avisoFecha) ? prevRow.avisoFecha : ymd(new Date())) : null,
     obs: document.getElementById('fo').value.trim(),
     photos: modalPhotos,
+    documentos: modalDocs,
     equipos: modalEquipos.filter(eq => (eq.marca||eq.modelo||eq.btu||eq.ubicacion||'').toString().trim()),
     historial: modalHistorial,
   };
@@ -3533,6 +3565,68 @@ function toast(msg) {
 }
 
 // ═══════════════════════════════════════
+// DOCUMENTOS ADJUNTOS (comprobantes, boletas, etc.)
+// ═══════════════════════════════════════
+let modalDocs = [];
+
+function iconoDoc(nombre) {
+  var ext = (nombre||'').split('.').pop().toLowerCase();
+  if (ext === 'pdf') return '📄';
+  if (['jpg','jpeg','png','heic','heif'].includes(ext)) return '🖼️';
+  return '📎';
+}
+
+function renderModalDocs() {
+  var cc = document.getElementById('modal-doc-list');
+  if (!cc) return;
+  if (!modalDocs.length) { cc.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:2px 0 6px">Sin documentos adjuntos.</div>'; return; }
+  cc.innerHTML = modalDocs.map(function(d) {
+    return '<div class="doc-item">'
+      + '<a href="'+escAttr(d.url)+'" target="_blank" rel="noopener" title="'+escAttr(d.nombre)+'">'
+      +   iconoDoc(d.nombre)+' '+esc(d.nombre)+'<span class="doc-fecha">'+esc(fechaCorta(d.fecha)||'')+'</span>'
+      + '</a>'
+      + '<button type="button" class="doc-del" onclick="removeModalDoc(\''+escAttr(d.id)+'\')" aria-label="Quitar documento">×</button>'
+      + '</div>';
+  }).join('');
+}
+
+// Sube tal cual (sin comprimir -- son PDFs y comprobantes, no fotos de
+// cámara) a Storage, bajo 'documentos/', y guarda solo la URL en el cliente.
+async function subirDocumento(file) {
+  const id = Date.now() + '_' + Math.random().toString(36).slice(2,7);
+  const fecha = new Date().toISOString().slice(0,10);
+  if (!(useFirebase && fbStorage)) {
+    throw new Error('Necesitas sesión iniciada para adjuntar documentos.');
+  }
+  const ext = (file.name||'').split('.').pop() || 'pdf';
+  const ref = fbStorage.ref('documentos/' + id + '.' + ext);
+  await ref.put(file, { contentType: file.type || 'application/octet-stream' });
+  const url = await ref.getDownloadURL();
+  return { id, url, nombre: file.name || ('documento.'+ext), fecha };
+}
+
+async function handleModalDocUpload(input) {
+  for (const file of Array.from(input.files)) {
+    try {
+      modalDocs.push(await subirDocumento(file));
+    } catch (e) {
+      toast(e.message || 'No se pudo adjuntar '+file.name);
+    }
+  }
+  input.value = '';
+  renderModalDocs();
+}
+
+function removeModalDoc(docId) {
+  const doc = modalDocs.find(d => d.id === docId);
+  modalDocs = modalDocs.filter(d => d.id !== docId);
+  renderModalDocs();
+  if (doc && doc.url && fbStorage) {
+    try { fbStorage.refFromURL(doc.url).delete().catch(() => {}); } catch (e) {}
+  }
+}
+
+// ═══════════════════════════════════════
 // FOTOS
 // ═══════════════════════════════════════
 let modalPhotos = [];
@@ -3738,6 +3832,47 @@ async function handleCardPhotoUpload(input) {
   }
   input.value = ''; cardPhotoTargetId = null;
   if (alMenosUna) { saveRecord(rec); render(); toast('Foto agregada'); }
+}
+
+var cardDocTargetId = null;
+function addCardDoc(recId) {
+  cardDocTargetId = recId;
+  document.getElementById('card-doc-file').click();
+}
+
+async function handleCardDocUpload(input) {
+  const rec = data.find(r => r.id === cardDocTargetId);
+  if (!rec) return;
+  let alMenosUno = false;
+  for (const file of Array.from(input.files)) {
+    try {
+      if (!rec.documentos) rec.documentos = [];
+      rec.documentos.push(await subirDocumento(file));
+      alMenosUno = true;
+    } catch (e) {
+      toast(e.message || 'No se pudo adjuntar '+file.name);
+    }
+  }
+  input.value = ''; cardDocTargetId = null;
+  if (alMenosUno) {
+    saveRecord(rec);
+    if (document.getElementById('ficha-ov').style.display === 'flex') abrirFicha(rec.id);
+    render();
+    toast('Documento adjuntado');
+  }
+}
+
+function removeCardDoc(recId, docId) {
+  const rec = data.find(r => r.id === recId);
+  if (!rec) return;
+  const doc = (rec.documentos||[]).find(d => d.id === docId);
+  rec.documentos = (rec.documentos||[]).filter(d => d.id !== docId);
+  saveRecord(rec);
+  if (document.getElementById('ficha-ov').style.display === 'flex') abrirFicha(rec.id);
+  render();
+  if (doc && doc.url && fbStorage) {
+    try { fbStorage.refFromURL(doc.url).delete().catch(() => {}); } catch (e) {}
+  }
 }
 
 // ── Lightbox ──
