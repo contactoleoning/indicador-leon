@@ -181,6 +181,21 @@ Lo de la Fase 2 ya está publicado:
   Isaac decidió que esa función ya no aplica. Quedan campos `plan` /
   `planhasta` sueltos en los clientes que alguna vez lo tuvieron marcado — no
   se limpiaron de Firebase, solo dejaron de leerse/mostrarse.
+- **Documentos adjuntos** en la ficha del cliente (campo `documentos`, array
+  de `{id, url, nombre, fecha}` en Storage bajo `documentos/`) — mismo patrón
+  que `photos`. Se puede adjuntar a mano desde el Indicador, y desde el 18 de
+  agosto el **Comprobante de Servicio también adjunta solo** el PDF al
+  guardar: `actualizarFichaCliente()` en `comprobante-leon/index.html` capta
+  `#sheet` con html2canvas, lo arma en PDF con jsPDF (ambas por CDN, recién
+  agregadas ahí) y lo sube a ese mismo Storage antes de guardar la ficha. Si
+  algo de eso falla (sin conexión, librería que no cargó), no revienta el
+  guardado — el comprobante y el historial quedan igual, simplemente no
+  llega el adjunto. **Reglas de Storage nuevas** en `storage.rules` (se le
+  entregaron a Isaac para pegar en la consola): exigen sesión real, no
+  anónima, para `clientes/` y `documentos/`. No replican el "ficha en
+  /usuarios" que sí tiene `reglas-firebase.json` — Storage no puede leer la
+  Realtime Database, así que esa mitad requeriría custom claims (Cloud
+  Function aparte).
 
 ## Pendiente
 
