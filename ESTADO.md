@@ -248,6 +248,26 @@ en pantalla hasta que volvia el eco de Firebase. Arreglado en v19: se guarda
 `data[i]` ya fusionada. Comprobado con la version publicada como control -- con
 el codigo viejo se pierden 11 de 11 campos ocultos, con el nuevo ninguno.
 
+**Google devuelve una pagina 404 en vez de la respuesta del Apps Script, en
+~1 de cada 5 llamadas.** Medido el 2026-08-19 con cinco llamadas seguidas desde
+el navegador de Isaac: cuatro OK y una con `status=404` y cuerpo
+`<!DOCTYPE html>...window['ppConfig']...`. No es la red ni el codigo: es el
+frontend de Google enrutando mal, y la peticion ni siquiera llega al script. Los
+tiempos ademas son de 10 a 48 s, muy variables.
+
+Consecuencias que tenia: el Cotizador arrancaba en "sin conexion" con la red
+perfecta, y `postToGAS` -- que es por donde sube el PDF a Drive y se guardan las
+cotizaciones -- fallaba de una en una de cada cinco veces. Muy probablemente es
+la causa de los "no se pudo subir el PDF a Drive".
+
+Arreglado: `loadCloudData` valida `res.ok` (antes el HTML del 404 llegaba a
+`r.json()` y reventaba al parsear, cayendo en el catch por accidente) y
+reintenta hasta 4 veces; `postToGAS` reintenta hasta 2 veces **solo** ante
+404 / 5xx / error de red, porque ahi consta que el script nunca corrio.
+**Un vencimiento de tiempo NO se reintenta a proposito**: ahi no se sabe si el
+script alcanzo a ejecutarse, y repetir dejaria dos PDF y dos filas para la misma
+cotizacion.
+
 **Un tope de tiempo mal calibrado se ve igual que una caida.** Al ponerle topes
 a las llamadas de red del Cotizador (2026-08-19) se uso el generico de 30 s
 tambien para `loadCloudData`, que es la llamada mas lenta de todas: despierta al
