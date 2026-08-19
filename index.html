@@ -3258,6 +3258,8 @@ function openModal(id) {
   modalEquipos = (r?.equipos||[]).map(eq=>({...eq}));
   renderEquiposModal();
   modalHistorial = (r?.historial||[]).map(h=>({...h}));
+  modalHistorialBorrados = [];
+  modalPhotosBorradas = [];
   renderHistorialModal();
   document.getElementById('modal-ov').style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -3310,17 +3312,19 @@ function saveModal() {
     // rechazara el guardado entero y la ficha no se cerraba ni se actualizaba.
     avisoFecha: avisoChecked ? ((prevRow && prevRow.aviso && prevRow.avisoFecha) ? prevRow.avisoFecha : ymd(new Date())) : null,
     obs: document.getElementById('fo').value.trim(),
-    photos: modalPhotos,
-    // OJO -- no se guarda 'modalDocs'. Esa lista es la foto de los documentos
-    // de cuando se abrió la ficha, y escribirla encima borraba lo que hubiera
-    // llegado mientras tanto: pasó el 2026-08-18 con el Comprobante N° 174, que
-    // se adjuntó solo desde la app de Comprobante estando esta ficha abierta y
-    // desapareció al apretar Guardar cambios. Se parte de los documentos que
-    // hay AHORA (prevRow viene de 'data', que el listener de Firebase mantiene
-    // al día) y se le quitan los que el usuario borró a mano con la ✕.
-    documentos: (prevRow?.documentos || modalDocs).filter(d => !modalDocsBorrados.includes(d.id)),
+    // Las tres listas van fusionadas, no escritas encima: la copia del modal es
+    // de cuando se abrió la ficha, y lo que haya llegado mientras tanto (desde
+    // el Comprobante, o desde el teléfono con la ficha abierta acá) se perdía.
+    // Pasó el 2026-08-18 con el Comprobante N° 174. Ver fusionarLista().
+    photos: fusionarLista(prevRow?.photos, modalPhotos, modalPhotosBorradas, p => p.id),
+    documentos: fusionarLista(prevRow?.documentos, modalDocs, modalDocsBorrados, d => d.id),
+    // 'equipos' NO se fusiona a propósito: es una lista que el usuario edita
+    // entera en el formulario (cambia marca, modelo, BTU de filas existentes),
+    // así que fusionar por identidad duplicaría filas editadas. Además hoy no
+    // hay ninguna otra app que la escriba. Si alguna vez la escribe otra, hay
+    // que resolverlo de otra forma, no con fusionarLista.
     equipos: modalEquipos.filter(eq => (eq.marca||eq.modelo||eq.btu||eq.ubicacion||'').toString().trim()),
-    historial: modalHistorial,
+    historial: fusionarLista(prevRow?.historial, modalHistorial, modalHistorialBorrados, claveHistorial),
   };
   // Lo que se manda a Firebase. Para una ficha nueva es 'row'; para una que ya
   // existe es la fusión con lo que ya había (ver abajo).
@@ -3633,6 +3637,35 @@ function removeModalDoc(docId) {
 let modalPhotos = [];
 let modalEquipos = [];
 let modalHistorial = [];
+// Lo que el usuario borró a mano mientras la ficha estaba abierta. Se usa para
+// fusionar al guardar, en vez de escribir encima la copia del modal -- ver
+// fusionarLista().
+let modalPhotosBorradas = [];
+let modalHistorialBorrados = [];
+
+// El historial no tiene id propio (se guarda {fecha, hora, detalle, fotos,
+// inicioPrevio}), así que la identidad se arma con lo que lo distingue.
+function claveHistorial(h){
+  return (h && (h.fecha||'')+'|'+(h.hora||'')+'|'+(h.detalle||'')) || '';
+}
+
+// Fusiona una lista que el formulario edita con la que hay AHORA en la ficha.
+// Por qué no se guarda directamente la copia del modal: esa copia es de cuando
+// se abrió la ficha, y si otra app o el mismo Isaac desde el teléfono agregó
+// algo mientras tanto, guardar la copia lo borraba. Pasó el 2026-08-18 con el
+// Comprobante N° 174. Entonces: se parte de lo que hay ahora, se le quitan los
+// que borró a mano, y se le suman los que agregó en esta edición.
+function fusionarLista(actuales, delModal, borrados, clave){
+  actuales = actuales || []; delModal = delModal || []; borrados = borrados || [];
+  const fuera = new Set(borrados);
+  const salida = actuales.filter(x => !fuera.has(clave(x)));
+  const yaEstan = new Set(salida.map(clave));
+  delModal.forEach(x => {
+    const k = clave(x);
+    if (!fuera.has(k) && !yaEstan.has(k)) { salida.push(x); yaEstan.add(k); }
+  });
+  return salida;
+}
 let cardPhotoTargetId = null;
 let galleryRecId = null;
 let lightboxPhotos = [];
@@ -3685,6 +3718,11 @@ function renderHistorialModal() {
 }
 function eliminarHistorialEntry(i) {
   if (!confirm('¿Eliminar este registro del historial? No afecta la fecha de vencimiento actual.')) return;
+  const borrado = modalHistorial[i];
+  if (borrado) {
+    const k = claveHistorial(borrado);
+    if (!modalHistorialBorrados.includes(k)) modalHistorialBorrados.push(k);
+  }
   modalHistorial.splice(i,1);
   renderHistorialModal();
 }
@@ -3809,6 +3847,7 @@ async function handleModalPhotoUpload(input) {
 function removeModalPhoto(photoId) {
   deletePhotoFromStorage(modalPhotos.find(p => p.id === photoId));
   modalPhotos = modalPhotos.filter(p => p.id !== photoId);
+  if (!modalPhotosBorradas.includes(photoId)) modalPhotosBorradas.push(photoId);
   renderModalPhotos();
 }
 
@@ -4664,7 +4703,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v20";
+var APP_VERSION = "v21";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
