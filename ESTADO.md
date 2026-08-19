@@ -248,6 +248,17 @@ en pantalla hasta que volvia el eco de Firebase. Arreglado en v19: se guarda
 `data[i]` ya fusionada. Comprobado con la version publicada como control -- con
 el codigo viejo se pierden 11 de 11 campos ocultos, con el nuevo ninguno.
 
+**Un tope de tiempo mal calibrado se ve igual que una caida.** Al ponerle topes
+a las llamadas de red del Cotizador (2026-08-19) se uso el generico de 30 s
+tambien para `loadCloudData`, que es la llamada mas lenta de todas: despierta al
+Apps Script y le hace leer la planilla entera. Resultado: se abortaba una
+sincronizacion que igual iba a terminar bien y el Cotizador arrancaba diciendo
+"sin conexion" con la red perfecta. Peor, `loadCloudData` corre UNA sola vez al
+cargar y no se reintentaba nunca, asi que el punto rojo se quedaba pegado hasta
+recargar a mano. Ahora esa carga tiene 60 s, reintenta dos veces con espera
+creciente antes de declarar el rojo, y vuelve a intentar sola con el evento
+`online`. Leccion: el tope hay que calibrarlo por llamada, no uno para todas.
+
 **Las carpetas /beta escriben en produccion.** Las tres (`indicador-leon/beta/`,
 `cotizador-leon/beta/`, `comprobante-leon/beta/`) estan publicadas y accesibles
 (HTTP 200), y las tres apuntan al mismo Firebase `leon-clientes`; la del
