@@ -248,6 +248,17 @@ en pantalla hasta que volvia el eco de Firebase. Arreglado en v19: se guarda
 `data[i]` ya fusionada. Comprobado con la version publicada como control -- con
 el codigo viejo se pierden 11 de 11 campos ocultos, con el nuevo ninguno.
 
+**Las carpetas /beta escriben en produccion.** Las tres (`indicador-leon/beta/`,
+`cotizador-leon/beta/`, `comprobante-leon/beta/`) estan publicadas y accesibles
+(HTTP 200), y las tres apuntan al mismo Firebase `leon-clientes`; la del
+Cotizador ademas al mismo Apps Script. No son un ambiente de pruebas: son
+produccion con codigo distinto. Al 2026-08-19 arrastraban todos los errores
+arreglados ese dia. Se les aplico solo el arreglo del borrado de campos a la
+beta del Indicador, que era la unica que destruia datos reales; el resto se dejo
+como estaba para no pisar trabajo en curso (la beta del Indicador difiere en 855
+lineas, parece un rediseño). Si se quiere una beta de verdad hay que darle su
+propio proyecto de Firebase y su propio Apps Script -- es un trabajo aparte.
+
 **La fecha de hoy no puede calcularse una sola vez.** `TODAY` era `const`
 calculado al cargar. Una pestana abierta pasada la medianoche seguia calculando
 vencimientos, dias restantes, colores de tarjeta y el encabezado con la fecha de
