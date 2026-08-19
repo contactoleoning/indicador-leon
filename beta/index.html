@@ -3068,6 +3068,9 @@ function saveModal() {
     equipos: modalEquipos.filter(eq => (eq.marca||eq.modelo||eq.btu||eq.ubicacion||'').toString().trim()),
     historial: modalHistorial,
   };
+  // Lo que se manda a Firebase: 'row' para una ficha nueva, la fusión para una
+  // que ya existe (ver abajo).
+  let filaAGuardar = row;
   if (editId) {
     const i = data.findIndex(r=>r.id===editId);
     if (i>=0) {
@@ -3083,13 +3086,20 @@ function saveModal() {
       // enumerarlo. Los campos que el formulario sí gestiona vienen todos en
       // 'row' con su valor actual, así que se aplican igual.
       data[i] = Object.assign({}, data[i], row);
+      // A Firebase va la ficha fusionada, no 'row'. saveRecord hace .set(), que
+      // reemplaza el nodo entero: con 'row' pelado se borraban de la BASE REAL
+      // los campos que el formulario no muestra (ids de Google Calendar, plan,
+      // seguimiento, reagenda, vínculo con el Cotizador). Ojo: esta beta apunta
+      // al mismo Firebase de producción, así que el borrado era de datos de
+      // verdad. Mismo arreglo que en la versión publicada (v19).
+      filaAGuardar = data[i];
     }
     toast('Cliente actualizado');
   } else {
     data.push(row);
     toast('Cliente agregado');
   }
-  saveRecord(row);
+  saveRecord(filaAGuardar);
   closeModal();
   // Se renderiza al toque con lo que quedó en memoria, sin esperar a que
   // vuelva el eco de Firebase -- con señal débil (celular) esa vuelta podía
