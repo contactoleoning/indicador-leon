@@ -234,6 +234,29 @@ riesgo existe para `photos`, `equipos` e `historial`, que siguen guardándose
 desde la foto del modal: si alguna vez otra app escribe en esos campos, hay que
 darles el mismo tratamiento.
 
+**`.set()` de Firebase reemplaza el nodo entero: hay que mandarle la ficha
+fusionada, no el formulario.** `saveModal()` armaba `row` con los 22 campos del
+formulario, lo fusionaba bien en memoria (`Object.assign({}, data[i], row)`)
+pero despues llamaba `saveRecord(row)` -- con `row` pelado. Como `saveRecord`
+hace `.set()`, cada edicion de ficha **borraba de la base** todos los campos que
+el formulario no muestra. Medido sobre los datos reales el 2026-08-19: 13 campos
+en riesgo repartidos en 48 fichas -- `calIngresoId`/`calMantId` (34 y 32 fichas,
+los ids de los eventos de Google Calendar), `plan` y `planhasta` (20),
+`seguimiento` (11), `contactoPaso` (7), `visitaAgendada` (5), `reagenda` (3) y
+`nroCotizacion`/`montoCotizado`/`cotizaciones`. La fusion en memoria lo tapaba
+en pantalla hasta que volvia el eco de Firebase. Arreglado en v19: se guarda
+`data[i]` ya fusionada. Comprobado con la version publicada como control -- con
+el codigo viejo se pierden 11 de 11 campos ocultos, con el nuevo ninguno.
+
+**La fecha de hoy no puede calcularse una sola vez.** `TODAY` era `const`
+calculado al cargar. Una pestana abierta pasada la medianoche seguia calculando
+vencimientos, dias restantes, colores de tarjeta y el encabezado con la fecha de
+ayer; y `cerrarSesion()` no recarga la pagina, asi que volver a entrar tampoco
+lo arreglaba. Arreglado en v20 con `refrescarHoy()`, que corre al volver a la
+pestana y cada media hora. Ojo al tocarlo: `calMonth`/`calYear` se inicializan
+desde `TODAY` pero el usuario los mueve al navegar el calendario, asi que
+**no** hay que reiniciarlos ahi.
+
 **Un cargador a pantalla completa necesita que TODAS las salidas lo apaguen.**
 En el Cotizador, `generarYSubirPDF` muestra "Subiendo a Drive..." por dentro,
 pero el botón "Generar PDF Formal" le pasaba `function(){}` como vuelta de
