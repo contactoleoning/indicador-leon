@@ -3320,6 +3320,9 @@ function saveModal() {
     equipos: modalEquipos.filter(eq => (eq.marca||eq.modelo||eq.btu||eq.ubicacion||'').toString().trim()),
     historial: modalHistorial,
   };
+  // Lo que se manda a Firebase. Para una ficha nueva es 'row'; para una que ya
+  // existe es la fusión con lo que ya había (ver abajo).
+  let filaAGuardar = row;
   if (editId) {
     const i = data.findIndex(r=>r.id===editId);
     if (i>=0) {
@@ -3335,13 +3338,23 @@ function saveModal() {
       // enumerarlo. Los campos que el formulario sí gestiona vienen todos en
       // 'row' con su valor actual, así que se aplican igual.
       data[i] = Object.assign({}, data[i], row);
+      // Y a Firebase va ESTA ficha fusionada, no 'row'. saveRecord hace .set(),
+      // que reemplaza el nodo entero: mandando 'row' pelado se borraban de la
+      // base los campos que el formulario no muestra. Eso es lo que estaba
+      // pasando de verdad -- la fusión de arriba solo lo tapaba en pantalla
+      // hasta que volvía el eco de Firebase. Se comprobó el 2026-08-18 sobre
+      // los datos reales: 13 campos en riesgo, entre ellos los ids de los
+      // eventos de Google Calendar (34 fichas), plan y planhasta (20),
+      // seguimiento y contactoPaso (11 y 7), reagenda (3) y el vínculo con el
+      // Cotizador. Cada edición de ficha los borraba.
+      filaAGuardar = data[i];
     }
     toast('Cliente actualizado');
   } else {
     data.push(row);
     toast('Cliente agregado');
   }
-  saveRecord(row);
+  saveRecord(filaAGuardar);
   closeModal();
   // Se renderiza al toque con lo que quedó en memoria, sin esperar a que
   // vuelva el eco de Firebase -- con señal débil (celular) esa vuelta podía
@@ -4649,7 +4662,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v18";
+var APP_VERSION = "v19";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
