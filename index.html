@@ -1551,7 +1551,9 @@ const INIT = [];
 // ═══════════════════════════════════════
 // ESTADO
 // ═══════════════════════════════════════
-const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+// 'let' y no 'const' a proposito: se recalcula si la pestana queda abierta
+// pasada la medianoche (ver refrescarHoy() al final del archivo).
+let TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const CFG_KEY = 'leon_fb_config';
 const LOCAL_KEY = 'leon_local_data';
 
@@ -4662,7 +4664,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v19";
+var APP_VERSION = "v20";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -5042,8 +5044,35 @@ if('serviceWorker' in navigator){
 // FECHA HOY
 // ═══════════════════════════════════════
 const _m = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-document.getElementById('hoy').textContent =
-  `${String(TODAY.getDate()).padStart(2,'0')} ${_m[TODAY.getMonth()]} ${TODAY.getFullYear()}`;
+function textoHoy(){
+  return `${String(TODAY.getDate()).padStart(2,'0')} ${_m[TODAY.getMonth()]} ${TODAY.getFullYear()}`;
+}
+document.getElementById('hoy').textContent = textoHoy();
+
+// TODAY se calculaba una sola vez al cargar la pagina. Una pestana que quedara
+// abierta pasada la medianoche seguia mostrando la fecha de ayer y, peor,
+// calculaba con ella los vencimientos, los dias restantes y el color de las
+// tarjetas: un cliente que pasaba a vencido seguia apareciendo "por vencer".
+// Y cerrarSesion() no recarga la pagina, asi que ni volver a entrar lo
+// arreglaba -- habia que recargar a mano sin tener motivo para sospecharlo.
+// Aca se revisa al volver a la pestana y cada media hora.
+function refrescarHoy(){
+  const ahora = new Date(); ahora.setHours(0,0,0,0);
+  if (ahora.getTime() === TODAY.getTime()) return;
+  TODAY = ahora;
+  const h = document.getElementById('hoy');
+  if (h) h.textContent = textoHoy();
+  // Ojo: calMonth y calYear NO se tocan. Se inicializan desde TODAY pero el
+  // usuario los mueve al navegar el calendario; reiniciarlos le saltaria el
+  // mes que esta mirando.
+  try { revisarAvisosVencidos(); } catch(e){ console.error(e); }
+  try { checkRecordatoriosDiarios(); } catch(e){ console.error(e); }
+  render();
+}
+document.addEventListener('visibilitychange', function(){
+  if (document.visibilityState === 'visible') refrescarHoy();
+});
+setInterval(refrescarHoy, 30*60*1000);
 </script>
 </body>
 </html>
