@@ -248,6 +248,33 @@ en pantalla hasta que volvia el eco de Firebase. Arreglado en v19: se guarda
 `data[i]` ya fusionada. Comprobado con la version publicada como control -- con
 el codigo viejo se pierden 11 de 11 campos ocultos, con el nuevo ninguno.
 
+**Cuando no se puede leer la nube, NO se escribe.** `saveCloudData()` primero
+trae la version de la nube y fusiona por id con `mergeById`, para no borrar lo
+que otro equipo haya agregado. Pero su `.catch` posteaba la configuracion local
+**sin fusionar** -- y encima llamaba `setSyncStatus(true)`, asi que un guardado
+que habia perdido la fusion se veia identico a uno bueno. Con el 404
+intermitente de Google y llamadas de 48 s, ese camino se tomaba seguido.
+Comprobado el 2026-08-19 contra un servidor que siempre responde 404: la version
+publicada hacia 1 POST (escribia pisando), la corregida hace 0. Ahora reintenta
+y, si no logra leer, no escribe: perder ese guardado es reversible -- los
+cambios siguen en localStorage-- pero pisar el catalogo de otro equipo no.
+
+**El correlativo nunca retrocede: al reconciliar gana el MAYOR.** La respuesta
+de `loadCloudData` puede llegar 48 s tarde. Si en ese rato el usuario apreto
+"Iniciar Cotizacion Nueva", el numero local ya avanzo, y escribir encima el de
+la nube lo hacia retroceder: la cotizacion siguiente salia con un numero ya
+usado. Tampoco sirve que gane siempre el local -- dos equipos dejarian de
+converger. Se usa `Math.max(remoto, local)`.
+
+**`asegurarNroLibre()` exige el registro COMPARTIDO, no cualquiera.** Su guardia
+era `if(!REG_LIST.length)`, que casi nunca se cumple: `loadRegList()` llena
+`REG_LIST` desde localStorage en el arranque, y el registro compartido llega
+despues desde Firebase (`cargarRegDeFirebase`). En esa ventana la lista tiene
+datos -- los viejos de este equipo-- asi que el aviso no saltaba y un numero que
+otro equipo ya habia usado se veia libre. **Ese es el mecanismo de las diez
+cotizaciones N° 148 de julio.** Ahora tambien mira `REG_FB_LISTO`, la bandera
+que ya existia y que usaban `guardarRegEnFirebase()` y `borrarRegDeFirebase()`.
+
 **Google devuelve una pagina 404 en vez de la respuesta del Apps Script, en
 ~1 de cada 5 llamadas.** Medido el 2026-08-19 con cinco llamadas seguidas desde
 el navegador de Isaac: cuatro OK y una con `status=404` y cuerpo
