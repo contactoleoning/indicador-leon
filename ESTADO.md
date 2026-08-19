@@ -234,6 +234,20 @@ riesgo existe para `photos`, `equipos` e `historial`, que siguen guardándose
 desde la foto del modal: si alguna vez otra app escribe en esos campos, hay que
 darles el mismo tratamiento.
 
+**Un cargador a pantalla completa necesita que TODAS las salidas lo apaguen.**
+En el Cotizador, `generarYSubirPDF` muestra "Subiendo a Drive..." por dentro,
+pero el botón "Generar PDF Formal" le pasaba `function(){}` como vuelta de
+éxito: la subida terminaba bien y el cargador quedaba girando tapando la app.
+Pasó el 2026-08-18, quedó pegado toda la tarde. Arreglado: las dos vueltas
+llaman a `hideLoader()`, y la de error además avisa (antes el fallo era mudo).
+
+Y `postToGAS` mandaba el XHR **sin `xhr.timeout`**. Si el Apps Script se queda
+colgado no llega nunca `readyState 4` ni salta `onerror`, así que no se llama
+ninguna de las dos vueltas y quien espera se queda esperando para siempre —
+comprobado contra un servidor que acepta y no responde: sin tope seguía
+esperando a los 8 s, con tope vuelve por la rama de error (status 0). Ahora
+tiene tope de 90 s y una salida única para no llamar dos veces.
+
 **Un `::after` sobre un `<input>` rompe html2canvas.** Era la causa raíz del
 PDF recortado del Comprobante, y costó una mañana entera encontrarla. El visto
 del checkbox se dibujaba con `input[type=checkbox]:checked::after` (bordes en L
