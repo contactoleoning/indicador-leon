@@ -989,6 +989,9 @@ button{cursor:pointer}
     <option value="resched">Reagendados</option>
     <option value="aviso">Con aviso</option>
   </select>
+  <select class="filter-sel" id="fcomuna" onchange="render()">
+    <option value="all">Todas las comunas</option>
+  </select>
   <select class="sort-sel" id="fsort" onchange="render()">
     <option value="default">Orden original</option>
     <option value="fin-asc">Vence más pronto</option>
@@ -2236,11 +2239,55 @@ function escAttr(s) {
 // ═══════════════════════════════════════
 // FILTRAR / ORDENAR
 // ═══════════════════════════════════════
+// Clave normalizada de una comuna: sin tildes, sin mayusculas y sin espacios
+// de sobra. Las fichas se escriben a mano desde tres apps distintas, asi que
+// "Ñuñoa", "nunoa" y " Ñuñoa " son la misma comuna y no pueden salir como tres
+// opciones separadas en el filtro.
+function claveComuna(v){
+  return (v||'').toString().trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+// Rellena el selector con las comunas que existen HOY en las fichas.
+// Conserva lo elegido: este render corre con cada eco de Firebase, y si se
+// reconstruyera a secas el filtro se soltaria solo mientras Isaac lo usa.
+function renderFiltroComunas(){
+  const sel = document.getElementById('fcomuna');
+  if (!sel) return;
+  const elegido = sel.value;
+  // Se guarda la primera forma en que aparece escrita, para mostrarla tal cual.
+  const vistas = new Map();
+  data.forEach(function(r){
+    const k = claveComuna(r.comuna);
+    if (!k) return;
+    if (!vistas.has(k)) vistas.set(k, (r.comuna||'').toString().trim());
+  });
+  const ordenadas = Array.from(vistas.entries())
+    .sort(function(a,b){ return a[1].localeCompare(b[1],'es'); });
+  const sinComuna = data.some(function(r){ return !claveComuna(r.comuna); });
+
+  sel.innerHTML = '<option value="all">Todas las comunas</option>'
+    + ordenadas.map(function(e){
+        return '<option value="'+escAttr(e[0])+'">'+esc(e[1])+'</option>';
+      }).join('')
+    + (sinComuna ? '<option value="__sin__">— Sin comuna —</option>' : '');
+
+  // Si la comuna elegida ya no existe (se edito o se borro la ultima ficha que
+  // la tenia), volver a "todas" en vez de quedar filtrando por nada.
+  sel.value = Array.from(sel.options).some(function(o){ return o.value===elegido; }) ? elegido : 'all';
+}
+
 function getFiltered() {
   const q = document.getElementById('srch').value.toLowerCase().trim();
   const st = document.getElementById('fst').value;
   const srt = document.getElementById('fsort').value;
+  const com = (document.getElementById('fcomuna')||{value:'all'}).value;
   let rows = data.filter(r => {
+    // Comuna: se compara normalizado (sin tildes, sin mayusculas, sin espacios
+    // de sobra) porque las fichas vienen escritas a mano desde tres apps y
+    // conviven "Nunoa", "Ñuñoa" y "ñuñoa " para la misma comuna.
+    if (com === '__sin__') { if (claveComuna(r.comuna)) return false; }
+    else if (com !== 'all' && claveComuna(r.comuna) !== com) return false;
     if (st==='green' && statusOf(r)!=='green') return false;
     if (st==='amber' && statusOf(r)!=='amber') return false;
     if (st==='red' && statusOf(r)!=='red') return false;
@@ -2675,6 +2722,7 @@ function render() {
   }
 
   renderStats();
+  renderFiltroComunas();
   const rows = getFiltered();
 
   // ── Vista de tarjetas o tabla ──
@@ -4703,7 +4751,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v21";
+var APP_VERSION = "v22";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
