@@ -60,6 +60,13 @@ historial de PDFs y el respaldo descargable. El registro de cotizaciones ya
 - Copia de prueba en `/beta` para las tres.
 - Proveedor **Anónimo inhabilitado** en Authentication (13 de agosto).
 - Registro de cotizaciones en Firebase, ya **fuera** del Apps Script.
+- **Filtro por comuna** en la barra de busqueda del Indicador (v22). Las comunas
+  salen de las fichas que hay en ese momento, y se agrupan normalizadas (sin
+  tildes ni mayusculas): "Nunoa", "Ñuñoa" y " ñuñoa " son una sola opcion,
+  porque las fichas se escriben a mano desde tres apps. Incluye "— Sin comuna —"
+  y conserva lo elegido entre renders (si no, cada eco de Firebase soltaba el
+  filtro). Los recuadros de arriba siguen contando sobre TODAS las fichas: es el
+  mismo comportamiento que ya tenian con el buscador y el filtro de condicion.
 
 Lo de la Fase 2 ya está publicado:
 
