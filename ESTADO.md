@@ -234,6 +234,33 @@ riesgo existe para `photos`, `equipos` e `historial`, que siguen guardándose
 desde la foto del modal: si alguna vez otra app escribe en esos campos, hay que
 darles el mismo tratamiento.
 
+**La fecha del comprobante tampoco puede calcularse una sola vez.** Mismo error
+que el `TODAY` del Indicador, pero peor: `fechaISOActual` se evaluaba al cargar
+el script y esa fecha va a `c.fecha` y de ahi a `row.inicia`, o sea corre el
+ciclo de mantencion completo del cliente. Con la PWA abierta de un dia para
+otro en el celular, el comprobante salia con la fecha de ayer. Arreglado en v12
+con `refrescarFechaSiCorresponde()`, que corre al volver a la pestana, al
+guardar y al imprimir -- pero **respeta la fecha escrita a mano** (bandera
+`fechaTocadaAMano`), porque a veces el comprobante se emite con fecha distinta a
+proposito.
+
+**Una caja de fecha vacia daba una fecha inexistente.** El guardia era
+`if(dd&&mm&&yy)` con `dd` calculado como `value.padStart(2,'0')`: con la caja
+vacia eso da `'00'`, que es truthy. Borrar el mes para corregirlo y guardar
+dejaba `row.inicia = '2026-00-19'`. Comprobado sobre la version anterior:
+tambien aceptaba `2026-02-31`. Ahora se valida con `fechaDeLasCajas()` (rango de
+dia y mes, y que el dia exista en ese mes), las cajas se marcan en rojo, y hay
+una barrera en `guardarComprobante()` que no deja gastar un folio con la fecha
+mala.
+
+**La reserva de folio tiene tope de 20 s.** Una transaccion de RTDB solo
+resuelve cuando el servidor confirma: sin señal queda pendiente para siempre, ni
+resuelve ni rechaza. Como `guardarComprobante()` apaga `btnSave` antes de
+llamarla, el boton quedaba muerto y el folio congelado en "reservando...", sin
+ningun mensaje; la unica salida era recargar y perder lo escrito. Medido: a los
+28 s seguia muerto. Ahora vuelve a los 20 s con un aviso que dice que no se
+guardo nada y que lo escrito sigue ahi.
+
 **El folio hay que liberarlo despues de guardar.** `folioReservado` se llenaba
 una vez y no volvia nunca a `null`, y `asegurarFolio()` corta de inmediato si ya
 tiene valor -- `limpiarFormulario()` tampoco lo reiniciaba. Entonces el segundo
