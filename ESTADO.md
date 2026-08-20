@@ -234,6 +234,36 @@ riesgo existe para `photos`, `equipos` e `historial`, que siguen guardándose
 desde la foto del modal: si alguna vez otra app escribe en esos campos, hay que
 darles el mismo tratamiento.
 
+**El folio hay que liberarlo despues de guardar.** `folioReservado` se llenaba
+una vez y no volvia nunca a `null`, y `asegurarFolio()` corta de inmediato si ya
+tiene valor -- `limpiarFormulario()` tampoco lo reiniciaba. Entonces el segundo
+comprobante de la sesion reusaba el numero del primero, y como la escritura es
+`db.ref('leon_comprobantes/'+folio).set(c)`, **el segundo REEMPLAZABA al primero
+en la base**. Pasa emitiendo dos comprobantes seguidos sin recargar, que es
+justo como se usa en terreno con la PWA. Arreglado en v10 con `liberarFolio()`,
+que se llama al guardar bien y al limpiar. OJO: NO se llama despues de imprimir
+-- imprimir dos veces, o imprimir y despues guardar, tiene que conservar el
+numero que salio en el papel.
+
+**El Comprobante ya no escribe la ficha entera del cliente.**
+`actualizarFichaCliente()` leia la ficha, esperaba 10-30 s generando y subiendo
+el PDF, y recien ahi hacia `set(row)` con la copia leida ANTES de esa espera:
+todo lo que la oficina cambiara en esa ficha durante esos segundos se borraba.
+Es el mismo error de `saveModal`, en la otra punta. Arreglado en v11: el
+documento se agrega con una transaccion sobre `leon_clientes/<key>/documentos`
+(con control de idempotencia, porque una transaccion puede reejecutarse) y las
+fechas van con `update()`, que es escritura parcial. Ademas la decision de
+reiniciar el vencimiento se **congela al apretar Guardar**: antes se leia del
+formulario despues del await, asi que tocar "Mantencion" o "Limpiar formulario"
+durante la espera la daba vuelta sola y en silencio.
+
+**Un mock que comparte referencia con la base no detecta copias viejas.** Al
+probar lo anterior, el primer arnes devolvia en `val()` el MISMO objeto que
+despues mutaba la "oficina", asi que la copia nunca quedaba vieja y la version
+rota pasaba la prueba. Firebase devuelve una copia. En estos arneses `val()`,
+`set()` y `transaction()` tienen que copiar en profundidad, si no la prueba
+miente.
+
 **`.set()` de Firebase reemplaza el nodo entero: hay que mandarle la ficha
 fusionada, no el formulario.** `saveModal()` armaba `row` con los 22 campos del
 formulario, lo fusionaba bien en memoria (`Object.assign({}, data[i], row)`)
