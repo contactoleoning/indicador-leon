@@ -4164,7 +4164,7 @@ function eliminarHistorialEntry(i) {
 }
 
 async function compressImage(file) {
-  const MAX = 600;
+  const MAX = 1280;
   let source, w, h;
 
   // Fotos HEIC/HEIF (formato por defecto de camara en iPhone) no se pueden
@@ -6393,7 +6393,7 @@ renderMetricas = function(){
   var items = [
     ['Recordatorios','openRecordatorios()'],['Métricas','openMetricas()'],['Plantillas de mensajes','openPlantillas()'],
     ['Respuestas rápidas','openRespuestas()'],['Papelera','openTrash()'],['Exportar Excel (.csv)','descargarExcel()'],
-    ['Exportar PDF','exportarPDF()'],['Mover fotos y PDF a la base gratuita','migrarFotos()'],['Respaldo de datos','openBackup()'],
+    ['Exportar PDF','exportarPDF()'],['Mover fotos y PDF a la base gratuita','migrarFotos()'],['Recopiar fotos con calidad original','migrarFotos(true)'],['Respaldo de datos','openBackup()'],
     ['Cambiar tema claro / oscuro','toggleTheme()'],['Cerrar sesión','cerrarSesion()']
   ];
   sheet.innerHTML = '<div class="nf-mas-box"><div class="nf-mas-t">Más opciones</div>'
@@ -6489,7 +6489,7 @@ function nvMenuUsuario(e){
   var mail = '';
   try { var u = firebase.auth().currentUser; mail = u ? (u.email||'') : ''; } catch(x){}
   var items = [['Respaldo de datos','openBackup()'],['Papelera','openTrash()'],['Plantillas de mensajes','openPlantillas()'],
-    ['Respuestas rápidas','openRespuestas()'],['Exportar Excel (.csv)','descargarExcel()'],['Exportar PDF','exportarPDF()'],['Mover fotos y PDF a la base gratuita','migrarFotos()'],
+    ['Respuestas rápidas','openRespuestas()'],['Exportar Excel (.csv)','descargarExcel()'],['Exportar PDF','exportarPDF()'],['Mover fotos y PDF a la base gratuita','migrarFotos()'],['Recopiar fotos con calidad original','migrarFotos(true)'],
     ['Cambiar tema claro / oscuro','toggleTheme()'],['Cerrar sesión','cerrarSesion()']];
   m.innerHTML = (mail?'<div class="nv-menu-m">'+esc(mail)+'</div>':'')
     + items.map(function(i){ return '<button onclick="document.getElementById(\'nv-menu\').classList.remove(\'on\');'+i[1]+'">'+i[0]+'</button>'; }).join('');
@@ -6893,7 +6893,7 @@ function miniatura(src, max){
   return c.toDataURL('image/jpeg', 0.6);
 }
 async function guardarFotoRtdb(id, canvas, date){
-  var d = canvas.toDataURL('image/jpeg', 0.7), t = miniatura(canvas, 220);
+  var d = canvas.toDataURL('image/jpeg', 0.75), t = miniatura(canvas, 220);
   try { await dbRef('leon_fotos/'+id).set({t:t, d:d, date:date}); }
   catch(e){
     throw new Error('No se pudo guardar la foto ('+(e && (e.code||e.message) || 'error')+'). Si dice PERMISSION_DENIED, falta publicar las reglas nuevas de Firebase.');
@@ -6941,18 +6941,20 @@ function mgPanel(html){
   ov.innerHTML = '<div class="nd-box">'+html+'</div>'; ov.style.display = 'flex';
 }
 function mgCerrar(){ var ov = document.getElementById('mg-ov'); if (ov) ov.style.display = 'none'; MIGRANDO = false; }
-function migrarFotos(){
+function migrarFotos(rehacer){
   if (!useFirebase) { toast('Inicia sesión para migrar las fotos'); return; }
   var tareas = [];
+  // con "rehacer" también se vuelven a copiar las ya migradas (si aún conservan su dirección de Storage), desde el archivo original
+  function pend(x){ return x.url && (rehacer || !x.store); }
   data.forEach(function(r){
-    if (r.avatar && r.avatar.url && !r.avatar.store) tareas.push({r:r, p:r.avatar, k:'foto'});
-    (r.photos||[]).forEach(function(p){ if (p.url && !p.store) tareas.push({r:r, p:p, k:'foto'}); });
-    (r.historial||[]).forEach(function(h){ (h.fotos||[]).forEach(function(p){ if (p.url && !p.store) tareas.push({r:r, p:p, k:'foto'}); }); });
-    (r.documentos||[]).forEach(function(d){ if (d.url && !d.store) tareas.push({r:r, p:d, k:'doc'}); });
+    if (r.avatar && pend(r.avatar)) tareas.push({r:r, p:r.avatar, k:'foto'});
+    (r.photos||[]).forEach(function(p){ if (pend(p)) tareas.push({r:r, p:p, k:'foto'}); });
+    (r.historial||[]).forEach(function(h){ (h.fotos||[]).forEach(function(p){ if (pend(p)) tareas.push({r:r, p:p, k:'foto'}); }); });
+    if (!rehacer) (r.documentos||[]).forEach(function(d){ if (pend(d)) tareas.push({r:r, p:d, k:'doc'}); });
   });
-  if (!tareas.length) { ndOpen({titulo:'Nada que migrar', msg:'Todas las fotos y documentos ya están en la base de datos.', ok:'Entendido'}); return; }
+  if (!tareas.length) { ndOpen({titulo:'Nada que migrar', msg: rehacer ? 'Ya no quedan fotos con su archivo original en Storage para volver a copiar.' : 'Todas las fotos y documentos ya están en la base de datos.', ok:'Entendido'}); return; }
   var nf = tareas.filter(function(t){return t.k==='foto';}).length, nd = tareas.length - nf;
-  ndOpen({titulo:'Mover fotos y PDF a la base de datos', ok:'Empezar',
+  ndOpen({titulo: rehacer ? 'Volver a copiar fotos con la calidad original' : 'Mover fotos y PDF a la base de datos', ok:'Empezar',
     msg:'Se copiarán '+nf+' fotos y '+nd+' documentos a tu base de datos gratuita. No se borra nada de Storage. Necesitas haber configurado el permiso CORS del bucket y publicado las reglas nuevas. No cierres esta ventana mientras corre.',
     cb:function(){ correrMigracion(tareas); }});
 }
@@ -6976,10 +6978,13 @@ async function correrMigracion(tareas){
       fase = 'escribir';
       if (t.k === 'foto'){
         var im = await cargarImagen(blob);
-        var k = Math.min(1, 800 / Math.max(im.width, im.height));
+        var grande = Math.max(im.width, im.height), k = Math.min(1, 1280 / grande);
         var c = document.createElement('canvas'); c.width = Math.round(im.width*k); c.height = Math.round(im.height*k);
         c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-        await dbRef('leon_fotos/'+p.id).set({t:miniatura(c, 220), d:c.toDataURL('image/jpeg', 0.7), date:p.date||''});
+        // si la foto ya es chica se guardan sus bytes tal cual: recomprimirla solo la empeora
+        var completa = (k === 1 && blob.type === 'image/jpeg') ? await blobADataUrl(blob) : c.toDataURL('image/jpeg', 0.8);
+        await dbRef('leon_fotos/'+p.id).set({t:miniatura(c, 220), d:completa, date:p.date||''});
+        delete FOTOS[p.id]; delete FOTOS_PEND[p.id+':d']; delete FOTOS_PEND[p.id+':t'];
       } else {
         if (blob.size > 6*1024*1024) throw new Error('documento demasiado grande');
         await dbRef('leon_docs/'+p.id).set({n:p.nombre||'', d:await blobADataUrl(blob), fecha:p.fecha||''});
