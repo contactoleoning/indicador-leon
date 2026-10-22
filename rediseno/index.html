@@ -1374,10 +1374,6 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
       <button onclick="exportarPDF()">📄 PDF</button>
     </div>
   </div>
-  <div class="vista-tabs" id="vista-tabs">
-    <button id="vt-cards" onclick="setVista('cards')">Tarjetas</button>
-    <button id="vt-tabla" onclick="setVista('tabla')">Tabla</button>
-  </div>
   <button class="btn-add" onclick="openModal(null)">+ NUEVO CLIENTE</button>
 </div>
 
@@ -2827,7 +2823,7 @@ function cotizacionesHTML(r){
 //
 // La tarjeta pone el nombre primero, con todo el ancho, y deja el detalle
 // para cuando se abre. La tabla sigue disponible por si se prefiere.
-var VISTA = localStorage.getItem('leon-vista') || 'cards';
+var VISTA = 'cards';
 
 function setVista(v){
   VISTA = v;
