@@ -1215,6 +1215,10 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
 .nc-fotos .fx-rota{width:50px;height:50px;flex:none}
 .fx-fotos .fx-rota{aspect-ratio:1;width:100%}
 
+/* ventana del avance de la migración: siempre encima de todo */
+#mg-ov{position:fixed;inset:0;z-index:10050;background:rgba(1,4,9,.8);display:none;align-items:center;justify-content:center;padding:20px}
+#mg-ov .nd-box{max-width:460px}
+
 </style>
 </head>
 <body>
@@ -5131,7 +5135,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v23";
+var APP_VERSION = "v24";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -6920,6 +6924,7 @@ function verDoc(rid, docId){
 
 // ═══════════ migración de lo que ya está en Storage ═══════════
 var MIGRANDO = false;
+window.addEventListener('beforeunload', function(e){ if (MIGRANDO) { e.preventDefault(); e.returnValue = ''; } });
 function cargarImagen(blob){
   return new Promise(function(res, rej){
     var u = URL.createObjectURL(blob), im = new Image();
@@ -6958,10 +6963,18 @@ async function correrMigracion(tareas){
   MIGRANDO = true;
   var hechas = 0, fallas = 0, primeraFalla = '', primeraFase = '', seguidas = 0, sucias = {};
   var total = tareas.length;
+  var t0 = Date.now();
   function pintar(){
-    mgPanel('<h3>Moviendo a la base de datos…</h3><p>'+hechas+' de '+total+(fallas?' · '+fallas+' con problema':'')+'</p>'
-      +'<div class="nv-barra"><i style="width:'+(total ? (hechas+fallas)/total*100 : 0)+'%;background:#2DC653"></i></div>'
-      +'<p style="margin:8px 0 0">No cierres ni recargues esta página.</p>');
+    var listos = hechas + fallas, pct = total ? Math.round(listos/total*100) : 0, resto = '';
+    if (listos >= 3) {
+      var seg = Math.round((Date.now() - t0) / listos * (total - listos) / 1000);
+      resto = seg < 60 ? 'menos de 1 minuto' : 'unos '+Math.ceil(seg/60)+' min';
+    }
+    mgPanel('<h3>Moviendo a la base de datos…</h3>'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font:700 34px \'Barlow Condensed\',sans-serif">'+pct+'%</span><span style="color:var(--text2)">'+listos+' de '+total+(fallas?' · '+fallas+' con problema':'')+'</span></div>'
+      +'<div class="nv-barra"><i style="width:'+pct+'%;background:#2DC653"></i></div>'
+      +(resto ? '<p style="margin:8px 0 0">Tiempo restante estimado: '+resto+'.</p>' : '<p style="margin:8px 0 0">Calculando el tiempo restante…</p>')
+      +'<p style="margin:8px 0 0;color:var(--gold)">⚠ No cierres ni recargues esta página hasta que termine.</p>');
   }
   pintar();
   for (var i = 0; i < tareas.length && MIGRANDO; i++){
