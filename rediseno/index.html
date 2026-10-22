@@ -1211,6 +1211,10 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
 }
 @media (min-width:701px){.nv-mov{display:none}}
 
+.fx-rota{display:flex;align-items:center;justify-content:center;background:var(--surface3);border:1px dashed var(--border2);color:var(--text3);border-radius:9px;font-size:18px}
+.nc-fotos .fx-rota{width:50px;height:50px;flex:none}
+.fx-fotos .fx-rota{aspect-ratio:1;width:100%}
+
 </style>
 </head>
 <body>
@@ -5566,6 +5570,42 @@ function solicitudesPend(r){ return (r.solicitudes||[]).filter(function(s){retur
 function inicialesDe(r){
   return ((r.cliente||'').trim().split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()) || '?';
 }
+// Todas las fotos de un cliente: las de la ficha + las de cada mantención registrada.
+function fotosDe(r){
+  var res = (r.photos||[]).map(function(p){ return {p:p, h:-1}; });
+  (r.historial||[]).forEach(function(h, i){ (h.fotos||[]).forEach(function(p){ res.push({p:p, h:i}); }); });
+  return res;
+}
+// Si una foto no carga se ve un recuadro avisándolo, no un hueco vacío.
+function fotoRota(img){
+  var s = document.createElement('span');
+  s.className = 'fx-rota ' + (img.className || '');
+  s.textContent = '🖼';
+  s.title = 'No se pudo cargar esta foto';
+  img.replaceWith(s);
+}
+function abrirFotoX(x, recId){
+  if (x.h >= 0) openLightboxHist(x.p.id, recId, x.h); else openLightbox(x.p.id, recId);
+}
+// Prueba cada foto del cliente y dice cuántas no cargan.
+function diagFotos(id){
+  var r = data.find(function(x){return x.id===id;}); if (!r) return;
+  var lista = fotosDe(r).filter(function(x){ return photoSrc(x.p); });
+  if (!lista.length){ toast('Este cliente no tiene fotos guardadas'); return; }
+  var malas = [], hechas = 0;
+  lista.forEach(function(x){
+    var im = new Image();
+    var fin = function(ok){ if (!ok) malas.push(photoSrc(x.p)); if (++hechas === lista.length) mostrar(); };
+    im.onload = function(){ fin(true); }; im.onerror = function(){ fin(false); };
+    im.src = photoSrc(x.p);
+  });
+  function mostrar(){
+    ndOpen({titulo:'Revisión de fotos', ok:'Entendido',
+      msg: malas.length ? malas.length+' de '+lista.length+' fotos no se pueden cargar.' : 'Las '+lista.length+' fotos cargan bien.',
+      html: malas.length ? '<a href="'+esc(malas[0])+'" target="_blank" rel="noopener" style="color:var(--gold);font-size:14px">Abrir la primera foto con problema en otra pestaña</a>'
+        +'<div class="fx-falta">Ahí Google muestra el motivo (sin permiso, archivo borrado o almacenamiento sin cuota).</div>' : ''});
+  }
+}
 // Foto del cliente; si no hay, o la imagen falla al cargar, se ven las siglas.
 function avatarNC(r, cls){
   var photo = r.avatar || (r.photos && r.photos[0]);
@@ -5588,7 +5628,7 @@ function tarjetaHTML(r){
   var nd = numDias(r);
   var ult = ultimoTrabajo(r);
   var eq = r.equipos||[];
-  var fotos = r.photos||[];
+  var fotos = fotosDe(r);
   var sol = solicitudesPend(r).length;
   var sub = emp ? [r.empresa, r.comuna].filter(Boolean).join(' · ')
                 : [r.lugar, r.comuna].filter(Boolean).join(' · ');
@@ -5605,7 +5645,7 @@ function tarjetaHTML(r){
   var thumbs = '';
   if (fotos.length) {
     thumbs = '<div class="nc-fotos">'
-      + fotos.slice(0,3).map(function(p){return '<img src="'+esc(photoSrc(p))+'" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'"/>';}).join('')
+      + fotos.slice(0,3).map(function(x){return '<img src="'+esc(photoSrc(x.p))+'" alt="" loading="lazy" onerror="fotoRota(this)"/>';}).join('')
       + (fotos.length>3 ? '<span class="mas">+'+(fotos.length-3)+'</span>' : '')
       + '<small>'+plural(fotos.length,'foto','fotos')+'</small></div>';
   }
@@ -5729,14 +5769,24 @@ function fichaHTML(r){
 
   // fotos
   var fotos = r.photos||[];
-  var secFotos = '<div class="fx-sec"><div class="fx-h"><h4>FOTOS'+(fotos.length?' · '+fotos.length:'')+'</h4></div><div class="fx-fotos">'
-    +fotos.map(function(p){return '<img src="'+esc(photoSrc(p))+'" alt="" title="'+esc(p.date||'')+'" onclick="openLightbox(\''+escAttr(p.id)+'\','+id+')" onerror="this.style.visibility=\'hidden\'"/>';}).join('')
+  var total = fotosDe(r).length;
+  var secFotos = '<div class="fx-sec"><div class="fx-h"><h4>FOTOS'+(fotos.length?' · '+fotos.length:'')+'</h4>'
+    +(total?'<button class="fx-add" onclick="diagFotos('+id+')">Revisar fotos</button>':'')+'</div><div class="fx-fotos">'
+    +fotos.map(function(p){return '<img src="'+esc(photoSrc(p))+'" alt="" title="'+esc(p.date||'')+'" onclick="openLightbox(\''+escAttr(p.id)+'\','+id+')" onerror="fotoRota(this)"/>';}).join('')
     +'<div class="add" onclick="addCardPhoto('+id+')">+ Foto</div></div></div>';
 
-  // historial
-  var hist = (r.historial||[]).slice().sort(function(a,b){return String(b.fecha||'').localeCompare(String(a.fecha||''));});
+  // historial de mantenciones, con sus fotos y el envío del respaldo por WhatsApp
+  var hist = (r.historial||[]).map(function(h,i){ var c = Object.assign({}, h); c._i = i; return c; })
+    .sort(function(a,b){return String(b.fecha||'').localeCompare(String(a.fecha||''));});
   var secHist = hist.length ? '<div class="fx-sec"><div class="fx-h"><h4>HISTORIAL DE MANTENCIONES · '+hist.length+'</h4></div><div class="fx-hist">'
-    +hist.map(function(h){return '<div class="h"><b>'+esc(fechaCorta(h.fecha)||h.fecha||'')+'</b><p>'+esc(h.detalle||h.obs||h.nota||'')+'</p></div>';}).join('')+'</div></div>' : '';
+    +hist.map(function(h){
+      var fs = h.fotos||[];
+      return '<div class="h"><b>'+esc(fechaCorta(h.fecha)||h.fecha||'')+(h.hora?' <span style="color:var(--text3);font-weight:500">'+esc(h.hora)+'</span>':'')+'</b>'
+        +(h.detalle?'<p style="white-space:pre-wrap">'+esc(h.detalle)+'</p>':'')
+        +(fs.length?'<div class="fx-fotos" style="grid-template-columns:repeat(auto-fill,minmax(64px,1fr));margin-top:8px">'+fs.map(function(p){return '<img src="'+esc(photoSrc(p))+'" alt="" title="'+esc(p.date||'')+'" onclick="openLightboxHist(\''+escAttr(p.id)+'\','+id+','+h._i+')" onerror="fotoRota(this)"/>';}).join('')+'</div>':'')
+        +(puedeWhatsapp(r)?'<button class="fx-add" style="margin-top:6px" onclick="enviarRespaldoMantencion('+id+','+h._i+')">📤 Enviar respaldo por WhatsApp</button>':'')
+        +'</div>';
+    }).join('')+'</div></div>' : '';
 
   return '<div class="fx e-'+st+'">'
     +'<div class="fx-top">'
