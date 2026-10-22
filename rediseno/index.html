@@ -5581,7 +5581,10 @@ function fotoRota(img){
   var s = document.createElement('span');
   s.className = 'fx-rota ' + (img.className || '');
   s.textContent = '🖼';
-  s.title = 'No se pudo cargar esta foto';
+  var src = img.getAttribute('src') || '';
+  s.title = 'No se pudo cargar. Toca para abrir el enlace y ver el motivo.';
+  s.style.cursor = 'pointer';
+  s.onclick = function(e){ e.stopPropagation(); if (src) window.open(src, '_blank', 'noopener'); };
   img.replaceWith(s);
 }
 function abrirFotoX(x, recId){
