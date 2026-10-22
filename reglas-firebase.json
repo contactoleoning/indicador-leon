@@ -44,6 +44,18 @@
       ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()"
     },
 
+    "_leon_fotos": "Fotos de clientes y de mantenciones, guardadas en la base (sin Firebase Storage). Cada foto es un nodo con miniatura 't' y foto 'd'. Mismo permiso que la base de clientes.",
+    "leon_fotos": {
+      ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
+      ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()"
+    },
+
+    "_leon_docs": "PDF de comprobantes y otros documentos adjuntos, guardados en la base (sin Firebase Storage). Mismo permiso que la base de clientes.",
+    "leon_docs": {
+      ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
+      ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()"
+    },
+
     "_leon_comprobantes_meta": "Contador de folios de la app de comprobantes. Se descubrió tarde: no estaba en la primera versión de estas reglas, y sin este bloque el folio dejaba de avanzar en silencio. El folio solo sube, nunca retrocede.",
     "leon_comprobantes_meta": {
       ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",

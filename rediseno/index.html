@@ -4226,12 +4226,8 @@ async function compressImage(file) {
   // Con Firebase conectado, subir a Storage y guardar solo la URL -- antes
   // cada foto quedaba embebida en base64 dentro de Realtime Database, y
   // cada carga de la app descargaba TODAS las fotos de TODOS los clientes.
-  if (useFirebase && fbStorage) {
-    const blob = await new Promise(resolve => c.toBlob(resolve, 'image/jpeg', 0.65));
-    const ref = fbStorage.ref('clientes/' + id + '.jpg');
-    await ref.put(blob, { contentType: 'image/jpeg' });
-    const url = await ref.getDownloadURL();
-    return { id, url, date };
+  if (useFirebase) {
+    return await guardarFotoRtdb(id, c, date);
   }
 
   // Modo local sin Firebase: no hay donde subir, se mantiene embebida.
@@ -6153,7 +6149,7 @@ function seccionComprobantes(r){
         +(c===null?'<div class="fx-vacio">Cargando detalle…</div>':'')+'</div>'
       +(monto?'<div class="m">'+monto+'</div>':'')+'</div>'
       +'<div class="fx-comp-acc"><button class="fx-trash" onclick="delDocumento('+id+',\''+escAttr(d.id)+'\')" title="Quitar documento" aria-label="Quitar documento">'+ICO_TRASH+'</button><button class="fx-pago '+(p||'nada')+'" onclick="ciclarPago('+id+',\''+f+'\')">'+PAGO_TXT[p]+'</button>'
-      +'<a class="fx-b" href="'+esc(d.url||'#')+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;height:34px;padding:0 12px;text-decoration:none;font-size:13.5px">Ver PDF</a></div>'
+      +'<button class="fx-b" onclick="verDoc('+id+',\''+escAttr(d.id)+'\')" style="height:34px;padding:0 12px;font-size:13.5px">Ver PDF</button></div>'
       +detalle+'</div>';
   }).join('') + '</div>';
 }
@@ -6168,7 +6164,7 @@ function otrosDocumentos(r){
   if (!otros.length) return '';
   return '<div class="fx-sec"><div class="fx-h"><h4>OTROS DOCUMENTOS · '+otros.length+'</h4></div>'
     + otros.map(function(d){
-        return '<div class="fx-item"><div class="t"><a href="'+escAttr(d.url)+'" target="_blank" rel="noopener" style="color:var(--gold)">'+iconoDoc(d.nombre)+' '+esc(d.nombre)+'</a><small>'+esc(fechaCorta(d.fecha)||'')+'</small></div>'
+        return '<div class="fx-item"><div class="t"><a href="#" onclick="verDoc('+r.id+',\''+escAttr(d.id)+'\');return false" style="color:var(--gold)">'+iconoDoc(d.nombre)+' '+esc(d.nombre)+'</a><small>'+esc(fechaCorta(d.fecha)||'')+'</small></div>'
           +'<button class="fx-trash" onclick="delDocumento('+r.id+',\''+escAttr(d.id)+'\')" title="Quitar documento" aria-label="Quitar documento">'+ICO_TRASH+'</button></div>';
       }).join('') + '</div>';
 }
@@ -6397,7 +6393,7 @@ renderMetricas = function(){
   var items = [
     ['Recordatorios','openRecordatorios()'],['Métricas','openMetricas()'],['Plantillas de mensajes','openPlantillas()'],
     ['Respuestas rápidas','openRespuestas()'],['Papelera','openTrash()'],['Exportar Excel (.csv)','descargarExcel()'],
-    ['Exportar PDF','exportarPDF()'],['Respaldo de datos','openBackup()'],
+    ['Exportar PDF','exportarPDF()'],['Mover fotos y PDF a la base gratuita','migrarFotos()'],['Respaldo de datos','openBackup()'],
     ['Cambiar tema claro / oscuro','toggleTheme()'],['Cerrar sesión','cerrarSesion()']
   ];
   sheet.innerHTML = '<div class="nf-mas-box"><div class="nf-mas-t">Más opciones</div>'
@@ -6493,7 +6489,7 @@ function nvMenuUsuario(e){
   var mail = '';
   try { var u = firebase.auth().currentUser; mail = u ? (u.email||'') : ''; } catch(x){}
   var items = [['Respaldo de datos','openBackup()'],['Papelera','openTrash()'],['Plantillas de mensajes','openPlantillas()'],
-    ['Respuestas rápidas','openRespuestas()'],['Exportar Excel (.csv)','descargarExcel()'],['Exportar PDF','exportarPDF()'],
+    ['Respuestas rápidas','openRespuestas()'],['Exportar Excel (.csv)','descargarExcel()'],['Exportar PDF','exportarPDF()'],['Mover fotos y PDF a la base gratuita','migrarFotos()'],
     ['Cambiar tema claro / oscuro','toggleTheme()'],['Cerrar sesión','cerrarSesion()']];
   m.innerHTML = (mail?'<div class="nv-menu-m">'+esc(mail)+'</div>':'')
     + items.map(function(i){ return '<button onclick="document.getElementById(\'nv-menu\').classList.remove(\'on\');'+i[1]+'">'+i[0]+'</button>'; }).join('');
@@ -6791,6 +6787,222 @@ navIr = function(donde){
   if (donde === 'mas'){ document.getElementById('nf-mas').classList.add('on'); return; }
   nvIr(donde);
 };
+
+
+// ═══════════════════════════════════════
+// FOTOS Y DOCUMENTOS EN REALTIME DATABASE (sin Firebase Storage)
+// leon_fotos/<id> = { t: miniatura, d: foto, date }   leon_docs/<id> = { n: nombre, d: PDF en base64, fecha }
+// Se cargan de a una, bajo demanda: no se descargan con la lista de clientes.
+// ═══════════════════════════════════════
+var PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+var FOTO_ROTA = 'data:,';
+var FOTOS = {};        // id -> { t, d }  ('x' = no se pudo leer)
+var FOTOS_PEND = {};
+var _repFotosT = null;
+
+function dbRef(ruta){ return firebase.database().ref(ruta); }
+function repintarFotos(){
+  clearTimeout(_repFotosT);
+  _repFotosT = setTimeout(function(){
+    try {
+      render();
+      var mg = document.getElementById('modal-photo-grid');
+      if (mg && mg.children.length && typeof renderModalPhotos === 'function') renderModalPhotos();
+      var go = document.getElementById('gallery-ov');
+      if (go && go.style.display !== 'none' && typeof renderGallery === 'function') renderGallery();
+    } catch(e){}
+  }, 200);
+}
+function pedirFoto(id, campo){
+  campo = campo || 't';
+  var k = id + ':' + campo;
+  if (FOTOS_PEND[k]) return;
+  FOTOS_PEND[k] = 1;
+  if (typeof firebase === 'undefined' || !useFirebase) { delete FOTOS_PEND[k]; return; }
+  dbRef('leon_fotos/'+id+'/'+campo).once('value').then(function(s){
+    FOTOS[id] = FOTOS[id] || {};
+    FOTOS[id][campo] = s.val() || 'x';
+    repintarFotos();
+  }).catch(function(){ FOTOS[id] = FOTOS[id] || {}; FOTOS[id][campo] = 'x'; repintarFotos(); });
+}
+function fotoValida(v){ return v && v !== 'x'; }
+// Para <img src>: si la foto vive en la base, devuelve lo que haya cargado (completa o miniatura).
+photoSrc = function(p){
+  if (!p) return '';
+  if (p.store === 'rtdb') {
+    var c = FOTOS[p.id] || {};
+    if (fotoValida(c.d)) return c.d;
+    if (fotoValida(c.t)) return c.t;
+    if (c.t === 'x') return FOTO_ROTA;
+    pedirFoto(p.id, 't');
+    return PIXEL;
+  }
+  return p.url || p.data || '';
+};
+function fotoCompleta(p, cb){
+  if (!p || p.store !== 'rtdb') { cb(photoSrc(p)); return; }
+  var c = FOTOS[p.id] || {};
+  if (fotoValida(c.d)) { cb(c.d); return; }
+  dbRef('leon_fotos/'+p.id+'/d').once('value').then(function(s){
+    FOTOS[p.id] = FOTOS[p.id] || {};
+    FOTOS[p.id].d = s.val() || 'x';
+    cb(fotoValida(FOTOS[p.id].d) ? FOTOS[p.id].d : photoSrc(p));
+  }).catch(function(){ cb(photoSrc(p)); });
+}
+
+// foto ampliada: muestra la miniatura y enseguida la completa
+var _showLightboxBase = showLightbox;
+showLightbox = function(){
+  _showLightboxBase();
+  var p = lightboxPhotos[lightboxIdx];
+  if (p && p.store === 'rtdb') {
+    var img = document.querySelector('#lightbox .lightbox-img');
+    fotoCompleta(p, function(src){ if (img && lightboxPhotos[lightboxIdx] === p) img.src = src; });
+  }
+};
+// el respaldo por WhatsApp adjunta las fotos: antes hay que tenerlas completas
+var _respaldoBase = enviarRespaldoMantencion;
+enviarRespaldoMantencion = function(cid, hi){
+  var r = data.find(function(x){return x.id===cid;});
+  var h = r && r.historial && r.historial[hi];
+  var fs = ((h && h.fotos) || []).filter(function(p){ return p.store === 'rtdb'; });
+  if (!fs.length) return _respaldoBase(cid, hi);
+  toast('Preparando fotos…');
+  Promise.all(fs.map(function(p){ return new Promise(function(res){ fotoCompleta(p, res); }); })).then(function(){ _respaldoBase(cid, hi); });
+};
+// borrar
+var _delFotoBase = deletePhotoFromStorage;
+deletePhotoFromStorage = function(p){
+  if (p && p.store === 'rtdb') { try { dbRef('leon_fotos/'+p.id).remove(); } catch(e){} delete FOTOS[p.id]; return; }
+  return _delFotoBase(p);
+};
+var _removeDocBase = removeCardDoc;
+removeCardDoc = function(recId, docId){
+  var r = data.find(function(x){return x.id===recId;});
+  var d = r && (r.documentos||[]).find(function(x){return x.id===docId;});
+  if (d && d.store === 'rtdb') { try { dbRef('leon_docs/'+d.id).remove(); } catch(e){} }
+  return _removeDocBase(recId, docId);
+};
+
+// ── guardar una foto nueva ──
+function miniatura(src, max){
+  var w = src.width, h = src.height, k = Math.min(1, max / Math.max(w, h));
+  var c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.6);
+}
+async function guardarFotoRtdb(id, canvas, date){
+  var d = canvas.toDataURL('image/jpeg', 0.7), t = miniatura(canvas, 220);
+  try { await dbRef('leon_fotos/'+id).set({t:t, d:d, date:date}); }
+  catch(e){
+    throw new Error('No se pudo guardar la foto ('+(e && (e.code||e.message) || 'error')+'). Si dice PERMISSION_DENIED, falta publicar las reglas nuevas de Firebase.');
+  }
+  FOTOS[id] = {t:t, d:d};
+  return {id:id, store:'rtdb', date:date};
+}
+
+// ── documentos (PDF) ──
+function dataUrlToBlob(u){
+  var p = u.split(','), mime = (p[0].match(/:(.*?);/)||[])[1] || 'application/pdf', bin = atob(p[1]), n = bin.length, a = new Uint8Array(n);
+  for (var i = 0; i < n; i++) a[i] = bin.charCodeAt(i);
+  return new Blob([a], {type:mime});
+}
+function verDoc(rid, docId){
+  var r = data.find(function(x){return x.id===rid;});
+  var d = r && (r.documentos||[]).find(function(x){return x.id===docId;});
+  if (!d) return;
+  if (d.store !== 'rtdb') { if (d.url) window.open(d.url, '_blank', 'noopener'); return; }
+  var w = window.open('', '_blank');   // se abre ya, con el clic, para que el navegador no lo bloquee
+  dbRef('leon_docs/'+d.id+'/d').once('value').then(function(s){
+    var v = s.val();
+    if (!v) { if (w) w.close(); toast('No se encontró el documento en la base de datos'); return; }
+    var u = URL.createObjectURL(dataUrlToBlob(v));
+    if (w) w.location = u; else window.location = u;
+  }).catch(function(e){ if (w) w.close(); toast('No se pudo abrir el documento ('+(e && e.code || 'error')+')'); });
+}
+
+// ═══════════ migración de lo que ya está en Storage ═══════════
+var MIGRANDO = false;
+function cargarImagen(blob){
+  return new Promise(function(res, rej){
+    var u = URL.createObjectURL(blob), im = new Image();
+    im.onload = function(){ URL.revokeObjectURL(u); res(im); };
+    im.onerror = function(){ URL.revokeObjectURL(u); rej(new Error('imagen ilegible')); };
+    im.src = u;
+  });
+}
+function blobADataUrl(blob){
+  return new Promise(function(res, rej){ var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = function(){ rej(new Error('lectura')); }; fr.readAsDataURL(blob); });
+}
+function mgPanel(html){
+  var ov = document.getElementById('mg-ov');
+  if (!ov){ ov = document.createElement('div'); ov.id = 'mg-ov'; document.body.appendChild(ov); }
+  ov.innerHTML = '<div class="nd-box">'+html+'</div>'; ov.style.display = 'flex';
+}
+function mgCerrar(){ var ov = document.getElementById('mg-ov'); if (ov) ov.style.display = 'none'; MIGRANDO = false; }
+function migrarFotos(){
+  if (!useFirebase) { toast('Inicia sesión para migrar las fotos'); return; }
+  var tareas = [];
+  data.forEach(function(r){
+    if (r.avatar && r.avatar.url && !r.avatar.store) tareas.push({r:r, p:r.avatar, k:'foto'});
+    (r.photos||[]).forEach(function(p){ if (p.url && !p.store) tareas.push({r:r, p:p, k:'foto'}); });
+    (r.historial||[]).forEach(function(h){ (h.fotos||[]).forEach(function(p){ if (p.url && !p.store) tareas.push({r:r, p:p, k:'foto'}); }); });
+    (r.documentos||[]).forEach(function(d){ if (d.url && !d.store) tareas.push({r:r, p:d, k:'doc'}); });
+  });
+  if (!tareas.length) { ndOpen({titulo:'Nada que migrar', msg:'Todas las fotos y documentos ya están en la base de datos.', ok:'Entendido'}); return; }
+  var nf = tareas.filter(function(t){return t.k==='foto';}).length, nd = tareas.length - nf;
+  ndOpen({titulo:'Mover fotos y PDF a la base de datos', ok:'Empezar',
+    msg:'Se copiarán '+nf+' fotos y '+nd+' documentos a tu base de datos gratuita. No se borra nada de Storage. Necesitas haber configurado el permiso CORS del bucket y publicado las reglas nuevas. No cierres esta ventana mientras corre.',
+    cb:function(){ correrMigracion(tareas); }});
+}
+async function correrMigracion(tareas){
+  MIGRANDO = true;
+  var hechas = 0, fallas = 0, primeraFalla = '', seguidas = 0, sucias = {};
+  var total = tareas.length;
+  function pintar(){
+    mgPanel('<h3>Moviendo a la base de datos…</h3><p>'+hechas+' de '+total+(fallas?' · '+fallas+' con problema':'')+'</p>'
+      +'<div class="nv-barra"><i style="width:'+(total ? (hechas+fallas)/total*100 : 0)+'%;background:#2DC653"></i></div>'
+      +'<p style="margin:8px 0 0">No cierres ni recargues esta página.</p>');
+  }
+  pintar();
+  for (var i = 0; i < tareas.length && MIGRANDO; i++){
+    var t = tareas[i], p = t.p;
+    try {
+      var resp = await fetch(p.url);
+      if (!resp.ok) throw new Error('HTTP '+resp.status);
+      var blob = await resp.blob();
+      if (t.k === 'foto'){
+        var im = await cargarImagen(blob);
+        var k = Math.min(1, 800 / Math.max(im.width, im.height));
+        var c = document.createElement('canvas'); c.width = Math.round(im.width*k); c.height = Math.round(im.height*k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        await dbRef('leon_fotos/'+p.id).set({t:miniatura(c, 220), d:c.toDataURL('image/jpeg', 0.7), date:p.date||''});
+      } else {
+        if (blob.size > 6*1024*1024) throw new Error('documento demasiado grande');
+        await dbRef('leon_docs/'+p.id).set({n:p.nombre||'', d:await blobADataUrl(blob), fecha:p.fecha||''});
+      }
+      p.store = 'rtdb';
+      sucias[t.r.id] = t.r;
+      hechas++; seguidas = 0;
+      if (hechas % 5 === 0) { Object.keys(sucias).forEach(function(k2){ saveRecord(sucias[k2]); }); sucias = {}; }
+    } catch(e){
+      fallas++; seguidas++;
+      if (!primeraFalla) primeraFalla = (e && (e.code || e.message)) || String(e);
+      if (seguidas >= 4 && hechas === 0) break;   // si las primeras no pasan, es un problema de configuración
+    }
+    pintar();
+  }
+  Object.keys(sucias).forEach(function(k2){ saveRecord(sucias[k2]); });
+  render();
+  var abortada = (seguidas >= 4 && hechas === 0);
+  mgCerrar();
+  ndOpen({titulo: abortada ? 'No se pudo empezar' : 'Migración terminada',
+    ok:'Entendido',
+    msg: abortada
+      ? 'Las fotos no se pudieron leer ('+primeraFalla+'). Lo más probable es que falte el permiso CORS del bucket de Storage, o que la facturación de Google siga inactiva. Revisa los pasos y vuelve a intentar.'
+      : hechas+' de '+total+' copiadas a la base de datos'+(fallas ? '; '+fallas+' no se pudieron ('+primeraFalla+'). Puedes volver a ejecutar la migración: solo repite las que faltan.' : '. Ya puedes dejar de depender de Storage.')});
+}
 
 </script>
 </body>
