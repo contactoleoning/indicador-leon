@@ -6958,7 +6958,7 @@ function migrarFotos(){
 }
 async function correrMigracion(tareas){
   MIGRANDO = true;
-  var hechas = 0, fallas = 0, primeraFalla = '', seguidas = 0, sucias = {};
+  var hechas = 0, fallas = 0, primeraFalla = '', primeraFase = '', seguidas = 0, sucias = {};
   var total = tareas.length;
   function pintar(){
     mgPanel('<h3>Moviendo a la base de datos…</h3><p>'+hechas+' de '+total+(fallas?' · '+fallas+' con problema':'')+'</p>'
@@ -6968,10 +6968,12 @@ async function correrMigracion(tareas){
   pintar();
   for (var i = 0; i < tareas.length && MIGRANDO; i++){
     var t = tareas[i], p = t.p;
+    var fase = 'leer';
     try {
       var resp = await fetch(p.url);
       if (!resp.ok) throw new Error('HTTP '+resp.status);
       var blob = await resp.blob();
+      fase = 'escribir';
       if (t.k === 'foto'){
         var im = await cargarImagen(blob);
         var k = Math.min(1, 800 / Math.max(im.width, im.height));
@@ -6988,7 +6990,7 @@ async function correrMigracion(tareas){
       if (hechas % 5 === 0) { Object.keys(sucias).forEach(function(k2){ saveRecord(sucias[k2]); }); sucias = {}; }
     } catch(e){
       fallas++; seguidas++;
-      if (!primeraFalla) primeraFalla = (e && (e.code || e.message)) || String(e);
+      if (!primeraFalla) { primeraFalla = (e && (e.code || e.message)) || String(e); primeraFase = fase; }
       if (seguidas >= 4 && hechas === 0) break;   // si las primeras no pasan, es un problema de configuración
     }
     pintar();
@@ -7000,7 +7002,9 @@ async function correrMigracion(tareas){
   ndOpen({titulo: abortada ? 'No se pudo empezar' : 'Migración terminada',
     ok:'Entendido',
     msg: abortada
-      ? 'Las fotos no se pudieron leer ('+primeraFalla+'). Lo más probable es que falte el permiso CORS del bucket de Storage, o que la facturación de Google siga inactiva. Revisa los pasos y vuelve a intentar.'
+      ? (primeraFase === 'escribir'
+          ? 'Las fotos se leyeron bien, pero la base de datos no dejó guardarlas ('+primeraFalla+'). Faltan publicar las reglas nuevas de Realtime Database (leon_fotos y leon_docs), o quedaron mal pegadas. Revisa el paso 1 y vuelve a intentar.'
+          : 'No se pudieron leer las fotos de Storage ('+primeraFalla+'). Lo más probable es que falte el permiso CORS del bucket, o que la facturación de Google siga inactiva. Revisa el paso 2 y vuelve a intentar.')
       : hechas+' de '+total+' copiadas a la base de datos'+(fallas ? '; '+fallas+' no se pudieron ('+primeraFalla+'). Puedes volver a ejecutar la migración: solo repite las que faltan.' : '. Ya puedes dejar de depender de Storage.')});
 }
 
