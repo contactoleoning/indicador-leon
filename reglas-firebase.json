@@ -56,6 +56,14 @@
       ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()"
     },
 
+    "_leon_finanzas": "Finanzas personales, una rama por usuario: cada persona solo ve y escribe la suya. Esta regla ya estaba publicada en Firebase y no figuraba en este archivo.",
+    "leon_finanzas": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid && auth.token.firebase.sign_in_provider !== 'anonymous'",
+        ".write": "auth != null && auth.uid === $uid && auth.token.firebase.sign_in_provider !== 'anonymous'"
+      }
+    },
+
     "_leon_comprobantes_meta": "Contador de folios de la app de comprobantes. Se descubrió tarde: no estaba en la primera versión de estas reglas, y sin este bloque el folio dejaba de avanzar en silencio. El folio solo sube, nunca retrocede.",
     "leon_comprobantes_meta": {
       ".read": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('usuarios').child(auth.uid).exists()",
