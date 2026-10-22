@@ -1,6 +1,6 @@
 # Estado del sistema — León Ingeniería
 
-Última actualización: 17 de agosto de 2026.
+Última actualización: 22 de octubre de 2026.
 
 Este archivo existe porque ya no es una app: son tres, comparten una base de
 datos, y hay trabajo publicado y trabajo esperando prueba. Sin esto, retomar
@@ -40,6 +40,8 @@ Realtime Database del proyecto `leon-clientes`:
 | `leon_cotizaciones` | Cotizador | Registro de cotizaciones y su seguimiento. Clave: `n`+número |
 | `leon_comprobantes` | Comprobante | Comprobantes emitidos |
 | `leon_comprobantes_meta/nextFolio` | Comprobante | Contador del correlativo |
+| `leon_fotos/{id}` | Indicador | Fotos de clientes y de mantenciones: `t` (miniatura) y `d` (foto), en base64. Se leen de a una, bajo demanda |
+| `leon_docs/{id}` | Comprobante (e Indicador al migrar) | PDF de comprobantes y otros adjuntos, en base64 (`n` nombre, `d` PDF) |
 
 Las reglas están en `reglas-firebase.json`, en este mismo repositorio.
 Exigen sesión con correo **y** ficha en `/usuarios`. La raíz está cerrada por
@@ -210,6 +212,60 @@ Lo de la Fase 2 ya está publicado:
   `documentos/`. No replican el "ficha en /usuarios" que sí tiene
   `reglas-firebase.json` — Storage no puede leer la Realtime Database, así
   que esa mitad requeriría custom claims (Cloud Function aparte).
+
+## Rediseño del Indicador y fotos sin Storage (22 de octubre de 2026, v23)
+
+**Por qué se hizo.** Google cerró la facturación del proyecto (terminó la prueba
+gratuita de Google Cloud) y Firebase Storage dejó de entregar archivos: todas las
+fotos y los PDF devolvían error 402. Como no se quiere pagar por esto, las fotos
+y los PDF pasaron a la propia Realtime Database, que es gratuita (1 GB guardado).
+
+**Qué cambió en el Indicador (v23).**
+- Diseño nuevo (hecho con Claude Design): tarjetas, ficha lateral, pestañas
+  arriba (Clientes, Llamar hoy, Calendario, Ruteo, Recordatorios, Métricas),
+  filtros por estado, particular/empresa, solicitudes y llamar hoy, y menú
+  inferior en el celular. Oscuro por defecto; la elección se guarda en
+  `leon-theme-nuevo` (ya no en `leon-theme`). Se quitó el selector Tarjetas/Tabla.
+- Campos nuevos en cada ficha, todos opcionales: `tipo` (particular/empresa),
+  `contacto`, `cargo`, `solicitudes[]`, `contactos[]`, `proximoContacto`,
+  `sedes[]`, `pagos{folio: estado}`, `rutaDia`, y en cada equipo
+  `instalacion` y `garantia`. Cada cotización puede traer `estado`
+  (pendiente/concretada/rechazada); el Cotizador no lo escribe y las suyas
+  quedan como pendientes.
+- Los bloques nuevos (comprobantes, contactos, equipos con alerta, ruta del
+  día) están en `nuevo-*.js` solo durante el desarrollo; lo que corre está
+  dentro de `index.html`.
+
+**Fotos y PDF en la base.**
+- Foto nueva: se guarda en `leon_fotos/{id}` (1280 px, calidad 75 %). La ficha
+  guarda `{id, store:'rtdb', date}`. `photoSrc()` devuelve la miniatura y la
+  foto completa se pide al abrirla.
+- PDF del Comprobante: ahora van a `leon_docs/{id}` y la ficha guarda
+  `{id, nombre, fecha, store:'rtdb'}`. **Ya no se usa Firebase Storage.**
+- Las fotos y PDF viejos se copiaron con la opción del menú de usuario
+  **"Mover fotos y PDF a la base gratuita"**. No se borró nada de Storage. Si
+  un día hiciera falta rehacerlo con los archivos originales:
+  **"Recopiar fotos con calidad original"**. Las fotos antiguas ya venían en
+  600 px y calidad 65 %, y esa es la mejor calidad que existe de ellas.
+- Hace falta, una sola vez, el permiso CORS del bucket para que la migración
+  pueda leer lo de Storage:
+  `gcloud storage buckets update gs://leon-clientes.firebasestorage.app --cors-file=cors.json`
+
+**Reglas.** `leon_fotos` y `leon_docs` llevan la misma condición que
+`leon_clientes`. Además, en Firebase está publicada la regla de
+`leon_finanzas` (una rama por usuario), que pertenece a otra herramienta y
+también figura ahora en `reglas-firebase.json`. No reemplazar las reglas
+publicadas por un archivo viejo.
+
+**Cómo volver al diseño anterior.** Está guardado en
+`respaldo/index-v22-antes-del-rediseno.html` y `respaldo/sw-v73-antes-del-rediseno.js`.
+
+**Pendiente de este cambio.** Cerrar la facturación de Google solo después de
+correr un respaldo (`gcloud storage cp -r gs://leon-clientes.firebasestorage.app ./respaldo`)
+y de confirmar que las fotos y PDF se ven desde la base. La carpeta `beta/` es
+una copia antigua y no tiene este cambio.
+
+---
 
 ## Pendiente
 
