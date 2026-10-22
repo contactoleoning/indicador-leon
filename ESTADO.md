@@ -257,6 +257,16 @@ y los PDF pasaron a la propia Realtime Database, que es gratuita (1 GB guardado)
 también figura ahora en `reglas-firebase.json`. No reemplazar las reglas
 publicadas por un archivo viejo.
 
+**v25 (22 de octubre de 2026).** El resto de las pantallas pasó al estilo nuevo:
+inicio de sesión (con «¿Olvidaste tu contraseña?», que envía el correo de
+restablecimiento de Firebase), formulario de cliente como panel lateral con
+secciones, Calendario propio (mes y semana, con visitas, vencimientos y
+mantenciones), Plantillas y respuestas (se guardan en este dispositivo, en
+`leon_plantillas`), Métricas como pantalla (meta mensual en `leon-meta-mantenciones`),
+diálogo único «Exportar y descargar», papelera que pide escribir ELIMINAR, aviso
+de «sin conexión» y esqueletos mientras cargan los clientes. El calendario viejo
+(`renderCalendar`) quedó sin uso.
+
 **Cómo volver al diseño anterior.** Está guardado en
 `respaldo/index-v22-antes-del-rediseno.html` y `respaldo/sw-v73-antes-del-rediseno.js`.
 
