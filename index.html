@@ -1341,6 +1341,13 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
 .lightbox .lightbox-btn,.lightbox .lightbox-del{font-family:'Barlow',sans-serif;border-radius:9px}
 .lightbox .lightbox-info{font-family:'Barlow',sans-serif}
 
+/* Vencidos en rojo */
+.nf-chip.c-red{color:#F2685F;font-weight:700}
+.nf-chip.c-red i{opacity:.9}
+.nf-chip.c-red.act{background:#C62828;color:#fff}
+:root[data-theme="light"] .nf-chip.c-red{color:#C62828}
+:root[data-theme="light"] .nf-chip.c-red.act{background:#C62828;color:#fff}
+
 </style>
 </head>
 <body>
@@ -5260,7 +5267,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v29";
+var APP_VERSION = "v30";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -6138,7 +6145,7 @@ function renderChips(){
   box.innerHTML =
     '<div class="nf-grupo">'
       +chip(cur==='all',"setEstadoNF('all')",'Todos',cnt.all)
-      +chip(cur==='red',"setEstadoNF('red')",'Vencidos',cnt.red)
+      +chip(cur==='red',"setEstadoNF('red')",'Vencidos',cnt.red,'c-red')
       +chip(cur==='amber',"setEstadoNF('amber')",'Por vencer',cnt.amber,'c-amber')
       +chip(cur==='resched',"setEstadoNF('resched')",'Reagendados',cnt.resched,'c-resch')
       +chip(cur==='green',"setEstadoNF('green')",'Al día',cnt.green,'c-ok')
