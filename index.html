@@ -4086,7 +4086,9 @@ const PLANTILLAS_DEFAULT = {
 function getPlantilla(key){
   try {
     const custom = JSON.parse(localStorage.getItem('leon_plantillas')||'{}');
-    return custom[key] || PLANTILLAS_DEFAULT[key];
+    // una copia guardada con emojis o con el carácter dañado (�) no se usa nunca
+    if (custom[key] && !/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F\uFFFD]/u.test(custom[key])) return custom[key];
+    return PLANTILLAS_DEFAULT[key];
   } catch(e) { return PLANTILLAS_DEFAULT[key]; }
 }
 function renderPlantilla(tpl, vars){
@@ -5383,7 +5385,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v40";
+var APP_VERSION = "v41";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -7892,11 +7894,36 @@ Object.assign(PLANTILLAS_DEFAULT, {
 '{saludo}, {trato}. Le envío el respaldo de la mantención realizada {cuando}:\n\n{detalle}\n\n'
 +'Si necesita algo más o quiere dejar agendada la próxima mantención, me avisa. León Ingeniería y Proyectos SpA.'
 });
+// v41: el primer mensaje a un vencido dice desde cuándo y cuánto lleva, y que la
+// visita deja el equipo en óptimo estado. Se guarda antes la versión v27 para
+// que las copias guardadas de ella (que "congelaban" el texto) también se renueven.
+var PLANTILLAS_V27 = Object.assign({}, PLANTILLAS_DEFAULT);
+Object.assign(PLANTILLAS_DEFAULT, {
+  recordatorio_vencido:
+'{saludo}, {trato}. Le saluda {firma} de León Ingeniería.\n\n'
++'Revisando nuestros registros, la mantención de {servicio} venció el {fecha_venc} ({atraso}). {ultima}\n\n'
++'Hacerla ahora nos permite dejar su equipo en óptimo estado: limpieza de filtros y serpentín de ambas unidades, y revisión del compresor y del funcionamiento general. Así se evitan fallas y se cuida el consumo de energía. Al terminar le dejamos un PDF con el comprobante del servicio realizado.{valor}\n\n'
++'Tengo disponibilidad {opciones}. ¿Cuál le acomoda? Con solo responderme el día, le dejo reservado el horario.',
+
+  vencido_largo:
+'{saludo}, {trato}. Le saluda {firma} de León Ingeniería.\n\n'
++'La mantención de {servicio} venció el {fecha_venc} ({atraso}). {ultima}{valor}\n\n'
++'Para no seguir escribiéndole si ya no lo necesita, ¿me confirma si quiere seguir contando con nuestro servicio de mantención? Si es que sí, podemos dejar su equipo en óptimo estado en una sola visita.\n\n'
++'Responda 1 si desea agendar: tengo disponibilidad {opciones}.\n'
++'Responda 2 si prefiere no continuar, y dejo su ficha sin más recordatorios.\n\n'
++'Cualquiera sea su respuesta, se lo agradezco.'
+});
 // quien nunca editó una plantilla recibe las nuevas; lo que sí editó a mano se respeta
 function actualizarPlantillasGuardadas(){
   try {
     var c = JSON.parse(localStorage.getItem('leon_plantillas') || '{}'), n = 0;
-    Object.keys(c).forEach(function(k){ if (c[k] === PLANTILLAS_ANTERIORES[k]) { delete c[k]; n++; } });
+    // Se descartan las copias guardadas que sean idénticas a una versión anterior
+    // y también las que traigan emojis o el carácter de reemplazo (�): un emoji
+    // que se guardó mal es lo que seguía llegando como "�" por WhatsApp.
+    var raro = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F\uFFFD]/u;
+    Object.keys(c).forEach(function(k){
+      if (c[k] === PLANTILLAS_ANTERIORES[k] || c[k] === PLANTILLAS_V27[k] || raro.test(String(c[k]))) { delete c[k]; n++; }
+    });
     if (n) localStorage.setItem('leon_plantillas', JSON.stringify(c));
     return n;
   } catch(e){ return 0; }
