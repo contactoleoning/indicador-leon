@@ -951,6 +951,13 @@ body{font-family:'Barlow','Inter',system-ui,sans-serif}
 .nc.e-resched .nc-dias b,.nc.e-resched .nc-dias span{color:#B79CF5}
 .nc.e-gray .nc-dias b,.nc.e-gray .nc-dias span{color:var(--text3)}
 .nc-aviso{font:600 12.5px 'Barlow',sans-serif;color:var(--aviso)}
+.nc-espera{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 12px;border-radius:10px;background:var(--aviso-bg);border:1px solid var(--aviso-border);color:var(--aviso);font:600 13px 'Barlow',sans-serif}
+.nc-espera b{font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.nc-espera span{margin-left:auto;font-weight:700}
+.nc.en-espera{opacity:.9}.nc.en-espera::before{background:var(--aviso) !important}
+.nf-chip.c-env{color:var(--aviso);font-weight:700}
+.nf-chip.c-env i{opacity:.9}
+.nf-chip.c-env.act{background:var(--aviso);color:#fff}
 .nc-vacio{text-align:center;padding:50px 20px;color:var(--text3);font-size:15px}
 
 /* ── ficha: panel lateral en escritorio, pantalla completa en celular ── */
@@ -1495,6 +1502,7 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
     <option value="green">Al día (+1m)</option>
     <option value="amber">Por vencer</option>
     <option value="red">Vencidos</option>
+    <option value="enviado">Enviados (en espera)</option>
     <option value="resched">Reagendados</option>
     <option value="aviso">Con aviso</option>
   </select>
@@ -2679,6 +2687,33 @@ function diasRestantes(r) {
 // SECUENCIA DE SEGUIMIENTO (contacto 1/2/3 según cuánto ha pasado)
 // ═══════════════════════════════════════
 var DIAS_ENTRE_CONTACTOS = {vencido:3, porvencer:4};
+// Cuántos días se espera la respuesta antes de volver a escribir (criterio de
+// ventas por WhatsApp: seguimiento rápido al inicio y cada vez más espaciado,
+// para no quemar al cliente). Un atraso muy largo se espacia más: alguien con
+// meses sin mantención no se persigue cada 3 días.
+//   vencido:      3 días tras el contacto 1, 4 tras el 2, 7 tras el 3
+//   vencido largo (+6 meses): 5 y 7 días
+//   por vencer:   4 días entre contactos, 7 tras el 3
+function esperaDias(r, seg, paso){
+  if (paso >= 3) return 7;
+  if (seg === 'porvencer') return DIAS_ENTRE_CONTACTOS.porvencer;
+  if (esVencidoLargo(r)) return paso <= 1 ? 5 : 7;
+  return paso <= 1 ? 3 : 4;
+}
+// Mensaje ya enviado y esperando respuesta: sale de la lista de pendientes
+// ("Vencidos") y vuelve sola cuando se cumple el plazo.
+function enEspera(r){
+  if (r.seguimiento==='Perdido' || r.seguimiento==='Respondió') return false;
+  var seg = segmentoContacto(r), paso = r.contactoPaso||0;
+  if (!seg || paso < 1) return false;
+  var dd = diasDesdeContacto(r);
+  return dd !== null && dd >= 0 && dd < esperaDias(r, seg, paso);
+}
+function diasParaVolver(r){
+  var seg = segmentoContacto(r), paso = r.contactoPaso||0, dd = diasDesdeContacto(r);
+  if (!seg || dd === null) return 0;
+  return Math.max(0, esperaDias(r, seg, paso) - dd);
+}
 function segmentoContacto(r){
   var st = statusOf(r);
   if (st==='red') return 'vencido';
@@ -2705,7 +2740,7 @@ function pasoSugerido(r){
     if (dr!==null && dr<7) return 3;
   }
   var dd = diasDesdeContacto(r);
-  var esperar = DIAS_ENTRE_CONTACTOS[seg];
+  var esperar = esperaDias(r, seg, paso);
   if (dd!==null && dd>=esperar) return Math.min(paso+1, 3);
   return paso;
 }
@@ -5278,7 +5313,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v33";
+var APP_VERSION = "v34";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -5783,7 +5818,11 @@ function tarjetaHTML(r){
   if (ult) datos += '<div class="nc-dato"><label>Último trabajo</label><div>'+esc(fechaCorta(ult))+'</div></div>';
   if (eq.length) datos += '<div class="nc-dato"><label>Equipos</label><div>'+plural(eq.length,'equipo','equipos')+'</div></div>';
   var dc = diasDesdeContacto(r);
-  var contacto = (dc !== null && dc >= 0)
+  var espera = enEspera(r), vuelve = espera ? diasParaVolver(r) : 0;
+  var contacto = espera
+    ? '<div class="nc-espera"><b>Mensaje enviado</b> · contacto '+Math.min(r.contactoPaso||1,3)+' de 3 · '+(dc===0?'hoy':'hace '+plural(dc,'día','días'))
+      +'<span>vuelve a pendientes '+(vuelve<=0?'hoy':'en '+plural(vuelve,'día','días'))+'</span></div>'
+    : (dc !== null && dc >= 0)
     ? '<div class="nc-aviso" style="margin-top:8px;color:var(--text3)">Último contacto: '+(dc===0?'hoy':'hace '+plural(dc,'día','días'))+(r.seguimiento?' · '+esc(r.seguimiento):'')+'</div>' : '';
   if (r.proximoContacto) contacto += '<div class="nc-aviso" style="margin-top:4px;color:'+(llamarHoy(r)?'var(--gold)':'var(--text3)')+'">Próximo contacto: '+esc(proximoTxt(r))+'</div>';
   var thumbs = '';
@@ -5793,8 +5832,8 @@ function tarjetaHTML(r){
       + (fotos.length>3 ? '<span class="mas">+'+(fotos.length-3)+'</span>' : '')
       + '<small>'+plural(fotos.length,'foto','fotos')+'</small></div>';
   }
-  var wa = puedeWhatsapp(r) ? '<button class="nc-b wa" onclick="waCliente('+r.id+')">WhatsApp</button>' : '';
-  return '<div class="nc e-'+st+' tipo-'+tipo+'" role="button" tabindex="0" onclick="abrirFicha('+r.id+')"'
+  var wa = puedeWhatsapp(r) ? '<button class="nc-b wa" onclick="waCliente('+r.id+')">'+(espera?'Reenviar':'WhatsApp')+'</button>' : '';
+  return '<div class="nc e-'+st+' tipo-'+tipo+(espera?' en-espera':'')+'" role="button" tabindex="0" onclick="abrirFicha('+r.id+')"'
     +' onkeydown="if(event.key===\'Enter\'){abrirFicha('+r.id+')}" aria-label="Ficha de '+escAttr(r.cliente||'cliente')+'">'
     +'<div class="nc-wm" aria-hidden="true">'+(emp?SVG_EMPRESA:SVG_CASA)+'</div>'
     +'<div class="nc-av">'+avatarNC(r,'')+'</div>'
@@ -6095,8 +6134,9 @@ function getFiltered() {
     if (com === '__sin__') { if (claveComuna(r.comuna)) return false; }
     else if (com !== 'all' && claveComuna(r.comuna) !== com) return false;
     if (st==='green' && statusOf(r)!=='green') return false;
-    if (st==='amber' && statusOf(r)!=='amber') return false;
-    if (st==='red' && statusOf(r)!=='red') return false;
+    if (st==='amber' && (statusOf(r)!=='amber' || enEspera(r))) return false;
+    if (st==='red' && (statusOf(r)!=='red' || enEspera(r))) return false;
+    if (st==='enviado' && !enEspera(r)) return false;
     if (st==='resched' && statusOf(r)!=='resched') return false;
     if (st==='aviso' && !r.aviso) return false;
     if (FTIPO!=='all' && tipoDe(r)!==FTIPO) return false;
@@ -6144,9 +6184,9 @@ function renderChips(){
   var box = document.getElementById('nf-chips'), res = document.getElementById('nf-resumen');
   if (!box || !res) return;
   var cur = document.getElementById('fst').value;
-  var cnt = {all:data.length, red:0, amber:0, resched:0, green:0}, tp = {all:data.length, particular:0, empresa:0}, sol = 0, llam = 0, eqa = 0;
+  var cnt = {all:data.length, red:0, amber:0, enviado:0, resched:0, green:0}, tp = {all:data.length, particular:0, empresa:0}, sol = 0, llam = 0, eqa = 0;
   data.forEach(function(r){
-    var s = statusOf(r); if (cnt[s] !== undefined) cnt[s]++;
+    var s = statusOf(r); if (enEspera(r)) s = 'enviado'; if (cnt[s] !== undefined) cnt[s]++;
     tp[tipoDe(r)]++;
     if (solicitudesPend(r).length) sol++;
     if (llamarHoy(r)) llam++;
@@ -6158,6 +6198,7 @@ function renderChips(){
       +chip(cur==='all',"setEstadoNF('all')",'Todos',cnt.all)
       +chip(cur==='red',"setEstadoNF('red')",'Vencidos',cnt.red,'c-red')
       +chip(cur==='amber',"setEstadoNF('amber')",'Por vencer',cnt.amber,'c-amber')
+      +chip(cur==='enviado',"setEstadoNF('enviado')",'Enviados',cnt.enviado,'c-env')
       +chip(cur==='resched',"setEstadoNF('resched')",'Reagendados',cnt.resched,'c-resch')
       +chip(cur==='green',"setEstadoNF('green')",'Al día',cnt.green,'c-ok')
     +'</div>'
@@ -6171,11 +6212,12 @@ function renderChips(){
     +'<button class="nf-sol'+(FEQ?' act':'')+'" onclick="toggleEqNF()">Equipos con alerta'+(eqa?' · '+eqa:'')+'</button>';
   // dinero en juego: lo que se cobró la última vez a cada cliente vencido
   var venc = data.filter(function(r){return statusOf(r)==='red';});
+  var vencEsp = venc.filter(enEspera).length;
   var det = venc.map(function(r){return {r:r, m:ultimaConcretada(r)};}).filter(function(x){return x.m>0;}).sort(function(a,b){return b.m-a.m;});
   var total = det.reduce(function(a,x){return a+x.m;},0);
   var n = getFiltered().length;
   res.innerHTML =
-    '<span class="nf-res-t"><b>'+venc.length+'</b> vencidos'+(total?' · '+fmtPesos(total)+' estimados':'')+'</span>'
+    '<span class="nf-res-t"><b>'+venc.length+'</b> vencidos'+(vencEsp?' ('+vencEsp+' con mensaje enviado)':'')+(total?' · '+fmtPesos(total)+' estimados':'')+'</span>'
     +(det.length?'<button class="nf-res-l" onclick="document.getElementById(\'nf-det\').classList.toggle(\'abierto\')">ver detalle ▾</button>':'')
     +'<span class="nf-res-n">'+plural(n,'cliente','clientes')+' · ordenados por urgencia</span>';
   var d = document.getElementById('nf-det');
@@ -6701,6 +6743,8 @@ function candidatosHoy(){
   return data.filter(function(r){
     var st = statusOf(r);
     if (r.seguimiento === 'Perdido') return false;
+    // con mensaje enviado y esperando respuesta no se vuelve a ofrecer (salvo lo contactado hoy)
+    if (enEspera(r) && !llamarHoy(r) && r.contactoFecha !== hoyISO()) return false;
     return st === 'red' || st === 'amber' || llamarHoy(r);
   }).sort(function(a,b){ return puntajeHoy(b) - puntajeHoy(a); });
 }
