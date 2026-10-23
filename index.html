@@ -5366,7 +5366,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v38";
+var APP_VERSION = "v39";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -5875,7 +5875,8 @@ function tarjetaHTML(r){
   var contacto = espera
     ? '<div class="nc-espera"><b>Mensaje enviado</b> · contacto '+Math.min(r.contactoPaso||1,3)+' de 3 · '+(dc===0?'hoy':'hace '+plural(dc,'día','días'))
       +'<span>vuelve a pendientes '+(vuelve<=0?'hoy':'en '+plural(vuelve,'día','días'))+'</span>'
-      +'<button class="nc-undo" onclick="event.stopPropagation();deshacerEnvio('+r.id+')" title="Sacarlo de Enviados y dejarlo como estaba antes">Deshacer envío</button></div>'
+      +'<button class="nc-undo" onclick="event.stopPropagation();deshacerEnvio('+r.id+')" title="Sacarlo de Enviados y dejarlo como estaba antes">Deshacer envío</button>'
+      +'<button class="nc-undo" onclick="event.stopPropagation();reiniciarSecuencia('+r.id+')" title="Sacarlo de Enviados y que el próximo mensaje sea el contacto 1">Empezar de nuevo</button></div>'
     : (dc !== null && dc >= 0)
     ? '<div class="nc-aviso" style="margin-top:8px;color:var(--text3)">Último contacto: '+(dc===0?'hoy':'hace '+plural(dc,'día','días'))+(r.seguimiento?' · '+esc(r.seguimiento):'')
       +(tocaEnviar(r)?' · <b style="color:var(--text)">Toca el contacto '+pasoSugerido(r)+' de 3</b>':'')
