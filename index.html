@@ -1130,7 +1130,8 @@ body.vista-cards .cards-container{display:none!important}
 .fx-h{flex-wrap:wrap;gap:4px 10px}
 
 /* ── etapa 3: encabezado con pestañas y vistas ── */
-.header .theme-btn,.header #sync-lbl{display:none!important}
+.header .theme-btn{display:none!important}
+.header #sync-lbl{display:inline!important;font:600 12.5px 'Barlow',sans-serif;color:var(--text3);margin-left:2px}
 .toolbar .btn-cal-toggle,.toolbar .export-wrap,.toolbar .btn-add{display:none!important}
 .nv-tabs{display:flex;gap:2px;margin-left:8px}
 .nv-tabs button{border:0;background:none;color:#AAB3C3;font:600 15px 'Barlow',sans-serif;height:36px;padding:0 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -2151,6 +2152,7 @@ function initFirebaseDb(app) {
       const val = snapshot.val();
       if (val && Object.keys(val).length > 0) {
         data = Object.values(val).sort((a,b) => (a.id||0) - (b.id||0));
+        if (typeof snapServidor === 'function') snapServidor(data);
       } else {
         // primera vez: subir datos iniciales
         data = INIT.map(r=>({...r}));
@@ -5256,7 +5258,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v25";
+var APP_VERSION = "v26";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -7567,6 +7569,95 @@ renderCards = function(lista){
     return;
   }
   return _renderCardsBase(lista);
+};
+
+
+// ═══════════════════════════════════════
+// SINCRONIZACIÓN ENTRE DISPOSITIVOS
+// 1) Guardar un cliente envía solo los campos que cambiaron (no la ficha entera),
+//    así dos dispositivos que editan a la vez no se pisan.
+// 2) Lo que antes quedaba solo en cada aparato (plantillas, enlace de reseñas,
+//    meta mensual, ruta del día) vive en leon_config/kv y se refleja en todos.
+// ═══════════════════════════════════════
+
+// ───────── 1) guardado por campos ─────────
+var SNAP = {};   // id -> la ficha como la tiene el servidor (copia limpia)
+function snapServidor(lista){
+  SNAP = {};
+  (lista || []).forEach(function(r){ SNAP[r.id] = JSON.parse(JSON.stringify(sinUndefined(r))); });
+}
+saveRecord = function(row){
+  if (useFirebase && fbRef) {
+    setSyncStatus('syncing', 'guardando…');
+    try {
+      var limpio = sinUndefined(row), prev = SNAP[row.id], op;
+      if (prev) {
+        var cambios = {}, n = 0, vistos = {};
+        Object.keys(limpio).concat(Object.keys(prev)).forEach(function(k){
+          if (vistos[k]) return; vistos[k] = 1;
+          var a = limpio[k] === undefined ? null : limpio[k], b = prev[k] === undefined ? null : prev[k];
+          if (JSON.stringify(a) !== JSON.stringify(b)) { cambios[k] = a; n++; }
+        });
+        op = n ? fbRef.child('c' + row.id).update(cambios) : Promise.resolve();
+      } else {
+        op = fbRef.child('c' + row.id).set(limpio);
+      }
+      SNAP[row.id] = JSON.parse(JSON.stringify(limpio));
+      op.then(function(){ setSyncStatus('ok', 'sincronizado'); })
+        .catch(function(e){ delete SNAP[row.id]; setSyncStatus('err', 'error sync'); console.error(e); toast('No se pudo guardar: ' + e.message); });
+    } catch (e) {
+      delete SNAP[row.id];
+      setSyncStatus('err', 'error sync'); console.error(e); toast('No se pudo guardar: ' + e.message);
+    }
+  } else {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
+  }
+};
+
+// ───────── 2) configuración compartida ─────────
+var SYNC_PREFIJOS = ['leon_plantillas', 'google_review_link', 'leon-meta-mantenciones', 'leon-ruta-'];
+var SYNC_APLICANDO = false, _cfgOn = false;
+function esSync(k){ return SYNC_PREFIJOS.some(function(p){ return k === p || k.indexOf(p) === 0; }); }
+var _lsSetItem = Storage.prototype.setItem, _lsRemoveItem = Storage.prototype.removeItem;
+Storage.prototype.setItem = function(k, v){
+  _lsSetItem.call(this, k, v);
+  if (this === window.localStorage && !SYNC_APLICANDO && esSync(k)) cfgEscribir(k, String(v));
+};
+Storage.prototype.removeItem = function(k){
+  _lsRemoveItem.call(this, k);
+  if (this === window.localStorage && !SYNC_APLICANDO && esSync(k)) cfgEscribir(k, null);
+};
+function cfgError(e){
+  console.error('leon_config:', e);
+  if (!window.__cfgAvisado) { window.__cfgAvisado = true; toast('Falta publicar la regla leon_config en Firebase: las plantillas, la meta y la ruta no se sincronizan entre dispositivos'); }
+}
+function cfgEscribir(k, v){
+  if (!useFirebase || typeof firebase === 'undefined') return;
+  try {
+    var ref = firebase.database().ref('leon_config/kv/' + k);
+    (v === null ? ref.remove() : ref.set(v)).catch(cfgError);
+  } catch (e) { cfgError(e); }
+}
+function cfgIniciar(){
+  if (_cfgOn || !useFirebase || typeof firebase === 'undefined') return;
+  _cfgOn = true;
+  firebase.database().ref('leon_config/kv').on('value', function(s){
+    var remoto = s.val() || {}, cambio = false;
+    // la primera vez, lo que ya existía en este dispositivo se sube
+    Object.keys(localStorage).forEach(function(k){ if (esSync(k) && !(k in remoto)) cfgEscribir(k, localStorage.getItem(k)); });
+    SYNC_APLICANDO = true;
+    try {
+      Object.keys(remoto).forEach(function(k){
+        if (esSync(k) && localStorage.getItem(k) !== remoto[k]) { _lsSetItem.call(localStorage, k, remoto[k]); cambio = true; }
+      });
+    } finally { SYNC_APLICANDO = false; }
+    if (cambio) { try { render(); } catch (e) {} }
+  }, cfgError);
+}
+var _renderSync = render;
+render = function(){
+  _renderSync.apply(this, arguments);
+  try { if (useFirebase) cfgIniciar(); } catch (e) {}
 };
 
 </script>

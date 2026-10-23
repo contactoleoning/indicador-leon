@@ -41,6 +41,7 @@ Realtime Database del proyecto `leon-clientes`:
 | `leon_comprobantes` | Comprobante | Comprobantes emitidos |
 | `leon_comprobantes_meta/nextFolio` | Comprobante | Contador del correlativo |
 | `leon_fotos/{id}` | Indicador | Fotos de clientes y de mantenciones: `t` (miniatura) y `d` (foto), en base64. Se leen de a una, bajo demanda |
+| `leon_config/kv/{clave}` | Indicador | Configuración compartida: plantillas, enlace de reseñas, meta mensual, ruta del día |
 | `leon_docs/{id}` | Comprobante (e Indicador al migrar) | PDF de comprobantes y otros adjuntos, en base64 (`n` nombre, `d` PDF) |
 
 Las reglas están en `reglas-firebase.json`, en este mismo repositorio.
@@ -266,6 +267,18 @@ mantenciones), Plantillas y respuestas (se guardan en este dispositivo, en
 diálogo único «Exportar y descargar», papelera que pide escribir ELIMINAR, aviso
 de «sin conexión» y esqueletos mientras cargan los clientes. El calendario viejo
 (`renderCalendar`) quedó sin uso.
+
+**v26 (22 de octubre de 2026) — sincronización entre dispositivos.**
+- Guardar un cliente ya no reescribe la ficha entera: `saveRecord` compara con la
+  copia que mandó el servidor (`SNAP`) y envía solo los campos que cambiaron
+  (`update`). Así, dos dispositivos que editan a la vez no se pisan lo del otro.
+- Lo que antes vivía solo en cada aparato (`leon_plantillas`, `google_review_link`,
+  `leon-meta-mantenciones` y `leon-ruta-*`) se refleja en la base, en
+  `leon_config/kv/<clave>`, y todos los dispositivos lo reciben al instante. Se
+  hace interceptando `localStorage.setItem/removeItem` solo para esas claves.
+  Nodo nuevo: `leon_config` (mismo permiso que `leon_clientes`; **hay que
+  publicarlo en las reglas**). El tema (claro/oscuro) se queda por dispositivo a propósito.
+- La carpeta `beta/` ahora redirige a la app principal: hay una sola versión.
 
 **Cómo volver al diseño anterior.** Está guardado en
 `respaldo/index-v22-antes-del-rediseno.html` y `respaldo/sw-v73-antes-del-rediseno.js`.
