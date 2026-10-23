@@ -1716,8 +1716,12 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
             <input id="ftel" type="tel" placeholder="XXXX XXXX" maxlength="8" inputmode="numeric"/>
           </div>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;margin-top:6px">
-            <input type="checkbox" id="ftelfijo" onchange="toggleTelFijoStyle()" style="width:14px;height:14px;cursor:pointer;flex-shrink:0"/>
+            <input type="checkbox" id="ftelfijo" onchange="toggleTelFijoStyle('fijo')" style="width:14px;height:14px;cursor:pointer;flex-shrink:0"/>
             Es teléfono fijo (sin WhatsApp)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;margin-top:6px">
+            <input type="checkbox" id="ftelext" onchange="toggleTelFijoStyle('ext')" style="width:14px;height:14px;cursor:pointer;flex-shrink:0"/>
+            Es número extranjero (escribir con código de país, ej: 1 310 849 0940)
           </label>
         </div>
         <div class="ff"><label>FECHA INICIO</label><input id="fi" type="date"/></div>
@@ -3788,12 +3792,16 @@ function toggleAvisoStyle() {
   const cb = document.getElementById('fav');
   document.getElementById('aviso-label-wrap').classList.toggle('checked', cb.checked);
 }
-function toggleTelFijoStyle() {
-  const fijo = document.getElementById('ftelfijo').checked;
-  document.getElementById('ftel-prefix').style.display = fijo ? 'none' : '';
+function toggleTelFijoStyle(origen) {
+  const cbFijo = document.getElementById('ftelfijo'), cbExt = document.getElementById('ftelext');
+  // un número extranjero no es fijo local, y viceversa: se marca uno u otro
+  if (origen === 'ext' && cbExt.checked) cbFijo.checked = false;
+  if (origen === 'fijo' && cbFijo.checked) cbExt.checked = false;
+  const fijo = cbFijo.checked, ext = cbExt.checked;
+  document.getElementById('ftel-prefix').style.display = (fijo || ext) ? 'none' : '';
   const inp = document.getElementById('ftel');
-  inp.maxLength = fijo ? 15 : 8;
-  inp.placeholder = fijo ? 'Número completo' : 'XXXX XXXX';
+  inp.maxLength = (fijo || ext) ? 15 : 8;
+  inp.placeholder = ext ? 'Código de país + número' : (fijo ? 'Número completo' : 'XXXX XXXX');
 }
 // El RUT chileno trae digito verificador: un RUT mal escrito se detecta solo.
 // No es teoria -- cargando a Carolina se tecleo 73.394.670-8 en vez de
@@ -3907,6 +3915,8 @@ function openModal(id) {
   // Teléfono: guardar solo los 8 dígitos sin el +569
   document.getElementById('ftel').value = r?.telefono||'';
   document.getElementById('ftelfijo').checked = r?.telefonoFijo||false;
+  document.getElementById('ftelext').checked = r?.telefonoExtranjero||false;
+  toggleTelFijoStyle();
   toggleTelFijoStyle();
   document.getElementById('fs').value = r?.servicio||'';
   document.getElementById('fi').value = r?.inicia||'';
@@ -3976,7 +3986,8 @@ function saveModal() {
     trato: document.getElementById('ftrato').value,
     nombreMsg: document.getElementById('fnombremsg').value.trim(),
     rutEmpresa: rutFormateado(document.getElementById('frutemp').value),
-    telefonoFijo: document.getElementById('ftelfijo').checked,
+    telefonoFijo: document.getElementById('ftelfijo').checked && !document.getElementById('ftelext').checked,
+    telefonoExtranjero: document.getElementById('ftelext').checked,
     aviso: avisoChecked,
     // Si ya estaba avisado se respeta la fecha original, pero los clientes que
     // venían con aviso marcado de antes de que existiera 'avisoFecha' no la
@@ -4162,6 +4173,12 @@ function copiarRespuesta(btn,key){
 // solo se recorta el "56" o el "9" sobrante si sobran digitos de mas (si el
 // campo trae justo 8 digitos, se usan tal cual).
 function numeroWa(telefono){
+  // Acepta el registro del cliente o solo el teléfono. Un número extranjero se
+  // guarda completo, con su código de país, y se usa tal cual.
+  if (telefono && typeof telefono === 'object') {
+    if (telefono.telefonoExtranjero) return String(telefono.telefono).replace(/\D/g,'');
+    telefono = telefono.telefono;
+  }
   var raw = String(telefono).replace(/\D/g,'');
   if (raw.length>8 && raw.indexOf('56')===0) raw = raw.slice(2);
   if (raw.length===9 && raw.charAt(0)==='9') raw = raw.slice(1);
@@ -4172,10 +4189,12 @@ function numeroWa(telefono){
 function puedeWhatsapp(r){ return !!(r && r.telefono && !r.telefonoFijo); }
 function telHref(r){
   if(!r||!r.telefono) return '';
+  if (r.telefonoExtranjero) return 'tel:+'+String(r.telefono).replace(/\D/g,'');
   return r.telefonoFijo ? ('tel:'+r.telefono) : ('tel:+569'+r.telefono);
 }
 function telLabel(r){
   if(!r||!r.telefono) return '';
+  if (r.telefonoExtranjero) return '+'+String(r.telefono).replace(/\D/g,'');
   return r.telefonoFijo ? r.telefono : ('+569 '+r.telefono.replace(/(\d{4})(\d{4})/,'$1 $2'));
 }
 
@@ -4197,7 +4216,7 @@ function waCliente(id){
   var r = data.find(function(x){return x.id===id;});
   if(!r||!r.telefono){ toast('Este cliente no tiene teléfono'); return; }
   if(r.telefonoFijo){ toast('Ese teléfono es fijo, no tiene WhatsApp'); return; }
-  var num = numeroWa(r.telefono);
+  var num = numeroWa(r);
   var nombre = (r.cliente||'').trim().split(' ')[0].replace(/\(.*\)/,'').trim();
   var venc = (typeof fmtFinal==='function') ? fmtFinal(r) : '';
   var st = statusOf(r);
@@ -4236,7 +4255,7 @@ function pedirResena(id){
     link = link.trim();
     localStorage.setItem('google_review_link', link);
   }
-  var num = numeroWa(r.telefono);
+  var num = numeroWa(r);
   var nombre = (r.cliente||'').trim().split(' ')[0].replace(/\(.*\)/,'').trim();
   var msg = renderPlantilla(getPlantilla('resena'), {
     nombre: nombre ? ' '+nombre : '',
@@ -4708,7 +4727,7 @@ function enviarRespaldoMantencion(clienteId, histIdx) {
     cuando,
     detalle: h.detalle || 'Mantención de equipo de climatización realizada correctamente.'
   });
-  const num = numeroWa(r.telefono);
+  const num = numeroWa(r);
   const fotos = h.fotos||[];
   const abrirWhatsapp = () => window.open('https://wa.me/'+num+'?text='+encodeURIComponent(texto),'_blank');
   if (navigator.canShare && fotos.length) {
@@ -5385,7 +5404,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v42";
+var APP_VERSION = "v43";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -7606,7 +7625,7 @@ function plCopiar(key, btn){
 }
 function plWhatsapp(key){
   var pc = plCliente(); if (!pc.actual) return;
-  window.open('https://wa.me/'+numeroWa(pc.actual.telefono)+'?text='+encodeURIComponent(plTexto(key)), '_blank');
+  window.open('https://wa.me/'+numeroWa(pc.actual)+'?text='+encodeURIComponent(plTexto(key)), '_blank');
 }
 function plGuardar(key){
   var el = document.getElementById('pl-edit-activo'); if (!el) return;
@@ -8110,7 +8129,7 @@ waCliente = function(id){
     var largo = esVencidoLargo(r);
     var clave = largo ? claveLargo(paso) : claveTemplateSecuencia(seg, paso);
     var msg = limpiarMsg(_renderPlantillaBase(getPlantilla(clave), waVars(r)));
-    var url = 'https://wa.me/'+numeroWa(r.telefono)+'?text='+encodeURIComponent(msg);
+    var url = 'https://wa.me/'+numeroWa(r)+'?text='+encodeURIComponent(msg);
     if (w) w.location = url; else window.open(url, '_blank');
     // se guarda cómo estaba antes, por si hay que deshacer el envío
     r.contactoPrev = {paso: r.contactoPaso||0, fecha: r.contactoFecha||null, aviso: !!r.aviso, avisoFecha: r.avisoFecha||null, seg: r.seguimiento||''};
@@ -8135,7 +8154,7 @@ pedirResena = function(id){
     link = link.trim(); localStorage.setItem('google_review_link', link);
   }
   var msg = limpiarMsg(_renderPlantillaBase(getPlantilla('resena'), Object.assign(waVars(r), {link: link})));
-  window.open('https://wa.me/'+numeroWa(r.telefono)+'?text='+encodeURIComponent(msg), '_blank');
+  window.open('https://wa.me/'+numeroWa(r)+'?text='+encodeURIComponent(msg), '_blank');
 };
 // el respaldo de la mantención también sale con el trato del cliente
 var _respaldoMsgBase = enviarRespaldoMantencion;
