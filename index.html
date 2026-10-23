@@ -384,7 +384,13 @@ button{cursor:pointer}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* delete confirm */
-.confirm-overlay{position:fixed;inset:0;background:rgba(1,4,9,0.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+.fx-peligro{border-top:1px solid var(--border);padding-top:18px;text-align:center}
+.fx-eliminar{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:10px;border:1px solid rgba(224,49,49,.5);background:transparent;color:#E03131;font:700 14px 'Barlow',sans-serif;cursor:pointer}
+.fx-eliminar:hover{background:#E03131;color:#fff}
+.fx-peligro-t{margin-top:8px;font-size:12.5px;color:var(--text3)}
+.btn-eliminar{margin-right:auto;height:40px;padding:0 16px;border-radius:10px;border:1px solid rgba(224,49,49,.5);background:transparent;color:#E03131;font:700 14px 'Barlow',sans-serif;cursor:pointer}
+.btn-eliminar:hover{background:#E03131;color:#fff}
+.confirm-overlay{position:fixed;inset:0;background:rgba(1,4,9,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px}
 .confirm-box{background:var(--surface);border-radius:var(--radius);padding:24px 22px;max-width:300px;width:100%;text-align:center;box-shadow:var(--shadow-md);border:1px solid var(--border)}
 .confirm-box h3{font-size:15px;font-weight:600;margin-bottom:8px;color:var(--text)}
 .confirm-box p{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5}
@@ -1782,6 +1788,7 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
       </div>
     </div>
     <div class="modal-foot">
+      <button class="btn-eliminar" id="btn-del-modal" style="display:none" onclick="eliminarDesdeModal()">Eliminar cliente</button>
       <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
       <button class="btn-save" id="btn-sv">Agregar cliente</button>
     </div>
@@ -3889,6 +3896,7 @@ function openModal(id) {
   const r = id ? data.find(x=>x.id===id) : null;
   document.getElementById('modal-ttl').textContent = r ? 'EDITAR CLIENTE' : 'NUEVO CLIENTE';
   document.getElementById('btn-sv').textContent = r ? 'Guardar cambios' : 'Agregar cliente';
+  document.getElementById('btn-del-modal').style.display = r ? '' : 'none';
   document.getElementById('fc').value = r?.cliente||'';
   // Mapear valores viejos de lugar
   const lugarMap = {'Depa':'Departamento','Depas':'Departamento'};
@@ -4055,10 +4063,16 @@ function saveModal() {
 // ═══════════════════════════════════════
 // ELIMINAR
 // ═══════════════════════════════════════
+function eliminarDesdeModal(){
+  var id = editId;
+  if (!id) return;
+  closeModal();
+  askDelete(id);
+}
 function askDelete(id) {
   pendingDelId = id;
   const r = data.find(x=>x.id===id);
-  document.getElementById('conf-name').textContent = `¿Eliminar a "${r?.cliente||'este cliente'}"?`;
+  document.getElementById('conf-name').textContent = `¿Eliminar a "${r?.cliente||'este cliente'}"? Queda 30 días en la papelera y se puede restaurar desde ahí.`;
   document.getElementById('conf-ov').style.display = 'flex';
 }
 function closeConfirm() { document.getElementById('conf-ov').style.display='none'; pendingDelId=null; }
@@ -5404,7 +5418,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v43";
+var APP_VERSION = "v44";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -6108,8 +6122,13 @@ function fichaHTML(r){
     +secObs
     +secFotos
     +secHist
+    +'<div class="fx-sec fx-peligro"><button class="fx-eliminar" onclick="fxEliminar('+id+')">'+ICO_TRASH+' Eliminar cliente</button>'
+      +'<div class="fx-peligro-t">Queda 30 días en la papelera y se puede restaurar.</div></div>'
   +'</div>';
 }
+// Pide confirmación antes de borrar; la ficha se cierra primero para que el
+// aviso no quede tapado.
+function fxEliminar(id){ cerrarFicha(); askDelete(id); }
 var ICO_TRASH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
 var ICO_CAM = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
 
