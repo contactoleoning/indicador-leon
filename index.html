@@ -2724,18 +2724,27 @@ function deshacerEnvio(id){
     r.contactoPaso = pv.paso; r.contactoFecha = pv.fecha;
     r.aviso = pv.aviso; r.avisoFecha = pv.avisoFecha; r.seguimiento = pv.seg;
   } else {
-    // envíos anteriores a esta función: no se guardó el estado previo; se
-    // retrocede un contacto y se deja vencido el plazo para que vuelva a tocar
-    var seg = segmentoContacto(r), p = Math.max(0, (r.contactoPaso||1) - 1);
-    r.contactoPaso = p;
-    if (p === 0) { r.contactoFecha = null; r.aviso = false; r.avisoFecha = null; }
-    else { var d = new Date(); d.setDate(d.getDate() - esperaDias(r, seg, p)); r.contactoFecha = ymd(d); }
-    if (r.seguimiento === 'Perdido') r.seguimiento = '';
+    // envíos anteriores a esta función: no se guardó el estado previo, así que
+    // se reinicia la secuencia (vuelve a tocar el contacto 1)
+    r.contactoPaso = 0; r.contactoFecha = null; r.aviso = false; r.avisoFecha = null;
+    if (r.seguimiento === 'Perdido' || r.seguimiento === 'Recontactado' || r.seguimiento === 'Sin respuesta') r.seguimiento = '';
   }
   delete r.contactoPrev;
   saveRecord(r);
   render();
   toast('Envío deshecho: vuelve a pendientes');
+}
+// Vuelve a empezar la secuencia de mensajes de este cliente: el próximo que
+// se mande será el contacto 1.
+function reiniciarSecuencia(id){
+  var r = data.find(function(x){return x.id===id;});
+  if (!r) return;
+  r.contactoPaso = 0; r.contactoFecha = null; r.aviso = false; r.avisoFecha = null;
+  if (r.seguimiento === 'Perdido' || r.seguimiento === 'Recontactado' || r.seguimiento === 'Sin respuesta') r.seguimiento = '';
+  delete r.contactoPrev;
+  saveRecord(r);
+  render();
+  toast('Secuencia reiniciada: el próximo mensaje será el contacto 1');
 }
 function diasParaVolver(r){
   var seg = segmentoContacto(r), paso = r.contactoPaso||0, dd = diasDesdeContacto(r);
@@ -5357,7 +5366,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v37";
+var APP_VERSION = "v38";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -5868,7 +5877,9 @@ function tarjetaHTML(r){
       +'<span>vuelve a pendientes '+(vuelve<=0?'hoy':'en '+plural(vuelve,'día','días'))+'</span>'
       +'<button class="nc-undo" onclick="event.stopPropagation();deshacerEnvio('+r.id+')" title="Sacarlo de Enviados y dejarlo como estaba antes">Deshacer envío</button></div>'
     : (dc !== null && dc >= 0)
-    ? '<div class="nc-aviso" style="margin-top:8px;color:var(--text3)">Último contacto: '+(dc===0?'hoy':'hace '+plural(dc,'día','días'))+(r.seguimiento?' · '+esc(r.seguimiento):'')+'</div>' : '';
+    ? '<div class="nc-aviso" style="margin-top:8px;color:var(--text3)">Último contacto: '+(dc===0?'hoy':'hace '+plural(dc,'día','días'))+(r.seguimiento?' · '+esc(r.seguimiento):'')
+      +(tocaEnviar(r)?' · <b style="color:var(--text)">Toca el contacto '+pasoSugerido(r)+' de 3</b>':'')
+      +((r.contactoPaso||0)>0?' · <button class="nc-undo" onclick="event.stopPropagation();reiniciarSecuencia('+r.id+')" title="El próximo mensaje será el contacto 1">Empezar de nuevo</button>':'')+'</div>' : '';
   if (r.proximoContacto) contacto += '<div class="nc-aviso" style="margin-top:4px;color:'+(llamarHoy(r)?'var(--gold)':'var(--text3)')+'">Próximo contacto: '+esc(proximoTxt(r))+'</div>';
   var thumbs = '';
   if (fotos.length) {
