@@ -954,7 +954,10 @@ body{font-family:'Barlow','Inter',system-ui,sans-serif}
 .nc-espera{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 12px;border-radius:10px;background:var(--aviso-bg);border:1px solid var(--aviso-border);color:var(--aviso);font:600 13px 'Barlow',sans-serif}
 .nc-espera b{font-weight:800;letter-spacing:.4px;text-transform:uppercase}
 .nc-espera span{margin-left:auto;font-weight:700}
-.nc.en-espera{opacity:.9}.nc.en-espera::before{background:var(--aviso) !important}
+.nc.e-enviado::before{background:var(--aviso)}
+.nc.e-enviado{border-color:var(--aviso-border)}
+.nc.e-enviado .nc-av{background:var(--aviso-bg);color:var(--aviso)}
+.nc.e-enviado .nc-dias b,.nc.e-enviado .nc-dias span{color:var(--aviso)}
 .nf-chip.c-env{color:var(--aviso);font-weight:700}
 .nf-chip.c-env i{opacity:.9}
 .nf-chip.c-env.act{background:var(--aviso);color:#fff}
@@ -5313,7 +5316,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v34";
+var APP_VERSION = "v35";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -5833,7 +5836,7 @@ function tarjetaHTML(r){
       + '<small>'+plural(fotos.length,'foto','fotos')+'</small></div>';
   }
   var wa = puedeWhatsapp(r) ? '<button class="nc-b wa" onclick="waCliente('+r.id+')">'+(espera?'Reenviar':'WhatsApp')+'</button>' : '';
-  return '<div class="nc e-'+st+' tipo-'+tipo+(espera?' en-espera':'')+'" role="button" tabindex="0" onclick="abrirFicha('+r.id+')"'
+  return '<div class="nc e-'+(espera?'enviado':st)+' tipo-'+tipo+(espera?' en-espera':'')+'" role="button" tabindex="0" onclick="abrirFicha('+r.id+')"'
     +' onkeydown="if(event.key===\'Enter\'){abrirFicha('+r.id+')}" aria-label="Ficha de '+escAttr(r.cliente||'cliente')+'">'
     +'<div class="nc-wm" aria-hidden="true">'+(emp?SVG_EMPRESA:SVG_CASA)+'</div>'
     +'<div class="nc-av">'+avatarNC(r,'')+'</div>'
@@ -6151,7 +6154,13 @@ function getFiltered() {
   if (srt==='fin-asc') rows.sort((a,b)=>(diasRestantes(a)??99999)-(diasRestantes(b)??99999));
   else if (srt==='fin-desc') rows.sort((a,b)=>(diasRestantes(b)??-99999)-(diasRestantes(a)??-99999));
   else if (srt==='cliente') rows.sort((a,b)=>(a.cliente||'').localeCompare(b.cliente||'','es'));
-  else rows.sort((a,b)=>(diasRestantes(a)??99999)-(diasRestantes(b)??99999)); // por urgencia: lo más atrasado arriba
+  else {
+    // por urgencia: primero lo que hay que atender (rojos, amarillos, verdes) y al
+    // final lo que ya tiene mensaje enviado, esperando respuesta; dentro de cada
+    // grupo, lo más atrasado arriba
+    var rango = r => enEspera(r) ? 5 : ({red:0, amber:1, green:2, resched:3, gray:4}[statusOf(r)] ?? 4);
+    rows.sort((a,b)=>(rango(a)-rango(b)) || ((diasRestantes(a)??99999)-(diasRestantes(b)??99999)));
+  }
   return rows;
 }
 function renderCards(lista){
