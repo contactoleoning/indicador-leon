@@ -5278,7 +5278,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v31";
+var APP_VERSION = "v33";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -7413,6 +7413,7 @@ function plRender(){ PL_FORZAR = true; renderNV(); }
 var PL_CAT = 'venc', PL_CLIENTE = null, PL_EDIT = null;
 var PL_CATS = [
   {id:'venc', nombre:'Vencidos', desc:'Secuencia de 3 contactos', claves:[['recordatorio_vencido','Contacto 1 · vencido'],['vencido_paso2','Contacto 2 · vencido'],['vencido_paso3','Contacto 3 · vencido']]},
+  {id:'largo', nombre:'Vencidos hace mucho', desc:'Más de 6 meses vencido: pregunta si quiere continuar', claves:[['vencido_largo','Contacto 1 · ¿sigue con nosotros?'],['vencido_largo_paso2','Contacto 2 · ¿sigue con nosotros?'],['vencido_largo_paso3','Contacto 3 · cierre']]},
   {id:'pronto', nombre:'Por vencer', desc:'Secuencia de 3 contactos', claves:[['recordatorio_porvencer','Contacto 1 · por vencer'],['porvencer_paso2','Contacto 2 · por vencer'],['porvencer_paso3','Contacto 3 · por vencer']]},
   {id:'resena', nombre:'Reseña', desc:'Pedir reseña de Google', claves:[['resena','Pedir reseña']]},
   {id:'respaldo', nombre:'Respaldo', desc:'Mensaje con el respaldo de la mantención', claves:[['respaldo','Respaldo de mantención']]},
@@ -7684,6 +7685,7 @@ function cfgIniciar(){
         if (esSync(k) && localStorage.getItem(k) !== remoto[k]) { _lsSetItem.call(localStorage, k, remoto[k]); cambio = true; }
       });
     } finally { SYNC_APLICANDO = false; }
+    if (actualizarPlantillasGuardadas()) cambio = true;
     if (cambio) { try { render(); } catch (e) {} }
   }, cfgError);
 }
@@ -7737,18 +7739,49 @@ Object.assign(PLANTILLAS_DEFAULT, {
 +'Si quedó conforme, ¿nos regalaría una reseña en Google? Nos ayuda mucho a que más personas nos encuentren: {link}\n\n'
 +'¡Muchas gracias!',
 
+  // Atraso muy largo: en vez de seguir recordando, se pregunta si quiere continuar
+  // (así hay una respuesta, sea sí o no) y se cierra el ciclo sin insistir más.
+  vencido_largo:
+'{saludo}, {trato}. Le saluda {firma} de León Ingeniería.\n\n'
++'La mantención de {servicio} está vencida {atraso}. {ultima}{valor}\n\n'
++'Para no seguir escribiéndole si ya no lo necesita, ¿me confirma si quiere seguir contando con nuestro servicio de mantención?\n\n'
++'Responda 1 si desea agendar: tengo disponibilidad {opciones}.\n'
++'Responda 2 si prefiere no continuar, y dejo su ficha sin más recordatorios.\n\n'
++'Cualquiera sea su respuesta, se lo agradezco.',
+
+  vencido_largo_paso2:
+'{saludo}, {trato}. Vuelvo a escribirle por la mantención de {servicio}, pendiente {atraso}.\n\n'
++'Solo necesito saber una cosa: ¿quiere seguir con nuestro servicio?\n\n'
++'1 = Sí, agendemos ({opciones}).\n'
++'2 = No, gracias.\n\n'
++'Con un número me basta.',
+
+  vencido_largo_paso3:
+'{saludo}, {trato}. Como no he tenido respuesta, entiendo que por ahora no necesita la mantención de {servicio} y dejaré de enviarle recordatorios.\n\n'
++'Si más adelante quiere retomarla, escríbame y le reservo horario de inmediato. Gracias por haber confiado en León Ingeniería.\n\n'
++'{firma}.',
+
+  resp_teaviso:
+'Claro{nombre}, sin problema. Para no perdernos, ¿le parece si le escribo el [día específico] para ver cómo está de agenda?',
+
   respaldo:
 '{saludo}, {trato}. Le envío el respaldo de la mantención realizada {cuando}:\n\n{detalle}\n\n'
 +'Si necesita algo más o quiere dejar agendada la próxima mantención, me avisa. León Ingeniería y Proyectos SpA.'
 });
 // quien nunca editó una plantilla recibe las nuevas; lo que sí editó a mano se respeta
-(function actualizarPlantillasGuardadas(){
+function actualizarPlantillasGuardadas(){
   try {
     var c = JSON.parse(localStorage.getItem('leon_plantillas') || '{}'), n = 0;
     Object.keys(c).forEach(function(k){ if (c[k] === PLANTILLAS_ANTERIORES[k]) { delete c[k]; n++; } });
     if (n) localStorage.setItem('leon_plantillas', JSON.stringify(c));
-  } catch(e){}
-})();
+    return n;
+  } catch(e){ return 0; }
+}
+actualizarPlantillasGuardadas();
+// La copia vieja también vive en la nube (leon_config) y vuelve a este
+// dispositivo después de la limpieza de arriba; hay que repetirla al bajarla,
+// si no los mensajes viejos (con "no queríamos que se te pasara" y emojis)
+// pisaban a los nuevos.
 
 // ───────── datos del mensaje ─────────
 function mesL(d){ return MESES_L[d.getMonth()].toLowerCase(); }
@@ -7839,9 +7872,20 @@ function tratoParaMensaje(r){
   if (!n) return r.empresa ? 'equipo de '+r.empresa : (r.cliente ? 'equipo de '+String(r.cliente).trim() : 'estimado cliente');
   return t ? t+' '+n : n;
 }
+// Un atraso de 602 días suena a error: pasados ~2 meses se dice en meses o años.
+function plazoLargoTxt(d){
+  if (d < 60) return plural(d,'día','días');
+  var m = Math.round(d / 30.4);
+  if (m < 24) return 'unos '+m+' meses';
+  return 'más de '+plural(Math.floor(m / 12),'año','años');
+}
+// Desde cuántos días vencido se deja de "recordar" y se pregunta si quiere continuar.
+var UMBRAL_VENCIDO_LARGO = 180;
+function esVencidoLargo(r){ var d = diasRestantes(r); return d !== null && d <= -UMBRAL_VENCIDO_LARGO; }
+function claveLargo(paso){ return paso <= 1 ? 'vencido_largo' : (paso === 2 ? 'vencido_largo_paso2' : 'vencido_largo_paso3'); }
 function waVars(r){
   var h = new Date().getHours(), dr = diasRestantes(r), ult = ultimoTrabajo(r), f = fmtFinal(r), m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(f);
-  var atraso = dr === null ? '' : dr < 0 ? 'hace '+plural(-dr,'día','días') : dr === 0 ? 'hoy' : 'en '+plural(dr,'día','días');
+  var atraso = dr === null ? '' : dr < 0 ? 'hace '+plazoLargoTxt(-dr) : dr === 0 ? 'hoy' : 'en '+plural(dr,'día','días');
   var nombre = nombreParaMensaje(r);
   return {
     firma: firmaNombre(),
@@ -7879,13 +7923,17 @@ waCliente = function(id){
   cargarComprobantesP(r).then(function(){
     var seg = segmentoContacto(r) || 'porvencer';
     var paso = segmentoContacto(r) ? Math.max(1, pasoSugerido(r)) : 1;
-    var msg = limpiarMsg(_renderPlantillaBase(getPlantilla(claveTemplateSecuencia(seg, paso)), waVars(r)));
+    var largo = esVencidoLargo(r);
+    var clave = largo ? claveLargo(paso) : claveTemplateSecuencia(seg, paso);
+    var msg = limpiarMsg(_renderPlantillaBase(getPlantilla(clave), waVars(r)));
     var url = 'https://wa.me/'+numeroWa(r.telefono)+'?text='+encodeURIComponent(msg);
     if (w) w.location = url; else window.open(url, '_blank');
     // enviar el mensaje es el aviso: se marca solo y avanza el paso de la secuencia
     setAviso(r, true);
     r.contactoPaso = paso;
     r.contactoFecha = hoyISO();
+    // tras el último aviso de un atraso largo no se insiste más: queda como perdido
+    if (largo && paso >= 3) r.seguimiento = 'Perdido';
     saveRecord(r);
     render();
   });
