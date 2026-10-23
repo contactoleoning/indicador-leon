@@ -1589,7 +1589,7 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
             <button type="button" data-t="particular" onclick="setTipoForm('particular')">Particular<small>Casa o departamento de una persona</small></button>
             <button type="button" data-t="empresa" onclick="setTipoForm('empresa')">Empresa<small>Oficina, local, colegio u otra organización</small></button>
           </div></div>
-        <div class="ff full"><label>CLIENTE / NOMBRE</label><input id="fc" type="text" placeholder="Nombre completo o empresa"/></div>
+        <div class="ff full"><label>NOMBRE DE LA PERSONA / CLIENTE</label><input id="fc" type="text" placeholder="Ej: Ricardo Mena (si no hay una persona, el nombre de la empresa)"/></div>
         <div class="ff"><label>TRATO EN LOS MENSAJES</label><select id="ftrato"><option value="">Solo el nombre</option><option value="Don">Don</option><option value="Doña">Doña</option></select></div>
         <div class="ff"><label>CÓMO LLAMARLO/A EN LOS MENSAJES</label><input id="fnombremsg" type="text" placeholder="Por defecto, el primer nombre"/></div>
         <div class="ff">
@@ -1676,12 +1676,8 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
           <input id="femp" type="text" placeholder="Ej: Inversiones Punta de Águilas Ltda."/></div>
         <div class="ff"><label>RUT EMPRESA</label><input id="frutemp" type="text" placeholder="76.349.670-8" autocapitalize="off" spellcheck="false" inputmode="text" oninput="onRutInput(this,'frutemp-aviso')" onblur="onRutBlur(this,'frutemp-aviso')"/>
           <div id="frutemp-aviso" style="font-size:11.5px;color:var(--red);margin-top:4px"></div></div>
-        <div id="f-contacto-wrap" class="ff full" style="display:none">
-          <label>PERSONA DE CONTACTO Y CARGO <span style="font-weight:500;text-transform:none;opacity:.7">(solo empresas)</span></label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <input id="fcontacto" type="text" placeholder="Ej: Hernán Soto"/>
-            <input id="fcargo" type="text" placeholder="Ej: Administrador"/>
-          </div></div>
+        <div class="ff"><label>NOMBRE DEL CONTACTO <span style="font-weight:500;text-transform:none;opacity:.7">(quien atiende por la empresa)</span></label><input id="fcontacto" type="text" placeholder="Ej: Hernán Soto"/></div>
+        <div class="ff"><label>CARGO DEL CONTACTO</label><input id="fcargo" type="text" placeholder="Ej: Administrador"/></div>
         <div class="ff">
           <label>TELÉFONO</label>
           <div class="input-tel-wrap">
@@ -5264,7 +5260,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v28";
+var APP_VERSION = "v29";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -5687,9 +5683,11 @@ var FTIPO = 'all';   // all | particular | empresa
 var FSOL = false;    // solo clientes con solicitudes pendientes
 var FICHA_ID = null;
 
+// Si la ficha tiene datos de empresa (razón social o RUT de empresa) cuenta como Empresa en los
+// filtros, aunque el nombre del cliente sea el de una persona y aunque el tipo diga «particular».
 function tipoDe(r){
-  if (r.tipo === 'empresa' || r.tipo === 'particular') return r.tipo;
-  return (r.empresa || r.rutEmpresa) ? 'empresa' : 'particular';
+  if (r.tipo === 'empresa' || r.empresa || r.rutEmpresa) return 'empresa';
+  return 'particular';
 }
 function solicitudesPend(r){ return (r.solicitudes||[]).filter(function(s){return !s.hecha;}); }
 function inicialesDe(r){
@@ -6178,8 +6176,6 @@ render = function(){
 function setTipoForm(t){
   document.getElementById('ftipo').value = t;
   document.querySelectorAll('#ftipo-btns button').forEach(function(b){ b.classList.toggle('act', b.dataset.t===t); });
-  var ce = document.getElementById('f-contacto-wrap');
-  if (ce) ce.style.display = (t==='empresa') ? '' : 'none';
 }
 
 
@@ -7200,7 +7196,7 @@ function olvideClave(){
   var plan = [
     {titulo:null, campos:['ftipo']},
     {titulo:'DATOS BÁSICOS', campos:['fc','ftrato','fnombremsg','fl','fco','fdir','fdet','ftel','fmail','frut'], plegable:true},
-    {titulo:'EMPRESA', campos:['femp','frutemp','f-contacto-wrap'], plegable:true},
+    {titulo:'EMPRESA', campos:['femp','frutemp','fcontacto','fcargo'], plegable:true},
     {titulo:'SERVICIO Y FECHAS', campos:['fs','fi','fd','fav'], plegable:true},
     {titulo:null, campos:['equipos-list']},
     {titulo:null, campos:['historial-list']},
@@ -7237,6 +7233,17 @@ function olvideClave(){
     });
     sel.style.display = 'none';
     sel.parentNode.appendChild(pills);
+  }
+  // al escribir datos de empresa, el cliente pasa a contarse como Empresa
+  ['femp','frutemp'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', function(){ if (el.value.trim()) setTipoForm('empresa'); });
+  });
+  var tipoCaja = document.getElementById('ftipo-btns');
+  if (tipoCaja && !document.getElementById('ftipo-nota')) {
+    var nota = document.createElement('div'); nota.id = 'ftipo-nota'; nota.className = 'fx-falta';
+    nota.textContent = 'Con datos de empresa (razón social o RUT empresa), el cliente se cuenta como Empresa en los filtros. En la tarjeta sigue mandando el nombre de la persona.';
+    tipoCaja.insertAdjacentElement('afterend', nota);
   }
   var foot = document.querySelector('#modal-ov .modal-foot');
   if (foot && !foot.querySelector('.nf-nota')){ var n = document.createElement('span'); n.className = 'nf-nota'; n.textContent = '* El nombre es obligatorio'; foot.insertBefore(n, foot.firstChild); }
@@ -7796,15 +7803,22 @@ function equipoTxt(r){
   var n = (r.equipos || []).length;
   return n > 1 ? 'sus '+n+' equipos de climatización' : 'su equipo de climatización';
 }
+function pareceOrganizacion(n){ return /colegio|empresa|\bspa\b|ltda|fundaci|inmobiliaria|constructora|cl[ií]nica|hotel|estudio|comercial|sociedad|servicios|administraci|comunidad|condominio|edificio|s\.a\b/i.test(String(n || '')); }
+// A quién se saluda: lo que se haya escrito en «cómo llamarlo/a»; si no, el contacto de la empresa;
+// si no, la persona del cliente. Si el cliente es una organización sin contacto, se saluda al «equipo».
 function nombreParaMensaje(r){
   if (r.nombreMsg && String(r.nombreMsg).trim()) return String(r.nombreMsg).trim();
-  var base = tipoDe(r) === 'empresa' ? (r.contacto || '') : (r.cliente || '');
-  return String(base).replace(/\(.*\)/, '').trim().split(/\s+/)[0] || '';
+  var contacto = String(r.contacto || '').replace(/\(.*\)/, '').trim();
+  if (contacto) return contacto.split(/\s+/)[0];
+  var cli = String(r.cliente || '').replace(/\(.*\)/, '').trim();
+  if (!cli) return '';
+  if (!(r.trato === 'Don' || r.trato === 'Doña') && pareceOrganizacion(cli)) return '';
+  return cli.split(/\s+/)[0];
 }
-// Cómo dirigirse: el trato (Don / Doña) lo elige quien usa la app en la ficha; no se adivina por el nombre.
+// Cómo dirigirse: el trato (Don / Doña) lo elige quien usa la app; no se adivina por el nombre.
 function tratoParaMensaje(r){
   var n = nombreParaMensaje(r), t = r.trato === 'Don' || r.trato === 'Doña' ? r.trato : '';
-  if (!n) return tipoDe(r) === 'empresa' && r.empresa ? 'equipo de '+r.empresa : 'estimado cliente';
+  if (!n) return r.empresa ? 'equipo de '+r.empresa : (r.cliente ? 'equipo de '+String(r.cliente).trim() : 'estimado cliente');
   return t ? t+' '+n : n;
 }
 function waVars(r){

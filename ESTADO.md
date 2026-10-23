@@ -304,6 +304,16 @@ referencia sale solo de una mantención, nunca de una instalación**: primero el
 juego» de Métricas usa la misma regla. `waCliente` abre WhatsApp con el clic
 y arma el mensaje cuando ya leyó los comprobantes.
 
+**v29 (22 de octubre de 2026) — persona y empresa por separado.** El nombre de la
+persona (`cliente`), el contacto de la empresa (`contacto`, `cargo`) y los datos de
+facturación (`empresa`, `rutEmpresa`) son campos distintos en el formulario. En
+la tarjeta manda el nombre de la persona y la empresa queda como línea secundaria.
+**Si la ficha tiene razón social o RUT de empresa cuenta como Empresa en los
+filtros**, aunque el nombre sea el de una persona y aunque `tipo` diga
+«particular» (`tipoDe()`). En los mensajes se saluda a `nombreMsg`, si no al
+`contacto`, si no a la persona; si el cliente es una organización sin contacto se
+saluda al «equipo de …».
+
 **Cómo volver al diseño anterior.** Está guardado en
 `respaldo/index-v22-antes-del-rediseno.html` y `respaldo/sw-v73-antes-del-rediseno.js`.
 
