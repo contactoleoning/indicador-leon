@@ -959,6 +959,13 @@ body{font-family:'Barlow','Inter',system-ui,sans-serif}
 .nc-aviso{font:600 12.5px 'Barlow',sans-serif;color:var(--aviso)}
 .nc-espera{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 12px;border-radius:10px;background:var(--aviso-bg);border:1px solid var(--aviso-border);color:var(--aviso);font:600 13px 'Barlow',sans-serif}
 .nc-espera b{font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.nc-cot{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 12px;border-radius:10px;background:var(--amber-bg);border:1px solid var(--amber-border);color:var(--amber);font:600 13px 'Barlow',sans-serif}
+.nc-cot b{font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.nc-cot.urge{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.nc-cot .nc-cot-b{margin-left:auto;display:flex;gap:6px}
+.nc-cot button{font:700 12.5px 'Barlow',sans-serif;padding:4px 11px;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer}
+.nc-cot button:hover{background:currentColor}
+.nc-cot button:hover{color:#fff;-webkit-text-fill-color:#fff}
 .nc-undo{font:700 12.5px 'Barlow',sans-serif;padding:4px 11px;border-radius:8px;border:1px solid var(--aviso-border);background:transparent;color:var(--aviso);cursor:pointer}
 .nc-undo:hover{background:var(--aviso);color:#fff}
 .nc-espera span{margin-left:auto;font-weight:700}
@@ -5418,7 +5425,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v44";
+var APP_VERSION = "v45";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -5934,6 +5941,7 @@ function tarjetaHTML(r){
       +(tocaEnviar(r)?' · <b style="color:var(--text)">Toca el contacto '+pasoSugerido(r)+' de 3</b>':'')
       +((r.contactoPaso||0)>0?' · <button class="nc-undo" onclick="event.stopPropagation();reiniciarSecuencia('+r.id+')" title="El próximo mensaje será el contacto 1">Empezar de nuevo</button>':'')+'</div>' : '';
   if (r.proximoContacto) contacto += '<div class="nc-aviso" style="margin-top:4px;color:'+(llamarHoy(r)?'var(--gold)':'var(--text3)')+'">Próximo contacto: '+esc(proximoTxt(r))+'</div>';
+  contacto += cotBannerHTML(r);
   var thumbs = '';
   if (fotos.length) {
     thumbs = '<div class="nc-fotos">'
@@ -6138,9 +6146,41 @@ var COT_ROT = {pendiente:'Pendiente', concretada:'Concretada', rechazada:'Rechaz
 function cotEstado(c){ return COT_ESTADOS.indexOf(c.estado) >= 0 ? c.estado : 'pendiente'; }
 function cotFechaISO(c){
   // el cotizador guarda DD-MM-YYYY o YYYY-MM-DD
-  var f = String(c.fecha||'');
+  var f = String((c && typeof c==='object') ? (c.fecha||'') : (c||''));
   var m = f.match(/^(\d{2})-(\d{2})-(\d{4})/);
   return m ? m[3]+'-'+m[2]+'-'+m[1] : f.slice(0,10);
+}
+// cotización enviada que sigue sin respuesta: se ve en la tarjeta, sin abrir la ficha
+var FCOT = false;
+function cotPorResponder(r){
+  var out = [];
+  (r.cotizaciones||[]).forEach(function(c,i){
+    if (cotEstado(c) !== 'pendiente') return;
+    var d = cotDias(c);
+    out.push({c:c, i:i, dias:(d==null||d<0)?null:d});
+  });
+  out.sort(function(a,b){return cotFechaISO(b.c).localeCompare(cotFechaISO(a.c));});
+  return out;
+}
+function cotResolver(id, i, est){
+  var r = data.find(function(x){return x.id===id;});
+  if (!r || !r.cotizaciones || !r.cotizaciones[i]) return;
+  r.cotizaciones[i].estado = est;
+  saveRecord(r); render();
+  toast('Cotización '+COT_ROT[est].toLowerCase());
+}
+function cotBannerHTML(r){
+  var pend = cotPorResponder(r);
+  if (!pend.length) return '';
+  var p = pend[0], c = p.c;
+  var urge = p.dias != null && p.dias >= 3;
+  var cuando = p.dias == null ? '' : (p.dias===0 ? 'hoy' : 'hace '+plural(p.dias,'día','días'));
+  var mas = pend.length > 1 ? ' · +'+(pend.length-1)+' más' : '';
+  return '<div class="nc-cot'+(urge?' urge':'')+'" onclick="event.stopPropagation()">'
+    +'<b>Cotización por responder</b> · N°'+esc(String(c.nro||'—'))+(Number(c.monto)>0?' · '+fmtPesos(c.monto):'')
+    +(cuando?' · enviada '+cuando:'')+mas
+    +'<div class="nc-cot-b"><button onclick="cotResolver('+r.id+','+p.i+',\'concretada\')" title="El cliente aceptó">Concretada</button>'
+    +'<button onclick="cotResolver('+r.id+','+p.i+',\'rechazada\')" title="El cliente la rechazó">Rechazada</button></div></div>';
 }
 function cotizacionesHTML(r){
   var cots = (r.cotizaciones||[]).map(function(c,i){return {c:c,i:i};});
@@ -6257,6 +6297,7 @@ function getFiltered() {
     if (FSOL && !solicitudesPend(r).length) return false;
     if (FLLAMAR && !llamarHoy(r)) return false;
     if (FEQ && !tieneAlertaEquipo(r)) return false;
+    if (FCOT && !cotPorResponder(r).length) return false;
     if (q) return ((r.cliente||'')+(r.empresa||'')+(r.contacto||'')+(r.rut||'')+(r.rutEmpresa||'')+(r.telefono||'')+(r.direccion||'')
                   +(r.comuna||'')+(r.servicio||'')+(r.lugar||'')+(r.obs||'')
                   +(r.cotizaciones||[]).map(function(c){return c.nro;}).join(' ')+' '+(r.documentos||[]).map(function(d){return d.nombre;}).join(' ')).toLowerCase().includes(q);
@@ -6284,7 +6325,7 @@ function renderCards(lista){
   el.innerHTML = lista.map(tarjetaHTML).join('');
 }
 function limpiarFiltros(){
-  FTIPO='all'; FSOL=false; FLLAMAR=false; FEQ=false;
+  FTIPO='all'; FSOL=false; FLLAMAR=false; FEQ=false; FCOT=false;
   document.getElementById('fst').value='all';
   document.getElementById('srch').value='';
   render();
@@ -6294,6 +6335,7 @@ function setTipoNF(v){ FTIPO = v; render(); }
 function toggleSolNF(){ FSOL = !FSOL; render(); }
 function toggleLlamarNF(){ FLLAMAR = !FLLAMAR; render(); }
 function toggleEqNF(){ FEQ = !FEQ; render(); }
+function toggleCotNF(){ FCOT = !FCOT; render(); }
 function ultimaConcretada(r){
   var ok = (r.cotizaciones||[]).filter(function(c){ return cotEstado(c)==='concretada' && Number(c.monto)>0 && /mantenc/i.test(c.servicio||'') && !/instalaci/i.test(c.servicio||''); });
   if (!ok.length) return 0;
@@ -6304,13 +6346,14 @@ function renderChips(){
   var box = document.getElementById('nf-chips'), res = document.getElementById('nf-resumen');
   if (!box || !res) return;
   var cur = document.getElementById('fst').value;
-  var cnt = {all:data.length, red:0, amber:0, enviado:0, resched:0, green:0}, tp = {all:data.length, particular:0, empresa:0}, sol = 0, llam = 0, eqa = 0;
+  var cnt = {all:data.length, red:0, amber:0, enviado:0, resched:0, green:0}, tp = {all:data.length, particular:0, empresa:0}, sol = 0, llam = 0, eqa = 0, cotp = 0;
   data.forEach(function(r){
     var s = statusOf(r); if (enEspera(r)) s = 'enviado'; if (cnt[s] !== undefined) cnt[s]++;
     tp[tipoDe(r)]++;
     if (solicitudesPend(r).length) sol++;
     if (llamarHoy(r)) llam++;
     if (tieneAlertaEquipo(r)) eqa++;
+    if (cotPorResponder(r).length) cotp++;
   });
   function chip(act, fn, txt, n, cls){ return '<button class="nf-chip '+(cls||'')+(act?' act':'')+'" onclick="'+fn+'">'+txt+' <i>'+n+'</i></button>'; }
   box.innerHTML =
@@ -6327,6 +6370,7 @@ function renderChips(){
       +chip(FTIPO==='particular',"setTipoNF('particular')",'Particulares',tp.particular)
       +chip(FTIPO==='empresa',"setTipoNF('empresa')",'Empresas',tp.empresa)
     +'</div>'
+    +'<button class="nf-sol'+(FCOT?' act':'')+'" onclick="toggleCotNF()">Cotización por responder'+(cotp?' · '+cotp:'')+'</button>'
     +'<button class="nf-sol'+(FSOL?' act':'')+'" onclick="toggleSolNF()">Con solicitudes'+(sol?' · '+sol:'')+'</button>'
     +'<button class="nf-sol'+(FLLAMAR?' act':'')+'" onclick="toggleLlamarNF()">Llamar hoy'+(llam?' · '+llam:'')+'</button>'
     +'<button class="nf-sol'+(FEQ?' act':'')+'" onclick="toggleEqNF()">Equipos con alerta'+(eqa?' · '+eqa:'')+'</button>';
@@ -7734,7 +7778,7 @@ function abrirExportar(){
   _nd.guardar = function(v){
     var fst = document.getElementById('fst'), srch = document.getElementById('srch'), com = document.getElementById('fcomuna');
     var previo = {st:fst.value, q:srch.value, c:com ? com.value : 'all', t:FTIPO, s:FSOL, l:FLLAMAR, e:FEQ};
-    if (v.q !== 'vista'){ fst.value = 'all'; srch.value = ''; if (com) com.value = 'all'; FTIPO = 'all'; FSOL = false; FLLAMAR = false; FEQ = false;
+    if (v.q !== 'vista'){ fst.value = 'all'; srch.value = ''; if (com) com.value = 'all'; FTIPO = 'all'; FSOL = false; FLLAMAR = false; FEQ = false; FCOT = false;
       if (v.q === 'red' || v.q === 'amber') fst.value = v.q;
       if (v.q === 'empresa' || v.q === 'particular') FTIPO = v.q; }
     try { if (v.f === 'pdf') exportarPDF(); else descargarExcel(); }
