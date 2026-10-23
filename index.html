@@ -5264,7 +5264,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v27";
+var APP_VERSION = "v28";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -6119,7 +6119,7 @@ function toggleSolNF(){ FSOL = !FSOL; render(); }
 function toggleLlamarNF(){ FLLAMAR = !FLLAMAR; render(); }
 function toggleEqNF(){ FEQ = !FEQ; render(); }
 function ultimaConcretada(r){
-  var ok = (r.cotizaciones||[]).filter(function(c){return cotEstado(c)==='concretada' && Number(c.monto)>0;});
+  var ok = (r.cotizaciones||[]).filter(function(c){ return cotEstado(c)==='concretada' && Number(c.monto)>0 && /mantenc/i.test(c.servicio||'') && !/instalaci/i.test(c.servicio||''); });
   if (!ok.length) return 0;
   ok.sort(function(a,b){return cotFechaISO(b).localeCompare(cotFechaISO(a));});
   return Number(ok[0].monto)||0;
@@ -7439,7 +7439,8 @@ function vistaPlantillas(){
       +'</div>';
   }).join('');
   return '<div class="pl-wrap"><aside class="pl-lat"><div class="nv-card-t">CATEGORÍAS</div>'+lateral+'</aside>'
-    +'<section class="pl-main"><div class="nv-h1">PLANTILLAS Y RESPUESTAS</div><div class="nv-sub2">'+esc(cat.nombre)+' · '+esc(cat.desc)+'. Se guardan en este dispositivo.</div>'
+    +'<section class="pl-main"><div class="nv-h1">PLANTILLAS Y RESPUESTAS</div><div class="nv-sub2">'+esc(cat.nombre)+' · '+esc(cat.desc)+'. Se sincronizan entre tus dispositivos.</div>'
+    +'<div class="pl-prevcon"><span>Tu nombre en los mensajes:</span><input class="fx-in" style="max-width:200px" value="'+esc(firmaNombre())+'" onchange="localStorage.setItem(\'leon-firma-nombre\', this.value.trim());plRender()"/></div>'
     +(pc.lista.length ? '<div class="pl-prevcon"><span>Vista previa con:</span>'+pc.lista.map(function(r){ return '<button class="nf-chip'+(r.id===PL_CLIENTE?' act':'')+'" onclick="PL_CLIENTE='+r.id+';plRender()">'+esc(r.cliente)+'</button>'; }).join('')+'</div>' : '')
     +'<div class="pl-grid">'+tarjetas+'</div></section></div>';
 }
@@ -7622,7 +7623,7 @@ saveRecord = function(row){
 };
 
 // ───────── 2) configuración compartida ─────────
-var SYNC_PREFIJOS = ['leon_plantillas', 'google_review_link', 'leon-meta-mantenciones', 'leon-ruta-'];
+var SYNC_PREFIJOS = ['leon_plantillas', 'google_review_link', 'leon-meta-mantenciones', 'leon-firma-nombre', 'leon-ruta-'];
 var SYNC_APLICANDO = false, _cfgOn = false;
 function esSync(k){ return SYNC_PREFIJOS.some(function(p){ return k === p || k.indexOf(p) === 0; }); }
 var _lsSetItem = Storage.prototype.setItem, _lsRemoveItem = Storage.prototype.removeItem;
@@ -7678,9 +7679,9 @@ var PLANTILLAS_ANTERIORES = Object.assign({}, PLANTILLAS_DEFAULT);
 
 Object.assign(PLANTILLAS_DEFAULT, {
   recordatorio_vencido:
-'{saludo}, {trato}. Le escribe León Ingeniería.\n\n'
+'{saludo}, {trato}. Le saluda {firma} de León Ingeniería.\n\n'
 +'Revisando nuestros registros, la mantención de {servicio} está vencida {atraso}. {ultima}\n\n'
-+'Hacerla a tiempo evita fallas, cuida el consumo de energía y alarga su vida útil. La visita incluye limpieza de filtros y serpentín, revisión de gas y de funcionamiento, y queda con comprobante.{valor}\n\n'
++'Hacerla a tiempo evita fallas, cuida el consumo de energía y alarga su vida útil. La visita incluye mantención, limpieza de filtros y serpentín de ambas unidades, y revisión del compresor y de funcionamiento. Al terminar le dejamos un PDF con el comprobante del servicio realizado.{valor}\n\n'
 +'Tengo disponibilidad {opciones}. ¿Cuál le acomoda? Con solo responderme el día, le dejo reservado el horario.',
 
   vencido_paso2:
@@ -7691,11 +7692,11 @@ Object.assign(PLANTILLAS_DEFAULT, {
   vencido_paso3:
 '{saludo}, {trato}. Es mi último recordatorio por ahora sobre la mantención de {servicio}, pendiente {atraso}.\n\n'
 +'Si quiere dejarla agendada, respóndame con un día y la coordinamos. Si prefiere que lo contacte más adelante, solo avíseme y con gusto lo hago.\n\n'
-+'Quedo atento. León Ingeniería.',
++'Quedo atento. {firma}, León Ingeniería.',
 
   recordatorio_porvencer:
-'{saludo}, {trato}. Le escribe León Ingeniería para recordarle que la mantención de {servicio} vence el {fecha_venc} ({atraso}). {ultima}\n\n'
-+'Si la agendamos con anticipación, todo llega en buen estado y usted no queda sin cobertura. Incluye limpieza de filtros y serpentín, revisión de gas y de funcionamiento, con comprobante.{valor}\n\n'
+'{saludo}, {trato}. Le saluda {firma} de León Ingeniería para recordarle que la mantención de {servicio} vence el {fecha_venc} ({atraso}). {ultima}\n\n'
++'Si la agendamos con anticipación, todo llega en buen estado y usted no queda sin cobertura. La visita incluye mantención, limpieza de filtros y serpentín de ambas unidades, y revisión del compresor y de funcionamiento. Al terminar le dejamos un PDF con el comprobante del servicio realizado.{valor}\n\n'
 +'Tengo disponibilidad {opciones}. ¿Cuál le acomoda?',
 
   porvencer_paso2:
@@ -7753,11 +7754,41 @@ function temporadaTxt(){
   if (m <= 7) return 'en plena temporada de frío';
   return 'antes de que suban las temperaturas';
 }
-function valorReferencia(r){
-  var ok = (r.cotizaciones || []).filter(function(c){ return cotEstado(c) === 'concretada' && Number(c.monto) > 0 && /mantenc/i.test(c.servicio || ''); });
-  if (!ok.length) return '';
+function esMantencion(txt){ txt = String(txt || ''); return /mantenc/i.test(txt) && !/instalaci/i.test(txt); }
+// Último valor cobrado por una MANTENCIÓN (las instalaciones cuestan otra cosa y no cuentan):
+// 1) el último comprobante de servicio emitido por mantención, 2) la última cotización concretada de mantención.
+function montoNumero(m){ var n = Number(String(m == null ? '' : m).replace(/[^\d]/g, '')); return n > 0 ? n : 0; }
+function valorMantencion(r){
+  var docs = comprobantesDe(r), mejor = null;
+  docs.forEach(function(d){
+    var c = COMPR[folioDeDoc(d)];
+    if (!c || typeof c !== 'object') return;
+    var motivos = (c.motivos || []).join(' ');
+    var vale = motivos ? esMantencion(motivos) : esMantencion((c.facturacion || {}).servicio);
+    var monto = montoNumero((c.facturacion || {}).monto);
+    if (vale && monto && (!mejor || String(c.fecha || d.fecha) > mejor.f)) mejor = {monto: monto, f: String(c.fecha || d.fecha)};
+  });
+  if (mejor) return mejor.monto;
+  var ok = (r.cotizaciones || []).filter(function(c){ return cotEstado(c) === 'concretada' && Number(c.monto) > 0 && esMantencion(c.servicio); });
+  if (!ok.length) return 0;
   ok.sort(function(a,b){ return cotFechaISO(b).localeCompare(cotFechaISO(a)); });
-  return ' El valor referencial, según su última mantención, es de '+fmtPesos(ok[0].monto)+'.';
+  return Number(ok[0].monto);
+}
+function valorReferencia(r){
+  var v = valorMantencion(r);
+  return v ? ' El valor referencial, según su última mantención, es de '+fmtPesos(v)+'.' : '';
+}
+// trae el detalle de los comprobantes del cliente antes de armar el mensaje
+function cargarComprobantesP(r){
+  if (!useFirebase || typeof firebase === 'undefined') return Promise.resolve();
+  var tareas = comprobantesDe(r).map(function(d){
+    var f = folioDeDoc(d);
+    if (COMPR[f] !== undefined && COMPR[f] !== null) return Promise.resolve();
+    return firebase.database().ref('leon_comprobantes/'+f).once('value')
+      .then(function(s){ COMPR[f] = s.val() || false; })
+      .catch(function(){ COMPR[f] = false; });
+  });
+  return Promise.all(tareas);
 }
 function equipoTxt(r){
   var eqs = (r.equipos || []).filter(function(e){ return (e.marca || e.modelo || '').toString().trim(); });
@@ -7781,6 +7812,7 @@ function waVars(r){
   var atraso = dr === null ? '' : dr < 0 ? 'hace '+plural(-dr,'día','días') : dr === 0 ? 'hoy' : 'en '+plural(dr,'día','días');
   var nombre = nombreParaMensaje(r);
   return {
+    firma: firmaNombre(),
     saludo: h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches',
     trato: tratoParaMensaje(r),
     nombre: nombre ? ' '+nombre : '',
@@ -7796,6 +7828,7 @@ function waVars(r){
     dias: dr === null ? '' : dr < 0 ? ' ('+Math.abs(dr)+' días vencido)' : dr === 0 ? ' (vence hoy)' : ' (quedan '+dr+' días)'
   };
 }
+function firmaNombre(){ var n = ''; try { n = (localStorage.getItem('leon-firma-nombre') || '').trim(); } catch(e){} return n || 'Isaac'; }
 function limpiarMsg(t){
   return String(t).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/ {2,}/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim();
 }
@@ -7810,16 +7843,20 @@ waCliente = function(id){
   var r = data.find(function(x){ return x.id === id; });
   if (!r || !r.telefono) { toast('Este cliente no tiene teléfono'); return; }
   if (r.telefonoFijo) { toast('Ese teléfono es fijo, no tiene WhatsApp'); return; }
-  var seg = segmentoContacto(r) || 'porvencer';
-  var paso = segmentoContacto(r) ? Math.max(1, pasoSugerido(r)) : 1;
-  var msg = limpiarMsg(_renderPlantillaBase(getPlantilla(claveTemplateSecuencia(seg, paso)), waVars(r)));
-  window.open('https://wa.me/'+numeroWa(r.telefono)+'?text='+encodeURIComponent(msg), '_blank');
-  // enviar el mensaje es el aviso: se marca solo y avanza el paso de la secuencia
-  setAviso(r, true);
-  r.contactoPaso = paso;
-  r.contactoFecha = hoyISO();
-  saveRecord(r);
-  render();
+  var w = window.open('', '_blank');   // se abre con el clic, para que el navegador no lo bloquee
+  cargarComprobantesP(r).then(function(){
+    var seg = segmentoContacto(r) || 'porvencer';
+    var paso = segmentoContacto(r) ? Math.max(1, pasoSugerido(r)) : 1;
+    var msg = limpiarMsg(_renderPlantillaBase(getPlantilla(claveTemplateSecuencia(seg, paso)), waVars(r)));
+    var url = 'https://wa.me/'+numeroWa(r.telefono)+'?text='+encodeURIComponent(msg);
+    if (w) w.location = url; else window.open(url, '_blank');
+    // enviar el mensaje es el aviso: se marca solo y avanza el paso de la secuencia
+    setAviso(r, true);
+    r.contactoPaso = paso;
+    r.contactoFecha = hoyISO();
+    saveRecord(r);
+    render();
+  });
 };
 pedirResena = function(id){
   var r = data.find(function(x){ return x.id === id; });

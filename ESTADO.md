@@ -292,6 +292,18 @@ nombre**. Si no hay trato, el mensaje usa solo el nombre; para empresas usa la
 persona de contacto. Quien había editado a mano una plantilla la conserva; las
 no editadas se actualizaron solas.
 
+**v28 (22 de octubre de 2026).** Mensajes: la firma es «Le saluda {firma} de León
+Ingeniería» (el nombre se cambia en Plantillas, clave sincronizada
+`leon-firma-nombre`, por defecto Isaac). El texto de la visita dice qué incluye
+(mantención, limpieza de filtros y serpentín de ambas unidades, revisión del
+compresor y de funcionamiento, y el PDF del comprobante). **El valor de
+referencia sale solo de una mantención, nunca de una instalación**: primero el
+último comprobante de servicio con motivo «Mantención» (los que mezclan
+«Instalación» se descartan porque el monto es combinado) y, si no hay, la
+última cotización concretada cuyo servicio sea de mantención. «Dinero en
+juego» de Métricas usa la misma regla. `waCliente` abre WhatsApp con el clic
+y arma el mensaje cuando ya leyó los comprobantes.
+
 **Cómo volver al diseño anterior.** Está guardado en
 `respaldo/index-v22-antes-del-rediseno.html` y `respaldo/sw-v73-antes-del-rediseno.js`.
 
