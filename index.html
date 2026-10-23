@@ -1347,6 +1347,17 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
 .nf-chip.c-red.act{background:#C62828;color:#fff}
 :root[data-theme="light"] .nf-chip.c-red{color:#C62828}
 :root[data-theme="light"] .nf-chip.c-red.act{background:#C62828;color:#fff}
+/* filtros de estado: al seleccionarlos se llenan con su propio color */
+.nf-chip.c-amber{font-weight:700}.nf-chip.c-resch{font-weight:700}.nf-chip.c-ok{font-weight:700}
+.nf-chip.c-amber.act{background:#B8770B;color:#fff}
+.nf-chip.c-resch.act{background:#7C4DDB;color:#fff}
+.nf-chip.c-ok.act{background:#1F9D55;color:#fff}
+:root[data-theme="light"] .nf-chip.c-amber{color:#9A6200}
+:root[data-theme="light"] .nf-chip.c-resch{color:#6B3FC8}
+:root[data-theme="light"] .nf-chip.c-ok{color:#157A40}
+:root[data-theme="light"] .nf-chip.c-amber.act{background:#B8770B;color:#fff}
+:root[data-theme="light"] .nf-chip.c-resch.act{background:#7C4DDB;color:#fff}
+:root[data-theme="light"] .nf-chip.c-ok.act{background:#1F9D55;color:#fff}
 
 </style>
 </head>
@@ -5267,7 +5278,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v30";
+var APP_VERSION = "v31";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
