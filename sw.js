@@ -1,7 +1,7 @@
 // Service worker — Indicador León
 // Estrategia: red primero (para recibir siempre la última versión publicada),
 // con caché de respaldo para abrir la app sin conexión.
-var CACHE = "indicador-leon-v77";
+var CACHE = "indicador-leon-v78";
 var ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function (e) {

@@ -280,6 +280,18 @@ de «sin conexión» y esqueletos mientras cargan los clientes. El calendario vi
   publicarlo en las reglas**). El tema (claro/oscuro) se queda por dispositivo a propósito.
 - La carpeta `beta/` ahora redirige a la app principal: hay una sola versión.
 
+**v27 (22 de octubre de 2026) — mensajes de WhatsApp.** Los 6 mensajes de la
+secuencia (vencido y por vencer, contactos 1 a 3), la reseña y el respaldo se
+reescribieron: tratan de «usted», saludan según la hora, usan el trato del
+cliente, nombran el equipo, dicen cuánto lleva vencido, citan la última mantención
+y el valor de la última cotización concretada de «mantención», y proponen dos días
+hábiles concretos (se saltan los días con 4 o más visitas agendadas). Sin emojis
+(en WhatsApp de escritorio uno salía como «�»). El trato (`trato`: Don o Doña) y
+cómo llamarlo (`nombreMsg`) se eligen en la ficha o en Editar; **no se deduce del
+nombre**. Si no hay trato, el mensaje usa solo el nombre; para empresas usa la
+persona de contacto. Quien había editado a mano una plantilla la conserva; las
+no editadas se actualizaron solas.
+
 **Cómo volver al diseño anterior.** Está guardado en
 `respaldo/index-v22-antes-del-rediseno.html` y `respaldo/sw-v73-antes-del-rediseno.js`.
 

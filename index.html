@@ -1590,6 +1590,8 @@ body.nv-cal #nf-chips,body.nv-cal #nf-resumen,body.nv-cal #nf-det,body.nv-cal #c
             <button type="button" data-t="empresa" onclick="setTipoForm('empresa')">Empresa<small>Oficina, local, colegio u otra organización</small></button>
           </div></div>
         <div class="ff full"><label>CLIENTE / NOMBRE</label><input id="fc" type="text" placeholder="Nombre completo o empresa"/></div>
+        <div class="ff"><label>TRATO EN LOS MENSAJES</label><select id="ftrato"><option value="">Solo el nombre</option><option value="Don">Don</option><option value="Doña">Doña</option></select></div>
+        <div class="ff"><label>CÓMO LLAMARLO/A EN LOS MENSAJES</label><input id="fnombremsg" type="text" placeholder="Por defecto, el primer nombre"/></div>
         <div class="ff">
           <label>LUGAR</label>
           <select id="fl">
@@ -3784,6 +3786,8 @@ function openModal(id) {
   document.getElementById('femp').value = r?.empresa||'';
   document.getElementById('fcontacto').value = r?.contacto||'';
   document.getElementById('fcargo').value = r?.cargo||'';
+  document.getElementById('ftrato').value = r?.trato||'';
+  document.getElementById('fnombremsg').value = r?.nombreMsg||'';
   setTipoForm(r ? tipoDe(r) : 'particular');
   document.getElementById('frutemp').value = rutFormateado(r?.rutEmpresa||'');
   ['frut-aviso','frutemp-aviso'].forEach(function(id){
@@ -3862,6 +3866,8 @@ function saveModal() {
     tipo: document.getElementById('ftipo').value || 'particular',
     contacto: document.getElementById('fcontacto').value.trim(),
     cargo: document.getElementById('fcargo').value.trim(),
+    trato: document.getElementById('ftrato').value,
+    nombreMsg: document.getElementById('fnombremsg').value.trim(),
     rutEmpresa: rutFormateado(document.getElementById('frutemp').value),
     telefonoFijo: document.getElementById('ftelfijo').checked,
     aviso: avisoChecked,
@@ -5258,7 +5264,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v26";
+var APP_VERSION = "v27";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -5854,6 +5860,7 @@ function fichaHTML(r){
   if (r.direccion || r.detalle) filasContacto += '<div class="fx-row"><span>Dirección</span><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent([r.direccion,r.comuna].filter(Boolean).join(', '))+'">'+esc([r.direccion,r.detalle].filter(Boolean).join(' — '))+'</a></div>';
   if (r.telefono) filasContacto += '<div class="fx-row"><span>Teléfono</span><a href="'+telHref(r)+'">'+telLabel(r)+(r.telefonoFijo?' (fijo)':'')+'</a></div>';
   if (r.email) filasContacto += '<div class="fx-row"><span>Correo</span><a href="mailto:'+escAttr(r.email)+'">'+esc(r.email)+'</a></div>';
+  filasContacto += filaTrato(r);
   if (!filasContacto) filasContacto = '<div class="fx-vacio">Sin datos de contacto.</div>';
 
   // facturación
@@ -7192,7 +7199,7 @@ function olvideClave(){
   function ff(id){ var el = document.getElementById(id); return el ? (el.closest('.ff') || el) : null; }
   var plan = [
     {titulo:null, campos:['ftipo']},
-    {titulo:'DATOS BÁSICOS', campos:['fc','fl','fco','fdir','fdet','ftel','fmail','frut'], plegable:true},
+    {titulo:'DATOS BÁSICOS', campos:['fc','ftrato','fnombremsg','fl','fco','fdir','fdet','ftel','fmail','frut'], plegable:true},
     {titulo:'EMPRESA', campos:['femp','frutemp','f-contacto-wrap'], plegable:true},
     {titulo:'SERVICIO Y FECHAS', campos:['fs','fi','fd','fav'], plegable:true},
     {titulo:null, campos:['equipos-list']},
@@ -7659,6 +7666,199 @@ render = function(){
   _renderSync.apply(this, arguments);
   try { if (useFirebase) cfgIniciar(); } catch (e) {}
 };
+
+
+// ═══════════════════════════════════════
+// MENSAJES DE WHATSAPP — personalizados, concretos y pensados para cerrar la visita
+// Un toque: el mensaje sale armado con el trato, el equipo, el atraso, el valor de la
+// última mantención y dos fechas concretas para elegir. Solo falta apretar "enviar" en WhatsApp.
+// ═══════════════════════════════════════
+var MSG_R = null;   // cliente en contexto, para plantillas que se arman fuera de waCliente
+var PLANTILLAS_ANTERIORES = Object.assign({}, PLANTILLAS_DEFAULT);
+
+Object.assign(PLANTILLAS_DEFAULT, {
+  recordatorio_vencido:
+'{saludo}, {trato}. Le escribe León Ingeniería.\n\n'
++'Revisando nuestros registros, la mantención de {servicio} está vencida {atraso}. {ultima}\n\n'
++'Hacerla a tiempo evita fallas, cuida el consumo de energía y alarga su vida útil. La visita incluye limpieza de filtros y serpentín, revisión de gas y de funcionamiento, y queda con comprobante.{valor}\n\n'
++'Tengo disponibilidad {opciones}. ¿Cuál le acomoda? Con solo responderme el día, le dejo reservado el horario.',
+
+  vencido_paso2:
+'{saludo}, {trato}. Le escribo de nuevo por si no alcanzó a ver mi mensaje anterior.\n\n'
++'La mantención de {servicio} sigue pendiente ({atraso}). Hacerla {temporada} evita fallas justo cuando más se usa el equipo.{valor}\n\n'
++'Aún tengo cupos {opciones}. ¿Le reservo uno? Basta con que me diga el día.',
+
+  vencido_paso3:
+'{saludo}, {trato}. Es mi último recordatorio por ahora sobre la mantención de {servicio}, pendiente {atraso}.\n\n'
++'Si quiere dejarla agendada, respóndame con un día y la coordinamos. Si prefiere que lo contacte más adelante, solo avíseme y con gusto lo hago.\n\n'
++'Quedo atento. León Ingeniería.',
+
+  recordatorio_porvencer:
+'{saludo}, {trato}. Le escribe León Ingeniería para recordarle que la mantención de {servicio} vence el {fecha_venc} ({atraso}). {ultima}\n\n'
++'Si la agendamos con anticipación, todo llega en buen estado y usted no queda sin cobertura. Incluye limpieza de filtros y serpentín, revisión de gas y de funcionamiento, con comprobante.{valor}\n\n'
++'Tengo disponibilidad {opciones}. ¿Cuál le acomoda?',
+
+  porvencer_paso2:
+'{saludo}, {trato}. Le reenvío mi mensaje por si no alcanzó a verlo: la mantención de {servicio} vence el {fecha_venc}.\n\n'
++'Tengo horarios {opciones}. Dígame cuál prefiere y queda reservado.',
+
+  porvencer_paso3:
+'{saludo}, {trato}. Le aviso que la mantención de {servicio} vence {atraso}. Si la dejamos pasar, queda sin cobertura hasta la próxima visita.\n\n'
++'¿La coordinamos {opciones}? Respóndame con el día y la dejo agendada.',
+
+  resena:
+'{saludo}, {trato}. Gracias por confiar en León Ingeniería para el servicio de {servicio}.\n\n'
++'Si quedó conforme, ¿nos regalaría una reseña en Google? Nos ayuda mucho a que más personas nos encuentren: {link}\n\n'
++'¡Muchas gracias!',
+
+  respaldo:
+'{saludo}, {trato}. Le envío el respaldo de la mantención realizada {cuando}:\n\n{detalle}\n\n'
++'Si necesita algo más o quiere dejar agendada la próxima mantención, me avisa. León Ingeniería y Proyectos SpA.'
+});
+// quien nunca editó una plantilla recibe las nuevas; lo que sí editó a mano se respeta
+(function actualizarPlantillasGuardadas(){
+  try {
+    var c = JSON.parse(localStorage.getItem('leon_plantillas') || '{}'), n = 0;
+    Object.keys(c).forEach(function(k){ if (c[k] === PLANTILLAS_ANTERIORES[k]) { delete c[k]; n++; } });
+    if (n) localStorage.setItem('leon_plantillas', JSON.stringify(c));
+  } catch(e){}
+})();
+
+// ───────── datos del mensaje ─────────
+function mesL(d){ return MESES_L[d.getMonth()].toLowerCase(); }
+function fechaLarga(iso){ var d = deISO(iso); return d.getDate()+' de '+mesL(d)+' de '+d.getFullYear(); }
+function proximosDias(){
+  var d0 = new Date(); d0.setHours(0,0,0,0);
+  var carga = {};
+  data.forEach(function(r){ if (r.visitaAgendada && r.visitaAgendada.fecha) carga[r.visitaAgendada.fecha] = (carga[r.visitaAgendada.fecha] || 0) + 1; });
+  var out = [];
+  for (var i = 1; i <= 14 && out.length < 2; i++){
+    var x = new Date(d0); x.setDate(d0.getDate() + i);
+    var dow = x.getDay();
+    if (dow === 0 || dow === 6) continue;
+    if ((carga[ymd(x)] || 0) >= 4) continue;
+    if (out.length && (x - out[0]) / 864e5 < 2) continue;
+    out.push(x);
+  }
+  if (out.length < 2) return 'cualquier día de esta semana';
+  var a = out[0], b = out[1];
+  return a.getMonth() === b.getMonth()
+    ? 'el '+DIAS_L[a.getDay()]+' '+a.getDate()+' o el '+DIAS_L[b.getDay()]+' '+b.getDate()+' de '+mesL(b)
+    : 'el '+DIAS_L[a.getDay()]+' '+a.getDate()+' de '+mesL(a)+' o el '+DIAS_L[b.getDay()]+' '+b.getDate()+' de '+mesL(b);
+}
+function temporadaTxt(){
+  var m = new Date().getMonth();
+  if (m === 11 || m <= 2) return 'en plena temporada de calor';
+  if (m <= 4) return 'ahora que baja la temperatura';
+  if (m <= 7) return 'en plena temporada de frío';
+  return 'antes de que suban las temperaturas';
+}
+function valorReferencia(r){
+  var ok = (r.cotizaciones || []).filter(function(c){ return cotEstado(c) === 'concretada' && Number(c.monto) > 0 && /mantenc/i.test(c.servicio || ''); });
+  if (!ok.length) return '';
+  ok.sort(function(a,b){ return cotFechaISO(b).localeCompare(cotFechaISO(a)); });
+  return ' El valor referencial, según su última mantención, es de '+fmtPesos(ok[0].monto)+'.';
+}
+function equipoTxt(r){
+  var eqs = (r.equipos || []).filter(function(e){ return (e.marca || e.modelo || '').toString().trim(); });
+  if (eqs.length === 1){ var p = [eqs[0].marca, eqs[0].modelo].filter(Boolean).join(' '); return p ? 'su equipo '+p : 'su equipo de climatización'; }
+  var n = (r.equipos || []).length;
+  return n > 1 ? 'sus '+n+' equipos de climatización' : 'su equipo de climatización';
+}
+function nombreParaMensaje(r){
+  if (r.nombreMsg && String(r.nombreMsg).trim()) return String(r.nombreMsg).trim();
+  var base = tipoDe(r) === 'empresa' ? (r.contacto || '') : (r.cliente || '');
+  return String(base).replace(/\(.*\)/, '').trim().split(/\s+/)[0] || '';
+}
+// Cómo dirigirse: el trato (Don / Doña) lo elige quien usa la app en la ficha; no se adivina por el nombre.
+function tratoParaMensaje(r){
+  var n = nombreParaMensaje(r), t = r.trato === 'Don' || r.trato === 'Doña' ? r.trato : '';
+  if (!n) return tipoDe(r) === 'empresa' && r.empresa ? 'equipo de '+r.empresa : 'estimado cliente';
+  return t ? t+' '+n : n;
+}
+function waVars(r){
+  var h = new Date().getHours(), dr = diasRestantes(r), ult = ultimoTrabajo(r), f = fmtFinal(r), m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(f);
+  var atraso = dr === null ? '' : dr < 0 ? 'hace '+plural(-dr,'día','días') : dr === 0 ? 'hoy' : 'en '+plural(dr,'día','días');
+  var nombre = nombreParaMensaje(r);
+  return {
+    saludo: h < 12 ? 'Buenos días' : h < 20 ? 'Buenas tardes' : 'Buenas noches',
+    trato: tratoParaMensaje(r),
+    nombre: nombre ? ' '+nombre : '',
+    servicio: equipoTxt(r), equipos: equipoTxt(r),
+    atraso: atraso,
+    fecha_venc: m ? fechaLarga(m[3]+'-'+m[2]+'-'+m[1]) : '',
+    ultima: ult ? 'La última mantención registrada fue el '+fechaLarga(ult)+'.' : '',
+    valor: valorReferencia(r),
+    opciones: proximosDias(),
+    temporada: temporadaTxt(),
+    comuna: r.comuna || '',
+    venc: m ? ' '+f : '',
+    dias: dr === null ? '' : dr < 0 ? ' ('+Math.abs(dr)+' días vencido)' : dr === 0 ? ' (vence hoy)' : ' (quedan '+dr+' días)'
+  };
+}
+function limpiarMsg(t){
+  return String(t).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/ {2,}/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim();
+}
+var _renderPlantillaBase = renderPlantilla;
+renderPlantilla = function(tpl, vars){
+  var base = MSG_R ? waVars(MSG_R) : {};
+  return limpiarMsg(_renderPlantillaBase(tpl, Object.assign({}, base, vars)));
+};
+
+// ───────── envío con un toque ─────────
+waCliente = function(id){
+  var r = data.find(function(x){ return x.id === id; });
+  if (!r || !r.telefono) { toast('Este cliente no tiene teléfono'); return; }
+  if (r.telefonoFijo) { toast('Ese teléfono es fijo, no tiene WhatsApp'); return; }
+  var seg = segmentoContacto(r) || 'porvencer';
+  var paso = segmentoContacto(r) ? Math.max(1, pasoSugerido(r)) : 1;
+  var msg = limpiarMsg(_renderPlantillaBase(getPlantilla(claveTemplateSecuencia(seg, paso)), waVars(r)));
+  window.open('https://wa.me/'+numeroWa(r.telefono)+'?text='+encodeURIComponent(msg), '_blank');
+  // enviar el mensaje es el aviso: se marca solo y avanza el paso de la secuencia
+  setAviso(r, true);
+  r.contactoPaso = paso;
+  r.contactoFecha = hoyISO();
+  saveRecord(r);
+  render();
+};
+pedirResena = function(id){
+  var r = data.find(function(x){ return x.id === id; });
+  if (!r || !r.telefono) { toast('Este cliente no tiene teléfono'); return; }
+  if (r.telefonoFijo) { toast('Ese teléfono es fijo, no tiene WhatsApp'); return; }
+  var link = localStorage.getItem('google_review_link');
+  if (!link) {
+    link = prompt('Pega aquí el link de reseñas de tu Perfil de Empresa en Google (Google Business Profile → Pedir reseñas → Copiar link). Se guardará para usarlo siempre.');
+    if (!link) return;
+    link = link.trim(); localStorage.setItem('google_review_link', link);
+  }
+  var msg = limpiarMsg(_renderPlantillaBase(getPlantilla('resena'), Object.assign(waVars(r), {link: link})));
+  window.open('https://wa.me/'+numeroWa(r.telefono)+'?text='+encodeURIComponent(msg), '_blank');
+};
+// el respaldo de la mantención también sale con el trato del cliente
+var _respaldoMsgBase = enviarRespaldoMantencion;
+enviarRespaldoMantencion = function(cid, hi){
+  MSG_R = data.find(function(x){ return x.id === cid; }) || null;
+  try { return _respaldoMsgBase(cid, hi); } finally { setTimeout(function(){ MSG_R = null; }, 0); }
+};
+
+// vista previa de las plantillas con datos reales del cliente elegido
+plVars = function(r){
+  var v = r ? waVars(r) : {saludo:'Buenos días', trato:'Don Ricardo', servicio:'su equipo', atraso:'hace 30 días', opciones:'el martes 27 o el jueves 29 de octubre'};
+  return Object.assign(v, {cuando:'el '+hoyISO().split('-').reverse().join('-'), detalle:'Limpieza de filtros y revisión general del equipo.', link:'https://g.page/…'});
+};
+
+// ───────── trato: se elige en la ficha, no se adivina ─────────
+function setTrato(id, v){
+  var r = data.find(function(x){ return x.id === id; }); if (!r) return;
+  r.trato = v; saveRecord(r); render();
+  toast(v ? 'Los mensajes le hablarán de «'+tratoParaMensaje(r)+'»' : 'Los mensajes usarán solo el nombre');
+}
+function filaTrato(r){
+  var t = r.trato || '';
+  return '<div class="fx-row"><span>Trato en mensajes</span><span class="nf-pills">'
+    +['','Don','Doña'].map(function(v){ return '<button type="button" class="'+(t===v?'act':'')+'" onclick="setTrato('+r.id+',\''+v+'\')">'+(v||'Solo nombre')+'</button>'; }).join('')+'</span></div>'
+    +'<div class="fx-falta">Así empezará el mensaje: <b>'+esc(tratoParaMensaje(r))+'</b>'+(r.nombreMsg?'':' · puedes cambiar cómo llamarlo/a en Editar')+'</div>';
+}
 
 </script>
 </body>
