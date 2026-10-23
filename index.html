@@ -953,6 +953,8 @@ body{font-family:'Barlow','Inter',system-ui,sans-serif}
 .nc-aviso{font:600 12.5px 'Barlow',sans-serif;color:var(--aviso)}
 .nc-espera{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 12px;border-radius:10px;background:var(--aviso-bg);border:1px solid var(--aviso-border);color:var(--aviso);font:600 13px 'Barlow',sans-serif}
 .nc-espera b{font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.nc-undo{font:700 12.5px 'Barlow',sans-serif;padding:4px 11px;border-radius:8px;border:1px solid var(--aviso-border);background:transparent;color:var(--aviso);cursor:pointer}
+.nc-undo:hover{background:var(--aviso);color:#fff}
 .nc-espera span{margin-left:auto;font-weight:700}
 .nc.e-enviado::before{background:var(--aviso)}
 .nc.e-enviado{border-color:var(--aviso-border)}
@@ -2711,6 +2713,29 @@ function enEspera(r){
   if (!seg || paso < 1) return false;
   var dd = diasDesdeContacto(r);
   return dd !== null && dd >= 0 && dd < esperaDias(r, seg, paso);
+}
+// Saca al cliente de "Enviados" (por ejemplo si el mensaje no salió, o se
+// marcó por error) y lo deja donde estaba antes de enviar.
+function deshacerEnvio(id){
+  var r = data.find(function(x){return x.id===id;});
+  if (!r) return;
+  var pv = r.contactoPrev;
+  if (pv) {
+    r.contactoPaso = pv.paso; r.contactoFecha = pv.fecha;
+    r.aviso = pv.aviso; r.avisoFecha = pv.avisoFecha; r.seguimiento = pv.seg;
+  } else {
+    // envíos anteriores a esta función: no se guardó el estado previo; se
+    // retrocede un contacto y se deja vencido el plazo para que vuelva a tocar
+    var seg = segmentoContacto(r), p = Math.max(0, (r.contactoPaso||1) - 1);
+    r.contactoPaso = p;
+    if (p === 0) { r.contactoFecha = null; r.aviso = false; r.avisoFecha = null; }
+    else { var d = new Date(); d.setDate(d.getDate() - esperaDias(r, seg, p)); r.contactoFecha = ymd(d); }
+    if (r.seguimiento === 'Perdido') r.seguimiento = '';
+  }
+  delete r.contactoPrev;
+  saveRecord(r);
+  render();
+  toast('Envío deshecho: vuelve a pendientes');
 }
 function diasParaVolver(r){
   var seg = segmentoContacto(r), paso = r.contactoPaso||0, dd = diasDesdeContacto(r);
@@ -5316,7 +5341,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v35";
+var APP_VERSION = "v36";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -5824,7 +5849,8 @@ function tarjetaHTML(r){
   var espera = enEspera(r), vuelve = espera ? diasParaVolver(r) : 0;
   var contacto = espera
     ? '<div class="nc-espera"><b>Mensaje enviado</b> · contacto '+Math.min(r.contactoPaso||1,3)+' de 3 · '+(dc===0?'hoy':'hace '+plural(dc,'día','días'))
-      +'<span>vuelve a pendientes '+(vuelve<=0?'hoy':'en '+plural(vuelve,'día','días'))+'</span></div>'
+      +'<span>vuelve a pendientes '+(vuelve<=0?'hoy':'en '+plural(vuelve,'día','días'))+'</span>'
+      +'<button class="nc-undo" onclick="event.stopPropagation();deshacerEnvio('+r.id+')" title="Sacarlo de Enviados y dejarlo como estaba antes">Deshacer envío</button></div>'
     : (dc !== null && dc >= 0)
     ? '<div class="nc-aviso" style="margin-top:8px;color:var(--text3)">Último contacto: '+(dc===0?'hoy':'hace '+plural(dc,'día','días'))+(r.seguimiento?' · '+esc(r.seguimiento):'')+'</div>' : '';
   if (r.proximoContacto) contacto += '<div class="nc-aviso" style="margin-top:4px;color:'+(llamarHoy(r)?'var(--gold)':'var(--text3)')+'">Próximo contacto: '+esc(proximoTxt(r))+'</div>';
@@ -7981,6 +8007,8 @@ waCliente = function(id){
     var msg = limpiarMsg(_renderPlantillaBase(getPlantilla(clave), waVars(r)));
     var url = 'https://wa.me/'+numeroWa(r.telefono)+'?text='+encodeURIComponent(msg);
     if (w) w.location = url; else window.open(url, '_blank');
+    // se guarda cómo estaba antes, por si hay que deshacer el envío
+    r.contactoPrev = {paso: r.contactoPaso||0, fecha: r.contactoFecha||null, aviso: !!r.aviso, avisoFecha: r.avisoFecha||null, seg: r.seguimiento||''};
     // enviar el mensaje es el aviso: se marca solo y avanza el paso de la secuencia
     setAviso(r, true);
     r.contactoPaso = paso;
