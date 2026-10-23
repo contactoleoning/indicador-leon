@@ -2144,8 +2144,13 @@ function initFirebase(config) {
     // descarga de datos partía igual. Ahora la sesión la abre una persona
     // con su propio correo, y la base solo se conecta después de eso.
     setSyncStatus('off', 'sin sesión');
+    // La sesión debe sobrevivir a recargas y a que el navegador descarte la
+    // pestaña en segundo plano (el celular lo hace a los pocos minutos); si no,
+    // cada vez que la página se recarga hay que volver a poner la contraseña.
+    try { firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(e){ console.error('Persistencia de sesión:', e); }); } catch (e) {}
     firebase.auth().onAuthStateChanged(function(user){
       if (user && !user.isAnonymous) {
+        lastHiddenAt = Date.now();   // arranca limpio: cerrarSesion() lo deja "viejo" a propósito
         ocultarLockOverlay();
         setSyncStatus('syncing', 'conectando…');
         cargarRolUsuario(user, function(){ initFirebaseDb(app); });
@@ -5055,6 +5060,13 @@ function showInactivityWarning(){
 
 document.addEventListener('click', resetInactivityTimer);
 document.addEventListener('keydown', resetInactivityTimer);
+// Mirar la pantalla, desplazarse o tocar también es estar usando la app: antes
+// solo contaban el clic y el teclado. Se limita a una vez cada 30 s.
+['touchstart','scroll','mousemove'].forEach(function(ev){
+  document.addEventListener(ev, function(){
+    if (Date.now() - lastActivityAt > 30000) resetInactivityTimer();
+  }, {passive:true, capture:true});
+});
 
 document.addEventListener('visibilitychange',function(){
   if (document.visibilityState==='hidden') {
@@ -5063,11 +5075,16 @@ document.addEventListener('visibilitychange',function(){
     // Cerrar sesión de verdad, no solo tapar la pantalla: si quedara la
     // sesión abierta, el listener seguiría bajando datos con la app
     // "bloqueada".
-    if (!lastHiddenAt || (Date.now()-lastHiddenAt) > RELOCK_MS) cerrarSesion();
+    // Solo se cierra si había sesión y de verdad pasó el plazo oculta; antes
+    // un "visible" sin "oculta" previo (lastHiddenAt en 0) también la cerraba.
+    if (LEON_USUARIO && lastHiddenAt && (Date.now()-lastHiddenAt) > RELOCK_MS) cerrarSesion();
   }
 });
 window.addEventListener('pageshow',function(){
-  if (!lastHiddenAt || (Date.now()-lastHiddenAt) > RELOCK_MS) showLockOverlay();
+  // La pantalla de contraseña ya se muestra al cargar; al volver desde la
+  // memoria del navegador solo se cierra si pasó el plazo. Antes volvía a
+  // taparla aunque la sesión siguiera abierta.
+  if (LEON_USUARIO && lastHiddenAt && (Date.now()-lastHiddenAt) > RELOCK_MS) cerrarSesion();
 });
 
 // ═══════════════════════════════════════
@@ -5366,7 +5383,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v39";
+var APP_VERSION = "v40";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
