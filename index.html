@@ -3603,6 +3603,22 @@ function ta(el) {
 function toggleAviso(id) {
   const row = data.find(r=>r.id===id);
   if (!row) return;
+  // Quitar "Avisado" a un cliente que está en Enviados = deshacer el envío
+  if (row.aviso && enEspera(row)) { deshacerEnvio(id); return; }
+  if (!row.aviso && segmentoContacto(row) && row.seguimiento !== 'Perdido' && row.seguimiento !== 'Respondió') {
+    // Marcar "Avisado" a un vencido o por vencer cuenta como mensaje enviado
+    // (sale de pendientes y entra a Enviados), igual que mandarlo por WhatsApp.
+    const paso = Math.max(1, pasoSugerido(row));
+    row.contactoPrev = {paso: row.contactoPaso||0, fecha: row.contactoFecha||null, aviso: !!row.aviso, avisoFecha: row.avisoFecha||null, seg: row.seguimiento||''};
+    setAviso(row, true);
+    row.contactoPaso = paso;
+    row.contactoFecha = ymd(new Date());
+    if (esVencidoLargo(row) && paso >= 3) row.seguimiento = 'Perdido';
+    saveRecord(row);
+    render();
+    toast('Marcado como mensaje enviado ' + paso + ' de 3 · pasa a Enviados');
+    return;
+  }
   setAviso(row, !row.aviso);
   saveRecord(row);
   render();
@@ -5341,7 +5357,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v36";
+var APP_VERSION = "v37";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
