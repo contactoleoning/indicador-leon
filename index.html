@@ -5385,7 +5385,7 @@ function nombreClaveInd(n){
     .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-var APP_VERSION = "v41";
+var APP_VERSION = "v42";
 (function mostrarVersion(){
   function pintar(){
     var el=document.getElementById('app-version');
@@ -7903,13 +7903,38 @@ Object.assign(PLANTILLAS_DEFAULT, {
 '{saludo}, {trato}. Le saluda {firma} de León Ingeniería.\n\n'
 +'Revisando nuestros registros, la mantención de {servicio} venció el {fecha_venc} ({atraso}). {ultima}\n\n'
 +'Hacerla ahora nos permite dejar su equipo en óptimo estado: limpieza de filtros y serpentín de ambas unidades, y revisión del compresor y del funcionamiento general. Así se evitan fallas y se cuida el consumo de energía. Al terminar le dejamos un PDF con el comprobante del servicio realizado.{valor}\n\n'
-+'Tengo disponibilidad {opciones}. ¿Cuál le acomoda? Con solo responderme el día, le dejo reservado el horario.',
++'Tengo disponibilidad {opciones}. Dígame qué día le acomoda y yo le confirmo el horario.',
+
+  vencido_paso2:
+'{saludo}, {trato}. Le escribo de nuevo por si no alcanzó a ver mi mensaje anterior.\n\n'
++'La mantención de {servicio} sigue pendiente ({atraso}). Hacerla {temporada} evita fallas justo cuando más se usa el equipo.{valor}\n\n'
++'Aún tengo cupos {opciones}. Dígame qué día le acomoda y yo le confirmo el horario.',
+
+  recordatorio_porvencer:
+'{saludo}, {trato}. Le saluda {firma} de León Ingeniería para recordarle que la mantención de {servicio} vence el {fecha_venc} ({atraso}). {ultima}\n\n'
++'Si la agendamos con anticipación, dejamos su equipo en óptimo estado y usted no queda sin cobertura. La visita incluye mantención, limpieza de filtros y serpentín de ambas unidades, y revisión del compresor y del funcionamiento general. Al terminar le dejamos un PDF con el comprobante del servicio realizado.{valor}\n\n'
++'Tengo disponibilidad {opciones}. Dígame qué día le acomoda y yo le confirmo el horario.',
+
+  porvencer_paso2:
+'{saludo}, {trato}. Le reenvío mi mensaje por si no alcanzó a verlo: la mantención de {servicio} vence el {fecha_venc}.\n\n'
++'Tengo horarios {opciones}. Dígame qué día prefiere y yo le confirmo el horario.',
+
+  porvencer_paso3:
+'{saludo}, {trato}. Le aviso que la mantención de {servicio} vence {atraso}. Si la dejamos pasar, queda sin cobertura hasta la próxima visita.\n\n'
++'¿La coordinamos {opciones}? Dígame qué día le acomoda y le confirmo el horario.',
+
+  vencido_largo_paso2:
+'{saludo}, {trato}. Vuelvo a escribirle por la mantención de {servicio}, pendiente {atraso}.\n\n'
++'Solo necesito saber una cosa: ¿quiere seguir con nuestro servicio?\n\n'
++'1 = Sí, agendemos ({opciones}; usted elige el día y yo le confirmo el horario).\n'
++'2 = No, gracias.\n\n'
++'Con un número me basta.',
 
   vencido_largo:
 '{saludo}, {trato}. Le saluda {firma} de León Ingeniería.\n\n'
 +'La mantención de {servicio} venció el {fecha_venc} ({atraso}). {ultima}{valor}\n\n'
 +'Para no seguir escribiéndole si ya no lo necesita, ¿me confirma si quiere seguir contando con nuestro servicio de mantención? Si es que sí, podemos dejar su equipo en óptimo estado en una sola visita.\n\n'
-+'Responda 1 si desea agendar: tengo disponibilidad {opciones}.\n'
++'Responda 1 si desea agendar: tengo disponibilidad {opciones}; usted elige el día y yo le confirmo el horario.\n'
 +'Responda 2 si prefiere no continuar, y dejo su ficha sin más recordatorios.\n\n'
 +'Cualquiera sea su respuesta, se lo agradezco.'
 });
@@ -7939,6 +7964,14 @@ function mesL(d){ return MESES_L[d.getMonth()].toLowerCase(); }
 function fechaLarga(iso){ var d = deISO(iso); return d.getDate()+' de '+mesL(d)+' de '+d.getFullYear(); }
 function proximosDias(){
   var d0 = new Date(); d0.setHours(0,0,0,0);
+  // Jueves o viernes: ya no queda margen esta semana, así que se ofrece la
+  // próxima completa, a partir del lunes. El cliente elige el día y nosotros
+  // le confirmamos el horario.
+  if (d0.getDay() === 4 || d0.getDay() === 5){
+    var lun = new Date(d0); lun.setDate(d0.getDate() + (8 - d0.getDay()));   // jueves +4, viernes +3
+    var vie = new Date(lun); vie.setDate(lun.getDate() + 4);
+    return 'la próxima semana, cualquier día de lunes '+lun.getDate()+(lun.getMonth() === vie.getMonth() ? '' : ' de '+mesL(lun))+' a viernes '+vie.getDate()+' de '+mesL(vie);
+  }
   var carga = {};
   data.forEach(function(r){ if (r.visitaAgendada && r.visitaAgendada.fecha) carga[r.visitaAgendada.fecha] = (carga[r.visitaAgendada.fecha] || 0) + 1; });
   var out = [];
